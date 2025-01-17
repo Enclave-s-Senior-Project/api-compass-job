@@ -1,5 +1,6 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
+import { AUTH_OPTIONS, TOKEN_NAME } from '@modules/auth';
 // import { AUTH_OPTIONS, TOKEN_NAME } from '@auth';
 
 const title = 'Nestjs Framework';
@@ -16,7 +17,7 @@ export const SwaggerConfig = (app: INestApplication, apiVersion: string) => {
     .setTitle(title)
     .setDescription(description)
     .setVersion(apiVersion)
-    // .addBearerAuth(AUTH_OPTIONS, TOKEN_NAME)
+    .addBearerAuth(AUTH_OPTIONS, TOKEN_NAME)
     .build();
 
   const document = SwaggerModule.createDocument(app, options);

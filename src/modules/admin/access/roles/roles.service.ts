@@ -15,7 +15,7 @@ import {
 } from '@libs/pagination';
 import {
   CreateRoleRequestDto,
-  UpdateRoleRequestDto,
+  // UpdateRoleRequestDto,
   RoleResponseDto,
 } from './dtos';
 import { RolesRepository } from './roles.repository';

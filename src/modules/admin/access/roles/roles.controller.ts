@@ -1,14 +1,4 @@
-import {
-  ValidationPipe,
-  ParseIntPipe,
-  Controller,
-  UseGuards,
-  Param,
-  Body,
-  Get,
-  Post,
-  Put,
-} from '@nestjs/common';
+import { ValidationPipe, Controller, Body, Get, Post } from '@nestjs/common';
 import {
   ApiPaginatedResponse,
   PaginationParams,
@@ -22,11 +12,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import {
-  UpdateRoleRequestDto,
-  CreateRoleRequestDto,
-  RoleResponseDto,
-} from './dtos';
+import { CreateRoleRequestDto, RoleResponseDto } from './dtos';
 import { ApiGlobalResponse } from '../../../../common/decorators';
 import { RolesService } from './roles.service';
 import { Permissions, TOKEN_NAME } from '@auth';

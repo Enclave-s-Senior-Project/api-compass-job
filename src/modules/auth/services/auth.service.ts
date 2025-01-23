@@ -6,6 +6,7 @@ import {
   DisabledUserException,
 } from '../../../common/http/exceptions';
 import { UserStatus } from '@admin/access/users/user-status.enum';
+import { omit } from 'lodash';
 // import { UserEntity } from '@admin/access/users/user.entity';
 import {
   AuthCredentialsRequestDto,
@@ -50,14 +51,16 @@ export class AuthService {
     if (user.status == UserStatus.Inactive) {
       throw new DisabledUserException(ErrorType.InactiveUser);
     }
-
+    // payload ignore password using lodash
+    const userPayload = omit(user, ['password', 'active']);
+    console.log('userPayload', userPayload);
     const payload: JwtPayload = {
-      id: user.id.toString(),
-      username: user.username,
+      id: userPayload.id,
+      username: userPayload.username,
     };
     const token = await this.tokenService.generateAuthToken(payload);
     return {
-      user,
+      user: userPayload,
       token,
       access: {
         roles: user.roles.map((role) => ({ name: role })),

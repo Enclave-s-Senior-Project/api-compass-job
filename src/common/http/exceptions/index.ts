@@ -10,14 +10,14 @@ import { RoleExistsException } from './role-exists.exception';
 import { UserExistsException } from './user-exists.exception';
 
 export {
-  ForeignKeyConflictException,
-  PermissionExistsException,
-  RoleExistsException,
-  UserExistsException,
-  InvalidCurrentPasswordException,
-  InvalidCredentialsException,
-  DisabledUserException,
-  InvalidTokenException,
-  AccessTokenExpiredException,
-  RefreshTokenExpiredException,
+    ForeignKeyConflictException,
+    PermissionExistsException,
+    RoleExistsException,
+    UserExistsException,
+    InvalidCurrentPasswordException,
+    InvalidCredentialsException,
+    DisabledUserException,
+    InvalidTokenException,
+    AccessTokenExpiredException,
+    RefreshTokenExpiredException,
 };

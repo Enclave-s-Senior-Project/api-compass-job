@@ -9,32 +9,32 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [
-    ConfigModule,
-    PassportModule.register({
-      defaultStrategy: 'jwt',
-    }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('TOKEN_SECRET'),
-        signOptions: {
-          expiresIn: config.get('ACCESS_TOKEN_EXPIRES_IN'),
+    imports: [
+        ConfigModule,
+        PassportModule.register({
+            defaultStrategy: 'jwt',
+        }),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: (config: ConfigService) => ({
+                secret: config.get('TOKEN_SECRET'),
+                signOptions: {
+                    expiresIn: config.get('ACCESS_TOKEN_EXPIRES_IN'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
+    ],
+    controllers: [AuthController],
+    providers: [
+        AuthService,
+        JwtStrategy,
+        TokenService,
+        {
+            provide: APP_GUARD,
+            useClass: JwtAuthGuard,
         },
-      }),
-      inject: [ConfigService],
-    }),
-  ],
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    JwtStrategy,
-    TokenService,
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-  ],
-  exports: [JwtStrategy, PassportModule, TokenService, AuthService],
+    ],
+    exports: [JwtStrategy, PassportModule, TokenService, AuthService],
 })
 export class AuthModule {}

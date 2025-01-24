@@ -5,12 +5,12 @@ import { Jobs } from './Jobs';
 @Index('tags_name_key', ['name'], { unique: true })
 @Entity('tags', { schema: 'public' })
 export class Tags {
-  @Column('uuid', { primary: true, name: 'id' })
-  id: string;
+    @Column('uuid', { primary: true, name: 'id' })
+    id: string;
 
-  @Column('character varying', { name: 'name', unique: true, length: 255 })
-  name: string;
+    @Column('character varying', { name: 'name', unique: true, length: 255 })
+    name: string;
 
-  @ManyToMany(() => Jobs, (jobs) => jobs.tags)
-  jobs: Jobs[];
+    @ManyToMany(() => Jobs, (jobs) => jobs.tags)
+    jobs: Jobs[];
 }

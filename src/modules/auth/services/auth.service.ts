@@ -1,7 +1,7 @@
 // import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable } from '@nestjs/common';
-import { ErrorType } from '../../../common/enums';
-import { InvalidCredentialsException, DisabledUserException } from '../../../common/http/exceptions';
+import { ErrorType } from '@common/enums';
+import { InvalidCredentialsException, DisabledUserException } from '@common/http/exceptions';
 import { UserStatus } from '@admin/access/users/user-status.enum';
 import { omit } from 'lodash';
 // import { UserEntity } from '@admin/access/users/user.entity';
@@ -13,11 +13,7 @@ import { hardcodedUsers } from '../mocks/indentify-user.mock';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        // @InjectRepository(UsersRepository)
-        // private usersRepository: UsersRepository,
-        private tokenService: TokenService
-    ) {}
+    constructor(private tokenService: TokenService) {}
 
     /**
      * User authentication

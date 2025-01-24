@@ -20,7 +20,6 @@ import { TokenService, AuthService } from './services';
 
 // @SkipAuth()
 @ApiTags('Auth')
-@ApiBearerAuth(TOKEN_NAME)
 @Controller({
     path: 'auth',
     version: '1',
@@ -31,6 +30,7 @@ export class AuthController {
         private tokenService: TokenService
     ) {}
     @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'User authentication' })
     @ApiOkResponse({ description: 'Successfully authenticated user' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })

@@ -1,5 +1,6 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import * as path from 'node:path';
 
 /**
  * Setup default connection in the application

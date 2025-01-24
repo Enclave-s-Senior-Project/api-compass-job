@@ -1,0 +1,20 @@
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, JobEntity } from '@database/entities';
+
+@Entity({ name: 'categories' })
+export class CategoryEntity extends BaseEntity {
+    @PrimaryGeneratedColumn('uuid', { name: 'category_id' })
+    readonly categoryId: string;
+
+    @Column({ name: 'category_name', type: 'varchar', length: 255 })
+    readonly categoryName: string;
+
+    //     relationships
+    @ManyToOne(() => CategoryEntity, (category) => category.parent)
+    @JoinColumn({ name: 'parent_id' })
+    readonly parent: CategoryEntity;
+
+    @ManyToMany(() => JobEntity, (job) => job.categories)
+    @JoinTable({ name: 'job_categories', joinColumn: { name: 'category_id' }, inverseJoinColumn: { name: 'job_id' } })
+    readonly jobs: JobEntity[];
+}

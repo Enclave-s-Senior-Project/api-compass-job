@@ -1,5 +1,5 @@
 export interface AuthAccessDto {
-  roles: {
-    name: string;
-  };
+    roles: {
+        name: string;
+    };
 }

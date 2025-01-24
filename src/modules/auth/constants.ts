@@ -3,7 +3,7 @@ import { SecuritySchemeObject } from '@nestjs/swagger/dist/interfaces/open-api-s
 export const SKIP_AUTH = 'skipAuth';
 export const TOKEN_NAME = 'access-token';
 export const AUTH_OPTIONS: SecuritySchemeObject = {
-  type: 'http',
-  scheme: 'bearer',
-  bearerFormat: 'Bearer',
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'Bearer',
 };

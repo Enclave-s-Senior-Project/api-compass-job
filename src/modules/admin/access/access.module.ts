@@ -3,6 +3,6 @@ import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
-  imports: [RolesModule, UsersModule],
+    imports: [RolesModule, UsersModule],
 })
 export class AccessModule {}

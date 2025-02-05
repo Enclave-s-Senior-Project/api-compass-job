@@ -6,8 +6,10 @@ import { LoginResponseDto } from './login-response.dto';
 import { AuthAccessDto } from './auth-access.dto';
 import { JwtPayload } from './jwt-payload.dto';
 import { TokenDto } from './token.dto';
-
+import { AuthRegisterRequestDto } from './auth-credentials-register-request.dto';
+import { RegisterResponseDto, RegisterResponseDtoBuilder } from './register-response.dto';
 export {
+    AuthRegisterRequestDto,
     AuthCredentialsRequestDto,
     ValidateTokenResponseDto,
     ValidateTokenRequestDto,
@@ -16,4 +18,6 @@ export {
     AuthAccessDto,
     JwtPayload,
     TokenDto,
+    RegisterResponseDto,
+    RegisterResponseDtoBuilder,
 };

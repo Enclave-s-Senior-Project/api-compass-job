@@ -7,9 +7,15 @@ import { JwtStrategy } from './jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { AccountRepository } from './repositories';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountEntity } from '@database/entities';
+import { UserModule } from '@modules/user/user.module';
+import { RoleModule } from '@modules/role/role.module';
 
 @Module({
     imports: [
+        TypeOrmModule.forFeature([AccountEntity]),
         ConfigModule,
         PassportModule.register({
             defaultStrategy: 'jwt',
@@ -24,6 +30,8 @@ import { JwtModule } from '@nestjs/jwt';
             }),
             inject: [ConfigService],
         }),
+        UserModule,
+        RoleModule,
     ],
     controllers: [AuthController],
     providers: [
@@ -34,6 +42,7 @@ import { JwtModule } from '@nestjs/jwt';
             provide: APP_GUARD,
             useClass: JwtAuthGuard,
         },
+        AccountRepository,
     ],
     exports: [JwtStrategy, PassportModule, TokenService, AuthService],
 })

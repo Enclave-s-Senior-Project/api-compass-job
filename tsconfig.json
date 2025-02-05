@@ -16,6 +16,8 @@
       "@admin/*":["src/modules/admin/*"],
       "@auth":["src/modules/auth/"],
       "@libs/*":["src/libs/*"],
+      "@builder/*":["src/builder/*"],
+      "@types/*":["src/types/*"],
     },
     "module": "commonjs",
     "declaration": true,

@@ -1,5 +1,4 @@
 // src/types/common-enums.d.ts
-declare module 'common-enums' {
     export enum AccountStatusType {
         ACTIVE = 'ACTIVE',
         PENDING = 'PENDING',
@@ -25,4 +24,4 @@ declare module 'common-enums' {
         LINKEDIN = 'LINKEDIN',
         YOUTUBE = 'YOUTUBE',
     }
-}
+

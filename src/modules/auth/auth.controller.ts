@@ -13,8 +13,10 @@ import {
     ValidateTokenResponseDto,
     ValidateTokenRequestDto,
     RefreshTokenRequestDto,
+    AuthRegisterRequestDto,
     LoginResponseDto,
     TokenDto,
+    RegisterResponseDto,
 } from './dtos';
 import { TokenService, AuthService } from './services';
 
@@ -30,7 +32,6 @@ export class AuthController {
         private tokenService: TokenService
     ) {}
     @SkipAuth()
-    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'User authentication' })
     @ApiOkResponse({ description: 'Successfully authenticated user' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
@@ -39,6 +40,16 @@ export class AuthController {
     login(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto): Promise<LoginResponseDto> {
         return this.authService.login(authCredentialsDto);
     }
+
+    @SkipAuth()
+    @ApiOperation({ description: 'User register account' })
+    @ApiOkResponse({ description: 'Successfully register account user' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('/register')
+    register(@Body(ValidationPipe) authCredentialsDto: AuthRegisterRequestDto): Promise<RegisterResponseDto> {
+        return this.authService.register(authCredentialsDto);
+    }
+
     @SkipAuth()
     @ApiOperation({ description: 'Renew access in the application' })
     @ApiOkResponse({ description: 'Token successfully renewed' })

@@ -1,3 +1,3 @@
-import { ProfileRepository } from './account.repository';
+import { ProfileRepository } from './profile.repository';
 
 export { ProfileRepository };

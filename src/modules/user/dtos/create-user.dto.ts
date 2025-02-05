@@ -1,3 +1,4 @@
+import { AccountEntity } from '@database/entities';
 import { IsBoolean, IsDateString, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 enum GenderType {
@@ -22,8 +23,8 @@ export class CreateUserDto {
     phone?: string;
 
     @IsOptional()
-    @IsBoolean()
-    gender?: boolean;
+    @IsEnum(GenderType)
+    gender?: GenderType;
 
     @IsOptional()
     @IsString()
@@ -41,8 +42,12 @@ export class CreateUserDto {
     @IsDateString()
     expiredPremium?: Date;
 
+    @IsOptional()
     @IsNotEmpty()
     @IsEmail()
-    email: string;
+    email?: string;
 
+    @IsString()
+    @IsNotEmpty()
+    account: string;
 }

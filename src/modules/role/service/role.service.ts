@@ -3,10 +3,10 @@ import { RoleRepository } from '../repositories';
 
 @Injectable()
 export class RoleService {
-    constructor(private readonly RoleRepository: RoleRepository){}
+    constructor(private readonly RoleRepository: RoleRepository) {}
 
     public async getRoleByName(name: string) {
-        return this.RoleRepository.findOne({ where: { role: name} });
+        return this.RoleRepository.findOne({ where: { role: name } });
     }
     async createRole(name: string) {
         try {

@@ -16,8 +16,10 @@ import { hardcodedUsers } from '../mocks/indentify-user.mock';
 import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
 import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
-import { AccountEntity } from '@database/entities';
+import { AccountEntity, ProfileEntity } from '@database/entities';
 import { RoleService } from '@modules/role/service/role.service';
+import { CreateUserDto } from '@modules/user/dtos';
+import { UserEntity } from '@modules/admin/access/users/user.entity';
 export enum AccountStatusType {
     ACTIVE = 'ACTIVE',
     PENDING = 'PENDING',
@@ -29,7 +31,7 @@ export class AuthService {
         private readonly tokenService: TokenService,
         private readonly accountRepository: AccountRepository,
         private readonly userService: UserService,
-        private readonly roleService: RoleService,
+        private readonly roleService: RoleService
     ) {}
 
     /**
@@ -76,27 +78,39 @@ export class AuthService {
      * @param authRegisterDto {AuthRegisterRequestDto}
      * @returns {Promise<RegisterResponseDto>}
      */
-    public async register({ username, password, email, full_name }: AuthRegisterRequestDto): Promise<RegisterResponseDto> {
+    public async register({
+        username,
+        password,
+        email,
+        full_name,
+    }: AuthRegisterRequestDto): Promise<RegisterResponseDto> {
         try {
             const existingAccount = await this.getAccountByEmail(email);
             if (existingAccount.length > 0) {
-                return new RegisterResponseDtoBuilder().setMessageCode('AUTH_REGISTER_EMAIL_EXISTS').setCode(400).build();
+                return new RegisterResponseDtoBuilder()
+                    .setMessageCode('AUTH_REGISTER_EMAIL_EXISTS')
+                    .setCode(400)
+                    .build();
             }
-    
 
             const hashedPassword = await HashHelper.encrypt(password);
-    
-            let role =await this.roleService.getRoleByName('USER');
+
+            let role = await this.roleService.getRoleByName('USER');
             if (!role) {
                 role = await this.roleService.createRole('USER');
             }
-            let account = await this.accountRepository.save({
+            let account: AccountEntity = await this.accountRepository.save({
                 email: email,
                 password: hashedPassword,
                 status: AccountStatusType.PENDING,
                 role,
+                isActive: false,
             });
-    
+            const user: CreateUserDto = {
+                fullName: full_name, // Ensure full name is assigned
+                account: account.accountId,
+            };
+            await this.userService.createUser(user);
             return new RegisterResponseDtoBuilder().setValue(account).success().build();
         } catch (error) {
             console.error('Error registering user:', error);
@@ -111,7 +125,6 @@ export class AuthService {
      */
     private async getAccountByEmail(email: string) {
         try {
-            console.log('Fetching account by email:', email);
             return await this.accountRepository.find({ where: { email } });
         } catch (error) {
             console.error('Error fetching account by email:', error);

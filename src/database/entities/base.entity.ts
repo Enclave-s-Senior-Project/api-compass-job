@@ -1,4 +1,4 @@
-import { CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export abstract class BaseEntity {
     @CreateDateColumn({
@@ -18,4 +18,7 @@ export abstract class BaseEntity {
         nullable: false,
     })
     updatedAt: Date;
+
+    @Column({ name: 'is_active', type: 'boolean', nullable: true })
+    isActive?: boolean;
 }

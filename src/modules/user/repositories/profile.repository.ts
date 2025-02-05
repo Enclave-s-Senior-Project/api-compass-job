@@ -5,10 +5,10 @@ import { ProfileEntity } from '@database/entities';
 
 @Injectable()
 export class ProfileRepository extends Repository<ProfileEntity> {
-  constructor(
-    @InjectRepository(ProfileEntity)
-    private readonly repository: Repository<ProfileEntity>,
-  ) {
-    super(repository.target, repository.manager, repository.queryRunner);
-  }
+    constructor(
+        @InjectRepository(ProfileEntity)
+        private readonly repository: Repository<ProfileEntity>
+    ) {
+        super(repository.target, repository.manager, repository.queryRunner);
+    }
 }

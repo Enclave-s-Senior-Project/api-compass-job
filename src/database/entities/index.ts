@@ -1,16 +1,33 @@
 import { BaseEntity } from './base.entity';
+import { AccountEntity } from './account.entity';
+import { AddressEntity } from './address.entity';
+import { AppliedJobEntity } from './applied-job.entity';
+import { CategoryEntity } from './category.entity';
+import { CvEntity } from './cv.entity';
+import { EnterpriseEntity } from './enterprise.entity';
+import { JobEntity } from './job.entity';
+import { JobRecentlyEntity } from './job-recently.entity';
+import { ProfileEntity } from './profile.entity';
+import { RoleEntity } from './role.entity';
+import { TagEntity } from './tag.entity';
+import { UserRatingEntity } from './user-rating.entity';
+import { WebsiteEntity } from './website.entity';
+import { GenderType } from './profile.entity';
 
-export { BaseEntity };
-export * from './account.entity';
-export * from './enterprise.entity';
-export * from './job.entity';
-export * from './job-recently.entity';
-export * from './profile.entity';
-export * from './role.entity';
-export * from './tag.entity';
-export * from './user-rating.entity';
-export * from './website.entity';
-export * from './cv.entity';
-export * from './applied-job.entity';
-export * from './category.entity';
-export * from './address.entity';
+export {
+    GenderType,
+    BaseEntity,
+    AccountEntity,
+    EnterpriseEntity,
+    JobEntity,
+    JobRecentlyEntity,
+    ProfileEntity,
+    RoleEntity,
+    TagEntity,
+    UserRatingEntity,
+    WebsiteEntity,
+    CvEntity,
+    AppliedJobEntity,
+    CategoryEntity,
+    AddressEntity,
+};

@@ -29,9 +29,11 @@ export class TokenService {
     public generateAuthToken(payload: JwtPayload): TokenDto {
         const accessTokenExpires = this.configService.get('ACCESS_TOKEN_EXPIRES_IN');
         const refreshTokenExpires = this.configService.get('REFRESH_TOKEN_EXPIRES_IN');
+        const accessTokenSecret = this.configService.get('ACCESS_TOKEN_SECRET');
+        const refreshTokenSecret = this.configService.get('REFRESH_TOKEN_SECRET');
         const tokenType = this.configService.get('TOKEN_TYPE');
-        const accessToken = this.generateToken(payload, accessTokenExpires);
-        const refreshToken = this.generateToken(payload, refreshTokenExpires);
+        const accessToken = this.generateToken(payload, accessTokenExpires, accessTokenSecret);
+        const refreshToken = this.generateToken(payload, refreshTokenExpires, refreshTokenSecret);
 
         return {
             tokenType,
@@ -39,16 +41,6 @@ export class TokenService {
             accessTokenExpires,
             refreshToken,
         };
-    }
-
-    /**
-     * Generate Refresh token(JWT) service for generating new refresh and access tokens
-     * @param payload {JwtPayload}
-     * @returns  Returns access and refresh tokens with expiry or error
-     */
-    public generateRefreshToken(refreshToken: string): TokenDto {
-        const { id, username } = this.verifyToken(refreshToken, TokenType.RefreshToken);
-        return this.generateAuthToken({ id, username });
     }
 
     /**
@@ -99,8 +91,8 @@ export class TokenService {
      * @param expiresIn {string}
      * @returns JWT
      */
-    private generateToken(payload: JwtPayload, expiresIn: string): string {
-        const token = this.jwtService.sign(payload, { expiresIn });
+    private generateToken(payload: JwtPayload, expiresIn: string, secretKey: string): string {
+        const token = this.jwtService.sign(payload, { expiresIn, secret: secretKey });
         return token;
     }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ErrorType } from '@common/enums';
 import { InvalidCredentialsException, DisabledUserException } from '@common/http/exceptions';
 import { UserStatus } from '@admin/access/users/user-status.enum';
@@ -17,9 +17,11 @@ import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
 import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
 import { AccountEntity, ProfileEntity } from '@database/entities';
-import { RoleService } from '@modules/role/service/role.service';
 import { CreateUserDto } from '@modules/user/dtos';
 import { UserEntity } from '@modules/admin/access/users/user.entity';
+import { Cacheable } from 'cacheable';
+import { RoleService } from '@modules/role/service/role.service';
+import { ConfigService } from '@nestjs/config';
 export enum AccountStatusType {
     ACTIVE = 'ACTIVE',
     PENDING = 'PENDING',
@@ -31,7 +33,9 @@ export class AuthService {
         private readonly tokenService: TokenService,
         private readonly accountRepository: AccountRepository,
         private readonly userService: UserService,
-        private readonly roleService: RoleService
+        private readonly roleService: RoleService,
+        private readonly configService: ConfigService,
+        @Inject('CACHE_INSTANCE') private readonly cacheInstance: Cacheable
     ) {}
 
     /**
@@ -59,8 +63,8 @@ export class AuthService {
 
         const userPayload = omit(user, ['password', 'active']);
         const payload: JwtPayload = {
-            id: userPayload.id,
-            username: userPayload.username,
+            accountId: userPayload.id,
+            roles: ['CANDIDATE', 'ENTERPRISE'],
         };
 
         const token = await this.tokenService.generateAuthToken(payload);
@@ -71,6 +75,7 @@ export class AuthService {
                 roles: user.roles.map((role) => ({ name: role })),
             },
         };
+        // return {} as LoginResponseDto;
     }
 
     /**
@@ -129,6 +134,74 @@ export class AuthService {
         } catch (error) {
             console.error('Error fetching account by email:', error);
             return [];
+        }
+    }
+
+    public async refreshToken(payload: JwtPayload, refreshToken: string) {
+        try {
+            const validRefreshToken = await this.validateRefreshTokenOnCache(payload.accountId, refreshToken);
+
+            if (!validRefreshToken) {
+                throw new InvalidCredentialsException();
+            }
+
+            const roles = [];
+            // fetch roles of user
+            // code later........
+
+            // generate new token
+            const {
+                accessToken,
+                accessTokenExpires,
+                refreshToken: newRefreshToken,
+                tokenType,
+            } = this.tokenService.generateAuthToken({ accountId: payload.accountId, roles: roles });
+
+            // store new fresh token to redis
+            await this.storeRefreshTokenOnCache(payload.accountId, newRefreshToken);
+
+            return {
+                accessToken,
+                accessTokenExpires,
+                refreshToken: newRefreshToken,
+                tokenType,
+            };
+            return { accessToken, accessTokenExpires, refreshToken: newRefreshToken, tokenType };
+        } catch (error) {
+            console.error('Error refresh token:', error);
+            throw new InternalServerErrorException();
+        }
+    }
+
+    private async storeRefreshTokenOnCache(accountId: string, refreshToken: string) {
+        try {
+            const expiresIn = this.configService.get('REFRESH_TOKEN_EXPIRES_IN');
+            await this.cacheInstance.set(`refreshtoken:${accountId}:${refreshToken}`, 1, expiresIn);
+        } catch (error) {
+            console.log('Store refresh token failed: ' + error);
+            throw new InternalServerErrorException();
+        }
+    }
+
+    private async validateRefreshTokenOnCache(accountId: string, refreshToken: string) {
+        try {
+            const existedRefreshToken = await this.cacheInstance.get(`refreshtoken:${accountId}:${refreshToken}`);
+
+            if (existedRefreshToken) await this.deleteRefreshTokenOnCache(accountId, refreshToken);
+
+            return existedRefreshToken;
+        } catch (error) {
+            console.log('Validate refresh token failed: ' + error);
+            throw new InternalServerErrorException();
+        }
+    }
+
+    private async deleteRefreshTokenOnCache(accountId: string, refreshToken: string) {
+        try {
+            await this.cacheInstance.delete(`refreshtoken:${accountId}:${refreshToken}`);
+        } catch (error) {
+            console.log('Delete refresh token failed: ' + error);
+            throw new InternalServerErrorException();
         }
     }
 }

@@ -1,4 +1,4 @@
-import { ValidationPipe, Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { ValidationPipe, Controller, Post, Body, Get, UseGuards, Res, Req } from '@nestjs/common';
 import {
     ApiInternalServerErrorResponse,
     ApiUnauthorizedResponse,
@@ -17,8 +17,11 @@ import {
     LoginResponseDto,
     TokenDto,
     RegisterResponseDto,
+    JwtPayload,
 } from './dtos';
 import { TokenService, AuthService } from './services';
+import { Response } from 'express';
+import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 
 // @SkipAuth()
 @ApiTags('Auth')
@@ -37,8 +40,14 @@ export class AuthController {
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Post('/login')
-    login(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto): Promise<LoginResponseDto> {
-        return this.authService.login(authCredentialsDto);
+    async login(
+        @Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto,
+        @Res() response: Response
+    ): Promise<void> {
+        const loginDto = await this.authService.login(authCredentialsDto);
+        response
+            .cookie('refresh-token', loginDto.token.refreshToken, { maxAge: 10000000000, httpOnly: true, secure: true })
+            .json(loginDto);
     }
 
     @SkipAuth()
@@ -50,16 +59,6 @@ export class AuthController {
         return this.authService.register(authCredentialsDto);
     }
 
-    @SkipAuth()
-    @ApiOperation({ description: 'Renew access in the application' })
-    @ApiOkResponse({ description: 'Token successfully renewed' })
-    @ApiUnauthorizedResponse({ description: 'Refresh token invalid or expired' })
-    @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @Post('/token/refresh')
-    async getNewToken(@Body(ValidationPipe) refreshTokenDto: RefreshTokenRequestDto): Promise<TokenDto> {
-        const { refreshToken } = refreshTokenDto;
-        return this.tokenService.generateRefreshToken(refreshToken);
-    }
     @SkipAuth()
     @ApiOperation({ description: 'Validate token' })
     @ApiOkResponse({ description: 'Validation was successful' })
@@ -80,5 +79,18 @@ export class AuthController {
     @Get('/me')
     async getMe(@CurrentUser() user: any): Promise<any> {
         return user;
+    }
+
+    @SkipAuth()
+    @UseGuards(JwtRefreshAuthGuard)
+    @Post('/refresh-token')
+    async refreshToken(@Req() request: any, @Res() response: Response): Promise<void> {
+        const refreshToken = request.cookies?.['refresh-token'];
+        const { refreshToken: newRefreshToken, ...token } = await this.authService.refreshToken(
+            request?.user,
+            refreshToken
+        );
+
+        response.cookie('refresh-token', newRefreshToken).json({ token });
     }
 }

@@ -11,9 +11,9 @@ import { AccountRepository } from './repositories';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountEntity } from '@database/entities';
 import { UserModule } from '@modules/user/user.module';
-import { RoleModule } from '@modules/role/role.module';
 import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
 import { CacheModule } from 'src/cache/cache.module';
+import { RoleModule } from '@modules/role/role.module';
 
 @Module({
     imports: [

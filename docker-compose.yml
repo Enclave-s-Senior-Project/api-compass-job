@@ -1,6 +1,18 @@
-version: '3.7'
+version: '3.8'
 
 services:
+  cache:
+    container_name: redis_cache
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '${REDIS_PORT}:6379'
+    command: >
+      redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD} 
+      --user ${REDIS_USER} on >${REDIS_PASSWORD} ~* +@all
+    volumes: 
+      - cache:/data
+
   boilerplate_db:
     container_name: boilerplate_db
     image: postgres:12.3-alpine
@@ -13,5 +25,8 @@ services:
       - ${TYPEORM_PORT}:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+
 volumes:
+  cache:
   pgdata:

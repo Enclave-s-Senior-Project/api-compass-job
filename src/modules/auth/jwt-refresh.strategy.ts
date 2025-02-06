@@ -15,7 +15,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
                     let token = null;
                     if (request && request.cookies) {
                         token = request?.cookies?.['refresh-token'];
-                        console.log("Extracted refresh token: ", token); // Debugging the extracted token
+                        console.log('Extracted refresh token: ', token); // Debugging the extracted token
                         return token;
                     }
                     throw new InvalidCredentialsException();
@@ -28,7 +28,6 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     }
 
     async validate(payload: any): Promise<JwtPayload> {
-
         if (!payload) {
             throw new InvalidCredentialsException();
         }

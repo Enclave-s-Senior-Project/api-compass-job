@@ -12,6 +12,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountEntity } from '@database/entities';
 import { UserModule } from '@modules/user/user.module';
 import { RoleModule } from '@modules/role/role.module';
+import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
+import { CacheModule } from 'src/cache/cache.module';
 
 @Module({
     imports: [
@@ -23,7 +25,7 @@ import { RoleModule } from '@modules/role/role.module';
         JwtModule.registerAsync({
             imports: [ConfigModule],
             useFactory: (config: ConfigService) => ({
-                secret: config.get('TOKEN_SECRET'),
+                secret: config.get('ACCESS_TOKEN_SECRET'),
                 signOptions: {
                     expiresIn: config.get('ACCESS_TOKEN_EXPIRES_IN'),
                 },
@@ -32,11 +34,13 @@ import { RoleModule } from '@modules/role/role.module';
         }),
         UserModule,
         RoleModule,
+        CacheModule,
     ],
     controllers: [AuthController],
     providers: [
         AuthService,
         JwtStrategy,
+        JwtRefreshStrategy,
         TokenService,
         {
             provide: APP_GUARD,
@@ -44,6 +48,6 @@ import { RoleModule } from '@modules/role/role.module';
         },
         AccountRepository,
     ],
-    exports: [JwtStrategy, PassportModule, TokenService, AuthService],
+    exports: [JwtStrategy, JwtRefreshStrategy, PassportModule, TokenService, AuthService],
 })
 export class AuthModule {}

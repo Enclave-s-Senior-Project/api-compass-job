@@ -11,17 +11,12 @@ import { DisabledUserException, InvalidCredentialsException } from '../../common
 import { ErrorType } from '../../common/enums';
 
 @Injectable()
-@Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(
-        // @InjectRepository(UsersRepository)
-        // private userRepository: UsersRepository,
-        private configService: ConfigService
-    ) {
+    constructor(private configService: ConfigService) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: configService.get('TOKEN_SECRET'),
+            secretOrKey: configService.get('ACCESS_TOKEN_SECRET'),
             passReqToCallback: true,
         });
     }

@@ -4,6 +4,7 @@ import { HttpResponseInterceptor, HttpExceptionFilter } from './common/http';
 import * as compression from 'compression';
 import { AppModule } from './app.module';
 import { SwaggerConfig } from './config';
+import * as cookieParse from 'cookie-parser'
 import helmet from 'helmet';
 
 const bootstrap = async () => {
@@ -11,6 +12,7 @@ const bootstrap = async () => {
 
     app.use(helmet());
     app.use(compression());
+    app.use(cookieParse())
     app.enableCors();
     app.enableVersioning();
 

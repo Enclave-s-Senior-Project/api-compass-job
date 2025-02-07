@@ -15,12 +15,18 @@ import { hardcodedUsers } from '../mocks/indentify-user.mock';
 import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
 import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
-import { AccountEntity, ProfileEntity } from '@database/entities';
+import { AccountEntity } from '@database/entities';
 import { CreateUserDto } from '@modules/user/dtos';
-import { Cacheable } from 'cacheable';
-import { ConfigService } from '@nestjs/config';
+import { RedisCommander } from 'ioredis';
+
+export enum AccountStatusType {
+    ACTIVE = 'ACTIVE',
+    PENDING = 'PENDING',
+    INACTIVE = 'INACTIVE',
+}
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
 import { UserStatus } from '@database/entities/account.entity';
+import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -28,8 +34,7 @@ export class AuthService {
         private readonly tokenService: TokenService,
         private readonly accountRepository: AccountRepository,
         private readonly userService: UserService,
-        private readonly configService: ConfigService,
-        @Inject('CACHE_INSTANCE') private readonly cacheInstance: Cacheable
+        @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
     ) {}
 
     /**
@@ -37,7 +42,7 @@ export class AuthService {
      * @param authCredentialsDto {AuthCredentialsRequestDto}
      * @returns {Promise<LoginResponseDto>}
      */
-    public async login({ username, password }: AuthCredentialsRequestDto): Promise<any> {
+    public async login({ username, password }: AuthCredentialsRequestDto) {
         try {
             const account = await this.accountRepository.findOne({ where: { email: username } });
             if (!account) {
@@ -63,15 +68,28 @@ export class AuthService {
             };
 
             const token = await this.tokenService.generateAuthToken(payload);
-            return new LoginResponseDtoBuilder()
-                .setValue({
-                    ...token,
-                    user: userPayload,
-                })
-                .success()
-                .build();
+
+            await this.storeRefreshTokenOnCache(
+                userPayload.accountId,
+                token.refreshToken,
+                token.refreshTokenExpires / 1000
+            ); // convert to seconds
+
+            const { refreshToken, refreshTokenExpires, ...tokenWithoutRefreshToken } = token;
+
+            return {
+                builder: new LoginResponseDtoBuilder()
+                    .setValue({
+                        ...tokenWithoutRefreshToken,
+                        user: userPayload,
+                    })
+                    .success()
+                    .build(),
+                refreshToken,
+                refreshTokenExpires,
+            };
         } catch (error) {
-            return new LoginResponseDtoBuilder().badRequestContent(error.response.errorType).build();
+            throw new LoginResponseDtoBuilder().badRequestContent(error.response.errorType).build();
         }
     }
 
@@ -145,28 +163,33 @@ export class AuthService {
                 accessToken,
                 accessTokenExpires,
                 refreshToken: newRefreshToken,
+                refreshTokenExpires,
                 tokenType,
             } = this.tokenService.generateAuthToken({ accountId: payload.accountId, roles: roles });
 
             // store new fresh token to redis
-            await this.storeRefreshTokenOnCache(payload.accountId, newRefreshToken);
+            await this.storeRefreshTokenOnCache(payload.accountId, newRefreshToken, refreshTokenExpires / 1000); // convert to seconds
 
             return {
-                accessToken,
-                accessTokenExpires,
+                builder: new RefreshTokenResponseDtoBuilder()
+                    .setValue({
+                        accessToken,
+                        accessTokenExpires,
+                        tokenType,
+                    })
+                    .success()
+                    .build(),
                 refreshToken: newRefreshToken,
-                tokenType,
+                refreshTokenExpires,
             };
-            return { accessToken, accessTokenExpires, refreshToken: newRefreshToken, tokenType };
         } catch (error) {
-            throw new InternalServerErrorException();
+            throw new RefreshTokenResponseDtoBuilder().badRequest().build();
         }
     }
 
-    private async storeRefreshTokenOnCache(accountId: string, refreshToken: string) {
+    private async storeRefreshTokenOnCache(accountId: string, refreshToken: string, expiresInSeconds: number) {
         try {
-            const expiresIn = this.configService.get('REFRESH_TOKEN_EXPIRES_IN');
-            await this.cacheInstance.set(`refreshtoken:${accountId}:${refreshToken}`, 1, expiresIn);
+            await this.redisCache.set(`refreshtoken:${accountId}:${refreshToken}`, 1, 'EX', expiresInSeconds);
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -174,7 +197,7 @@ export class AuthService {
 
     private async validateRefreshTokenOnCache(accountId: string, refreshToken: string) {
         try {
-            const existedRefreshToken = await this.cacheInstance.get(`refreshtoken:${accountId}:${refreshToken}`);
+            const existedRefreshToken = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
 
             if (existedRefreshToken) await this.deleteRefreshTokenOnCache(accountId, refreshToken);
 
@@ -186,7 +209,7 @@ export class AuthService {
 
     private async deleteRefreshTokenOnCache(accountId: string, refreshToken: string) {
         try {
-            await this.cacheInstance.delete(`refreshtoken:${accountId}:${refreshToken}`);
+            return await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
         } catch (error) {
             throw new InternalServerErrorException();
         }

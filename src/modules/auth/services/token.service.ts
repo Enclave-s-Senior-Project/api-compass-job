@@ -11,6 +11,7 @@ import {
 import { ValidateTokenResponseDto, JwtPayload, TokenDto } from '../dtos';
 import { TokenError, TokenType } from '../enums';
 import { UserStatus } from '@database/entities/account.entity';
+import { TimeHelper } from 'src/helpers/time.helper';
 
 @Injectable()
 export class TokenService {
@@ -29,17 +30,22 @@ export class TokenService {
     public generateAuthToken(payload: JwtPayload): TokenDto {
         const accessTokenExpires = this.configService.get('ACCESS_TOKEN_EXPIRES_IN');
         const refreshTokenExpires = this.configService.get('REFRESH_TOKEN_EXPIRES_IN');
+
+        const accessTokenExpiresInMilliSeconds = TimeHelper.shorthandToMs(accessTokenExpires);
+        const refreshTokenExpiresInMilliSeconds = TimeHelper.shorthandToMs(refreshTokenExpires);
+
         const accessTokenSecret = this.configService.get('ACCESS_TOKEN_SECRET');
         const refreshTokenSecret = this.configService.get('REFRESH_TOKEN_SECRET');
         const tokenType = this.configService.get('TOKEN_TYPE');
-        const accessToken = this.generateToken(payload, accessTokenExpires, accessTokenSecret);
-        const refreshToken = this.generateToken(payload, refreshTokenExpires, refreshTokenSecret);
+        const accessToken = this.generateToken(payload, accessTokenExpiresInMilliSeconds / 1000, accessTokenSecret);
+        const refreshToken = this.generateToken(payload, refreshTokenExpiresInMilliSeconds / 1000, refreshTokenSecret);
 
         return {
             tokenType,
             accessToken,
-            accessTokenExpires,
+            accessTokenExpires: accessTokenExpiresInMilliSeconds,
             refreshToken,
+            refreshTokenExpires: refreshTokenExpiresInMilliSeconds,
         };
     }
 
@@ -91,8 +97,8 @@ export class TokenService {
      * @param expiresIn {string}
      * @returns JWT
      */
-    private generateToken(payload: JwtPayload, expiresIn: string, secretKey: string): string {
-        const token = this.jwtService.sign(payload, { expiresIn, secret: secretKey });
+    private generateToken(payload: JwtPayload, expiresInSeconds: number, secretKey: string): string {
+        const token = this.jwtService.sign(payload, { expiresIn: expiresInSeconds, secret: secretKey });
         return token;
     }
 }

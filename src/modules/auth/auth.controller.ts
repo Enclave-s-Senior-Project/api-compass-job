@@ -12,16 +12,14 @@ import {
     AuthCredentialsRequestDto,
     ValidateTokenResponseDto,
     ValidateTokenRequestDto,
-    RefreshTokenRequestDto,
     AuthRegisterRequestDto,
     LoginResponseDto,
-    TokenDto,
     RegisterResponseDto,
-    JwtPayload,
 } from './dtos';
 import { TokenService, AuthService } from './services';
 import { Response } from 'express';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
+import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 
 // @SkipAuth()
 @ApiTags('Auth')
@@ -40,8 +38,24 @@ export class AuthController {
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Post('/login')
-    async login(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto): Promise<LoginResponseDto> {
-        return this.authService.login(authCredentialsDto);
+    async login(
+        @Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto,
+        @Res({ passthrough: true }) res: Response
+    ): Promise<LoginResponseDto> {
+        try {
+            const { builder, refreshToken, refreshTokenExpires } = await this.authService.login(authCredentialsDto);
+
+            res.cookie('refresh-token', refreshToken, {
+                httpOnly: true,
+                sameSite: true,
+                secure: true,
+                maxAge: refreshTokenExpires,
+            });
+
+            return builder;
+        } catch (error) {
+            return error;
+        }
     }
 
     @SkipAuth()
@@ -78,13 +92,28 @@ export class AuthController {
     @SkipAuth()
     @UseGuards(JwtRefreshAuthGuard)
     @Post('/refresh-token')
-    async refreshToken(@Req() request: any, @Res() response: Response): Promise<void> {
-        const refreshToken = request.cookies?.['refresh-token'];
-        const { refreshToken: newRefreshToken, ...token } = await this.authService.refreshToken(
-            request?.user,
-            refreshToken
-        );
+    async refreshToken(
+        @Req() request: any,
+        @Res({ passthrough: true }) response: Response
+    ): Promise<RefreshTokenResponseDto> {
+        try {
+            const refreshToken = request.cookies?.['refresh-token'];
+            const {
+                refreshToken: newRefreshToken,
+                refreshTokenExpires,
+                builder,
+            } = await this.authService.refreshToken(request?.user, refreshToken);
 
-        response.cookie('refresh-token', newRefreshToken).json({ token });
+            response.cookie('refresh-token', newRefreshToken, {
+                httpOnly: true,
+                sameSite: true,
+                secure: true,
+                maxAge: refreshTokenExpires,
+            });
+
+            return builder;
+        } catch (error) {
+            return error;
+        }
     }
 }

@@ -15,7 +15,7 @@ export class AuthRegisterRequestDto {
     @IsString({ message: 'PASSWORD_MUST_BE_STRING' })
     @MinLength(8, { message: 'PASSWORD_TOO_SHORT' })
     @MaxLength(20, { message: 'PASSWORD_TOO_LONG' })
-    @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, {
+    @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/, {
         message: 'PASSWORD_WEAK',
     })
     @ApiProperty({

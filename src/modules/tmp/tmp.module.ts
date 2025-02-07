@@ -12,7 +12,6 @@ import {
     JobEntity,
     JobRecentlyEntity,
     ProfileEntity,
-    RoleEntity,
     TagEntity,
     UserRatingEntity,
     WebsiteEntity,
@@ -21,7 +20,6 @@ import {
 @Module({
     imports: [
         TypeOrmModule.forFeature([
-            RoleEntity,
             AccountEntity,
             ProfileEntity,
             EnterpriseEntity,

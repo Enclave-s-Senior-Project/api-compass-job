@@ -29,6 +29,10 @@ export class BaseResponseDtoBuilder<T extends BaseResponseDto> {
         return this.setCode(200).setMessageCode('SUCCESS');
     }
 
+    public badRequestContent(message): this {
+        return this.setCode(400).setMessageCode(message);
+    }
+
     public build(): T {
         return this.responseDto;
     }

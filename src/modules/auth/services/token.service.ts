@@ -1,6 +1,5 @@
 // import { UsersRepository } from '@modules/admin/access/users/users.repository';
 import { Injectable, Logger } from '@nestjs/common';
-import { UserStatus } from '@admin/access/users/user-status.enum';
 // import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +10,7 @@ import {
 } from '../../../common/http/exceptions';
 import { ValidateTokenResponseDto, JwtPayload, TokenDto } from '../dtos';
 import { TokenError, TokenType } from '../enums';
+import { UserStatus } from '@database/entities/account.entity';
 
 @Injectable()
 export class TokenService {
@@ -72,8 +72,8 @@ export class TokenService {
         try {
             const { id } = this.jwtService.verify(token);
             // const user = await this.usersRepository.findOne(id);
-            const user: any = { id: 1, status: UserStatus.Active };
-            if (!user || user.status == UserStatus.Blocked || user.status == UserStatus.Inactive) {
+            const user: any = { id: 1, status: UserStatus.ACTIVE };
+            if (!user || user.status == UserStatus.BLOCKED || user.status == UserStatus.INACTIVE) {
                 return { valid: false };
             }
 

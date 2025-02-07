@@ -40,14 +40,8 @@ export class AuthController {
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Post('/login')
-    async login(
-        @Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto,
-        @Res() response: Response
-    ): Promise<void> {
-        const loginDto = await this.authService.login(authCredentialsDto);
-        response
-            .cookie('refresh-token', loginDto.token.refreshToken, { maxAge: 10000000000, httpOnly: true, secure: true })
-            .json(loginDto);
+    async login(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto): Promise<LoginResponseDto> {
+        return this.authService.login(authCredentialsDto);
     }
 
     @SkipAuth()
@@ -59,7 +53,7 @@ export class AuthController {
         return this.authService.register(authCredentialsDto);
     }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'Validate token' })
     @ApiOkResponse({ description: 'Validation was successful' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
@@ -70,7 +64,7 @@ export class AuthController {
         const { token } = validateToken;
         return this.tokenService.validateToken(token);
     }
-
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'Get user information' })
     @ApiOkResponse({ description: 'User information' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })

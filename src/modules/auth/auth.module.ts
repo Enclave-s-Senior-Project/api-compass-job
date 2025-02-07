@@ -13,7 +13,6 @@ import { AccountEntity } from '@database/entities';
 import { UserModule } from '@modules/user/user.module';
 import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
 import { CacheModule } from 'src/cache/cache.module';
-import { RoleModule } from '@modules/role/role.module';
 
 @Module({
     imports: [
@@ -33,7 +32,6 @@ import { RoleModule } from '@modules/role/role.module';
             inject: [ConfigService],
         }),
         UserModule,
-        RoleModule,
         CacheModule,
     ],
     controllers: [AuthController],

@@ -4,7 +4,6 @@ import { DatabaseModule } from '@database/database.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
 import { UserModule } from './modules/user/user.module';
-import { RoleModule } from '@modules/role/role.module';
 import { CacheModule } from './cache/cache.module';
 
 @Module({
@@ -16,7 +15,6 @@ import { CacheModule } from './cache/cache.module';
         AuthModule,
         TmpModule,
         UserModule,
-        RoleModule,
         CacheModule,
     ],
 })

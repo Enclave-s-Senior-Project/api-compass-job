@@ -1,10 +1,3 @@
-// src/types/common-enums.d.ts
-export enum AccountStatusType {
-    ACTIVE = 'ACTIVE',
-    PENDING = 'PENDING',
-    INACTIVE = 'INACTIVE',
-}
-
 export enum SocialOwnerType {
     PROFILE = 'PROFILE',
     ENTERPRISE = 'ENTERPRISE',
@@ -23,4 +16,11 @@ export enum SocialType {
     TWITTER = 'TWITTER',
     LINKEDIN = 'LINKEDIN',
     YOUTUBE = 'YOUTUBE',
+}
+
+export enum UserStatus {
+    ACTIVE = 'ACTIVE',
+    PENDING = 'PENDING',
+    INACTIVE = 'INACTIVE',
+    BLOCKED = 'BLOCKED',
 }

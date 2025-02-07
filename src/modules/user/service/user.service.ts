@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ProfileRepository } from '../repositories';
 import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { GenderType, ProfileEntity } from '@database/entities';
-import { UserResponseDto } from '@modules/admin/access/users/dtos';
 @Injectable()
 export class UserService {
     constructor(private readonly profileRepository: ProfileRepository) {}
@@ -36,7 +35,6 @@ export class UserService {
                 .setValue(profile)
                 .build();
         } catch (error) {
-            console.error('Error creating user:', error);
             return new UserResponseDtoBuilder().setCode(400).setMessageCode('CREATE_USER_FAILED').build();
         }
     }

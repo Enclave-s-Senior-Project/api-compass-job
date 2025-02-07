@@ -8,7 +8,6 @@ import { EnterpriseEntity } from './enterprise.entity';
 import { JobEntity } from './job.entity';
 import { JobRecentlyEntity } from './job-recently.entity';
 import { ProfileEntity } from './profile.entity';
-import { RoleEntity } from './role.entity';
 import { TagEntity } from './tag.entity';
 import { UserRatingEntity } from './user-rating.entity';
 import { WebsiteEntity } from './website.entity';
@@ -22,7 +21,6 @@ export {
     JobEntity,
     JobRecentlyEntity,
     ProfileEntity,
-    RoleEntity,
     TagEntity,
     UserRatingEntity,
     WebsiteEntity,

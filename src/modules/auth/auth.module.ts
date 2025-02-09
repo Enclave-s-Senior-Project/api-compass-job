@@ -13,6 +13,7 @@ import { AccountEntity } from '@database/entities';
 import { UserModule } from '@modules/user/user.module';
 import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
 import { CacheModule } from 'src/cache/cache.module';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import { CacheModule } from 'src/cache/cache.module';
         }),
         UserModule,
         CacheModule,
+        MailModule,
     ],
     controllers: [AuthController],
     providers: [

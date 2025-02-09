@@ -77,7 +77,6 @@ export class TokenService {
     public async validateToken(token: string): Promise<ValidateTokenResponseDto> {
         try {
             const { id } = this.jwtService.verify(token);
-            // const user = await this.usersRepository.findOne(id);
             const user: any = { id: 1, status: UserStatus.ACTIVE };
             if (!user || user.status == UserStatus.BLOCKED || user.status == UserStatus.INACTIVE) {
                 return { valid: false };

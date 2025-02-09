@@ -5,6 +5,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
 import { UserModule } from './modules/user/user.module';
 import { CacheModule } from './cache/cache.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { CacheModule } from './cache/cache.module';
         TmpModule,
         UserModule,
         CacheModule,
+        MailModule,
     ],
 })
 export class AppModule {

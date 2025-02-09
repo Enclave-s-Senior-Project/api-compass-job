@@ -1,4 +1,4 @@
-import { ValidationPipe, Controller, Post, Body, Get, UseGuards, Res, Req } from '@nestjs/common';
+import { ValidationPipe, Controller, Post, Body, Get, UseGuards, Res, Req, HttpCode } from '@nestjs/common';
 import {
     ApiInternalServerErrorResponse,
     ApiUnauthorizedResponse,
@@ -15,13 +15,14 @@ import {
     AuthRegisterRequestDto,
     LoginResponseDto,
     RegisterResponseDto,
+    EmailVerifyDto,
+    EmailVerifyDtoNoCode,
 } from './dtos';
 import { TokenService, AuthService } from './services';
 import { Response } from 'express';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 
-// @SkipAuth()
 @ApiTags('Auth')
 @Controller({
     path: 'auth',
@@ -57,7 +58,7 @@ export class AuthController {
             return error;
         }
     }
-
+    @HttpCode(200)
     @SkipAuth()
     @ApiOperation({ description: 'User register account' })
     @ApiOkResponse({ description: 'Successfully register account user' })
@@ -115,5 +116,24 @@ export class AuthController {
         } catch (error) {
             return error;
         }
+    }
+
+    @SkipAuth()
+    @ApiOperation({ description: 'User verify email' })
+    @ApiOkResponse({ description: 'Successfully sent verification code' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('/verify-email')
+    async verifyEmail(@Body(ValidationPipe) data: EmailVerifyDto) {
+        return await this.authService.verifyEmailCode(data);
+    }
+    // api resend email
+    @HttpCode(200)
+    @SkipAuth()
+    @ApiOperation({ description: 'Resend email verification' })
+    @ApiOkResponse({ description: 'Successfully sent verification code' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('/resend-email')
+    async resendEmail(@Body(ValidationPipe) data: EmailVerifyDtoNoCode): Promise<RegisterResponseDto> {
+        return await this.authService.resendEmailCode(data);
     }
 }

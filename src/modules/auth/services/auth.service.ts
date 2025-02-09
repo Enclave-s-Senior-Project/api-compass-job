@@ -27,6 +27,7 @@ export enum AccountStatusType {
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
 import { UserStatus } from '@database/entities/account.entity';
 import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
+import { MailSenderService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +35,7 @@ export class AuthService {
         private readonly tokenService: TokenService,
         private readonly accountRepository: AccountRepository,
         private readonly userService: UserService,
+        private readonly mailService: MailSenderService,
         @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
     ) {}
 
@@ -73,7 +75,7 @@ export class AuthService {
                 userPayload.accountId,
                 token.refreshToken,
                 token.refreshTokenExpires / 1000
-            ); // convert to seconds
+            );
 
             const { refreshToken, refreshTokenExpires, ...tokenWithoutRefreshToken } = token;
 
@@ -105,60 +107,44 @@ export class AuthService {
         full_name,
     }: AuthRegisterRequestDto): Promise<RegisterResponseDto> {
         try {
-            const existingAccount = await this.getAccountByEmail(email);
-            if (existingAccount.length > 0) {
+            if (await this.accountRepository.count({ where: { email } })) {
                 return new RegisterResponseDtoBuilder()
                     .setMessageCode('AUTH_REGISTER_EMAIL_EXISTS')
                     .setCode(400)
                     .build();
             }
-
             const hashedPassword = await HashHelper.encrypt(password);
 
-            let account: AccountEntity = await this.accountRepository.save({
-                email: email,
+            const account = await this.accountRepository.save({
+                email,
                 password: hashedPassword,
                 status: UserStatus.PENDING,
                 role: ['USER'],
                 isActive: false,
             });
-            const user: CreateUserDto = {
-                fullName: full_name, // Ensure full name is assigned
-                account: account.accountId,
-            };
-            await this.userService.createUser(user);
+
+            const verificationCode = this.generateVerificationCode();
+
+            Promise.allSettled([
+                this.userService.createUser({ fullName: full_name, account: account.accountId }),
+                this.sendVerificationEmail(username, email, verificationCode),
+                this.redisCache.set(`verify:${email}`, verificationCode, 'EX', 300),
+            ]);
+
             return new RegisterResponseDtoBuilder().setValue(account).success().build();
         } catch (error) {
+            console.error('Registration error:', error);
             return new RegisterResponseDtoBuilder().badRequest().build();
-        }
-    }
-
-    /**
-     * Get account by email
-     * @param email {string}
-     * @returns {Promise<any>}
-     */
-    private async getAccountByEmail(email: string) {
-        try {
-            return await this.accountRepository.find({ where: { email } });
-        } catch (error) {
-            return [];
         }
     }
 
     public async refreshToken(payload: JwtPayload, refreshToken: string) {
         try {
-            const validRefreshToken = await this.validateRefreshTokenOnCache(payload.accountId, refreshToken);
-
-            if (!validRefreshToken) {
+            if (!(await this.validateRefreshToken(payload.accountId, refreshToken))) {
                 throw new InvalidCredentialsException();
             }
 
             const roles = [];
-            // fetch roles of user
-            // code later........
-
-            // generate new token
             const {
                 accessToken,
                 accessTokenExpires,
@@ -213,5 +199,86 @@ export class AuthService {
         } catch (error) {
             throw new InternalServerErrorException();
         }
+    }
+
+    public sendCodeToVerifyEmail({ username, email, code }) {
+        try {
+            this.mailService.sendVerifyEmailMail(username, email, code);
+            return;
+        } catch (error) {
+            throw false;
+        }
+    }
+
+    public async verifyEmailCode({ email, code }) {
+        try {
+            let account = await this.accountRepository.findOne({ where: { email } });
+
+            const verifyCode = await this.redisCache.get(`verify:${email}`);
+            if (+verifyCode === +code) {
+                await this.accountRepository.update({ email }, { isActive: true });
+                await this.accountRepository.update({ email }, { status: UserStatus.ACTIVE });
+                await this.userService.activeProfile(account.accountId);
+                await this.redisCache.del(`verify:${email}`);
+                return new RegisterResponseDtoBuilder().success().build();
+            }
+            return new RegisterResponseDtoBuilder().setMessageCode('AUTH_VERIFY_CODE_INVALID').setCode(400).build();
+        } catch (error) {
+            throw new RegisterResponseDtoBuilder().badRequest().build();
+        }
+    }
+
+    public async resendEmailCode({ email }: { email: string }) {
+        try {
+            await this.redisCache.del(`verify:${email}`);
+            const account = await this.accountRepository.findOne({ where: { email } });
+            if (!account) {
+                return new RegisterResponseDtoBuilder()
+                    .setMessageCode('AUTH_REGISTER_EMAIL_NOT_EXISTS')
+                    .setCode(400)
+                    .build();
+            }
+
+            if (account.status === UserStatus.ACTIVE) {
+                return new RegisterResponseDtoBuilder()
+                    .setMessageCode('AUTH_ACCOUNT_ALREADY_ACTIVE')
+                    .setCode(400)
+                    .build();
+            }
+            if (account.status === UserStatus.BLOCKED) {
+                return new RegisterResponseDtoBuilder().setMessageCode('AUTH_ACCOUNT_BLOCKED').setCode(400).build();
+            }
+
+            const profile = await this.userService.getUserByAccountId(account.accountId);
+            if (!profile) {
+                return new RegisterResponseDtoBuilder().setMessageCode('PROFILE_NOT_EXISTS').setCode(400).build();
+            }
+
+            const verificationCode = this.generateVerificationCode();
+            await Promise.allSettled([
+                this.sendCodeToVerifyEmail({ username: profile.fullName, email, code: verificationCode }),
+                this.redisCache.set(`verify:${email}`, verificationCode, 'EX', 300),
+            ]);
+
+            return new RegisterResponseDtoBuilder().success().build();
+        } catch (error) {
+            console.error('Error in resendEmailCode:', error);
+            throw new RegisterResponseDtoBuilder().badRequest().build();
+        }
+    }
+    private generateVerificationCode(): number {
+        return Math.floor(100000 + Math.random() * 900000);
+    }
+    private async sendVerificationEmail(username: string, email: string, code: number) {
+        try {
+            await this.mailService.sendVerifyEmailMail(username, email, code);
+        } catch (error) {
+            throw new InternalServerErrorException('Email sending failed');
+        }
+    }
+    private async validateRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
+        const exists = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
+        if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
+        return Boolean(exists);
     }
 }

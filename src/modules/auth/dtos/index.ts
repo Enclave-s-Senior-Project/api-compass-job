@@ -8,6 +8,7 @@ import { JwtPayload } from './jwt-payload.dto';
 import { TokenDto } from './token.dto';
 import { AuthRegisterRequestDto } from './auth-credentials-register-request.dto';
 import { RegisterResponseDto, RegisterResponseDtoBuilder } from './register-response.dto';
+import { EmailVerifyDto, EmailVerifyDtoNoCode } from './email-verify.dto';
 export {
     AuthRegisterRequestDto,
     AuthCredentialsRequestDto,
@@ -20,4 +21,6 @@ export {
     TokenDto,
     RegisterResponseDto,
     RegisterResponseDtoBuilder,
+    EmailVerifyDto,
+    EmailVerifyDtoNoCode,
 };

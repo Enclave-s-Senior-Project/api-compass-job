@@ -39,6 +39,7 @@
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
+    "nodemailer": "^6.10.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.13.1",
     "reflect-metadata": "^0.2.0",

@@ -4,7 +4,7 @@ export class BaseResponseDtoBuilder<T extends BaseResponseDto> {
     protected responseDto: T;
 
     constructor(responseDto: new (code: number, message_code: string) => T) {
-        this.responseDto = new responseDto(200, 'SUCCESS'); // Default success response
+        this.responseDto = new responseDto(200, 'SUCCESS');
     }
 
     public setCode(code: number): this {

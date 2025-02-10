@@ -215,7 +215,7 @@ export class AuthService {
 
     public async verifyEmailCode({ email, code }) {
         try {
-            let account = await this.accountRepository.findOne({ where: { email } });
+            let account = await this.accountRepository.findOne({ where: { email, status: UserStatus.PENDING } });
 
             const verifyCode = await this.redisCache.get(`verify:${email}`);
             if (+verifyCode === +code) {

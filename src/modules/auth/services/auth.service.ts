@@ -59,6 +59,9 @@ export class AuthService {
                 throw new DisabledUserException(ErrorType.BlockedUser);
             }
             if (account.status === UserStatus.PENDING) {
+                throw new DisabledUserException(ErrorType.PendingUSer);
+            }
+            if (account.status === UserStatus.INACTIVE) {
                 throw new DisabledUserException(ErrorType.InactiveUser);
             }
 

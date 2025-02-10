@@ -9,6 +9,7 @@ export enum ErrorType {
     InvalidCredentials = 'INVALID_CREDENTIALS',
     BlockedUser = 'BLOCKED_USER',
     InactiveUser = 'INACTIVE_USER',
+    PendingUSer = 'USER_NEED_VERIFY',
     ForeignKeyConflict = 'FOREIGN_KEY_CONFLICT',
     NotFoundUserException = 'NOT_FOUND_USER_EXCEPTION',
 }

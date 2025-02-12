@@ -8,10 +8,14 @@ import { JwtPayload } from './dtos';
 import { DisabledUserException, InvalidCredentialsException } from '../../common/http/exceptions';
 import { ErrorType } from '../../common/enums';
 import { UserStatus } from '@database/entities/account.entity';
+import { UserService } from '@modules/user/service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private userService: UserService
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
@@ -21,20 +25,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(req: Request, payload: JwtPayload): Promise<any> {
-        const user: any = payload.accountId;
-        // const user = await this.userRepository.findUserByUsername(userId);
-        if (!user) {
-            throw new InvalidCredentialsException();
-        }
-        if (user.status === UserStatus.INACTIVE) {
-            throw new DisabledUserException(ErrorType.InactiveUser);
-        }
-        if (user.status === UserStatus.BLOCKED) {
-            throw new DisabledUserException(ErrorType.BlockedUser);
-        }
+        const accountId = payload.accountId;
+        const user = await this.userService.findUserByAccountId(accountId);
         return {
             user,
-            role: ['ADMIN', 'USER'],
         };
     }
 }

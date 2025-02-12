@@ -93,6 +93,14 @@
       "**/*.{ts,js}"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@database/(.*)$": "<rootDir>/database/$1",
+      "^@builder/(.*)$": "<rootDir>/builder/$1",
+      "^@common/(.*)$": "<rootDir>/common/$1",
+      "^@modules/(.*)$": "<rootDir>/modules/$1",
+      "^@helpers$": "<rootDir>/helpers",
+      "^@mail/(.*)$": "<rootDir>/mail/$1"
+    }
   }
 }

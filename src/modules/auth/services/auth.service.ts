@@ -27,7 +27,7 @@ export enum AccountStatusType {
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
 import { UserStatus } from '@database/entities/account.entity';
 import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
-import { MailSenderService } from 'src/mail/mail.service';
+import { MailSenderService } from '@mail/mail.service';
 
 @Injectable()
 export class AuthService {

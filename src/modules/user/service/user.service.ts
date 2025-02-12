@@ -4,6 +4,9 @@ import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { GenderType, ProfileEntity } from '@database/entities';
 import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
+import { PageDto, PageMetaDto, PaginationDto } from 'src/common/dtos';
+import { UserErrorType } from '@common/errors/user-error-type';
+import { ProfileFilterDto } from '../dtos/user-filter-dto';
 
 @Injectable()
 export class UserService {
@@ -96,6 +99,50 @@ export class UserService {
         } catch (error) {
             console.error('Error fetching profile:', error);
             return null;
+        }
+    }
+
+    public async countUsers(): Promise<number> {
+        return this.profileRepository.count();
+    }
+
+    public async getAllUsers(options: PaginationDto): Promise<UserResponseDto> {
+        try {
+            const [profiles, total] = await this.profileRepository.findAndCount({
+                skip: options.skip,
+                take: options.take,
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: options,
+                itemCount: total,
+            });
+
+            return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
+        } catch (error) {
+            console.error('Error fetching profiles:', error);
+            return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
+        }
+    }
+
+    public async filterUsers(options: PaginationDto, query: ProfileFilterDto): Promise<UserResponseDto> {
+        try {
+            console.log('options service', options);
+            console.log('query servicet', query);
+            const [profiles, total] = await this.profileRepository.findAndCount({
+                skip: options.skip,
+                take: options.take,
+                where: query,
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: options,
+                itemCount: total,
+            });
+
+            return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
+        } catch (error) {
+            return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
         }
     }
 }

@@ -36,6 +36,7 @@ export class AuthController {
         private tokenService: TokenService
     ) {}
     @SkipAuth()
+    @HttpCode(200)
     @ApiOperation({ description: 'User authentication' })
     @ApiOkResponse({ description: 'Successfully authenticated user' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })

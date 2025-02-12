@@ -13,7 +13,11 @@ const bootstrap = async () => {
     app.use(helmet());
     app.use(compression());
     app.use(cookieParse());
-    app.enableCors();
+    app.enableCors({
+        origin: [process.env.CLIENT_URL],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+        credentials: true,
+    });
     app.enableVersioning();
 
     app.useGlobalFilters(new HttpExceptionFilter());

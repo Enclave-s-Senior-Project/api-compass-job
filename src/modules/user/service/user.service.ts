@@ -90,4 +90,12 @@ export class UserService {
             return null;
         }
     }
+    public async findUserByAccountId(accountId: string): Promise<ProfileEntity | null> {
+        try {
+            return this.profileRepository.findOne({ where: { account_id: accountId } });
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            return null;
+        }
+    }
 }

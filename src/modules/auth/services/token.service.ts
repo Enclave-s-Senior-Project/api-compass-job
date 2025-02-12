@@ -11,7 +11,7 @@ import {
 import { ValidateTokenResponseDto, JwtPayload, TokenDto } from '../dtos';
 import { TokenError, TokenType } from '../enums';
 import { UserStatus } from '@database/entities/account.entity';
-import { TimeHelper } from 'src/helpers/time.helper';
+import { TimeHelper } from '@helpers';
 
 @Injectable()
 export class TokenService {

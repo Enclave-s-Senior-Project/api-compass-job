@@ -1,3 +1,4 @@
+import { ProfileFilterDto } from '@modules/user/dtos/user-filter-dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
@@ -27,6 +28,11 @@ export class PaginationDto {
     @Max(50)
     @IsOptional()
     readonly take?: number = 10;
+
+    @ApiPropertyOptional({ type: String, default: '' })
+    @IsString()
+    @IsOptional()
+    readonly options?: ProfileFilterDto;
 
     get skip(): number {
         return (this.page - 1) * this.take;

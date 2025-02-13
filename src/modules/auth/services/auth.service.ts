@@ -15,7 +15,7 @@ import { hardcodedUsers } from '../mocks/indentify-user.mock';
 import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
 import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
-import { AccountEntity } from '@database/entities';
+import { AccountEntity, ProfileEntity } from '@database/entities';
 import { CreateUserDto } from '@modules/user/dtos';
 import { RedisCommander } from 'ioredis';
 
@@ -39,11 +39,6 @@ export class AuthService {
         @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
     ) {}
 
-    /**
-     * User authentication
-     * @param authCredentialsDto {AuthCredentialsRequestDto}
-     * @returns {Promise<LoginResponseDto>}
-     */
     public async login({ username, password }: AuthCredentialsRequestDto) {
         try {
             const account = await this.accountRepository.findOne({ where: { email: username } });
@@ -98,11 +93,6 @@ export class AuthService {
         }
     }
 
-    /**
-     * User registration
-     * @param authRegisterDto {AuthRegisterRequestDto}
-     * @returns {Promise<RegisterResponseDto>}
-     */
     public async register({
         username,
         password,
@@ -179,18 +169,6 @@ export class AuthService {
     private async storeRefreshTokenOnCache(accountId: string, refreshToken: string, expiresInSeconds: number) {
         try {
             await this.redisCache.set(`refreshtoken:${accountId}:${refreshToken}`, 1, 'EX', expiresInSeconds);
-        } catch (error) {
-            throw new InternalServerErrorException();
-        }
-    }
-
-    private async validateRefreshTokenOnCache(accountId: string, refreshToken: string) {
-        try {
-            const existedRefreshToken = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
-
-            if (existedRefreshToken) await this.deleteRefreshTokenOnCache(accountId, refreshToken);
-
-            return existedRefreshToken;
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -283,5 +261,15 @@ export class AuthService {
         const exists = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
         if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
         return Boolean(exists);
+    }
+    public async getMe(accountId: string): Promise<RegisterResponseDto | null> {
+        try {
+            return new RegisterResponseDtoBuilder()
+                .setValue(await this.userService.findUserByAccountId(accountId))
+                .success()
+                .build();
+        } catch (error) {
+            throw new InternalServerErrorException();
+        }
     }
 }

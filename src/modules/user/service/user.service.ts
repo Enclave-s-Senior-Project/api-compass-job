@@ -7,6 +7,7 @@ import { UserResponseDto } from '../dtos/user-response.dto';
 import { PageDto, PageMetaDto, PaginationDto } from 'src/common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
 import { ProfileFilterDto } from '../dtos/user-filter-dto';
+import { Like } from 'typeorm';
 
 @Injectable()
 export class UserService {
@@ -125,14 +126,39 @@ export class UserService {
         }
     }
 
-    public async filterUsers(options: PaginationDto, query: ProfileFilterDto): Promise<UserResponseDto> {
+    public async filterUsers(options: PaginationDto): Promise<UserResponseDto> {
         try {
-            console.log('options service', options);
-            console.log('query servicet', query);
+            let filterOptions: Record<string, any> = {};
+            if (options.options) {
+                try {
+                    filterOptions = JSON.parse(`{${options.options}}`);
+                } catch (error) {
+                    console.error('Invalid JSON in options:', error);
+                }
+            }
+
+            const where: Record<string, any> = {};
+
+            if (filterOptions.fullName) {
+                where.fullName = Like(`%${filterOptions.fullName}%`);
+            }
+
+            if (filterOptions.phone) {
+                where.phone = Like(`%${filterOptions.phone}%`);
+            }
+
+            if (filterOptions.gender) {
+                where.gender = filterOptions.gender;
+            }
+
+            if (filterOptions.isPremium !== undefined) {
+                where.isPremium = filterOptions.isPremium;
+            }
+
             const [profiles, total] = await this.profileRepository.findAndCount({
                 skip: options.skip,
                 take: options.take,
-                where: query,
+                where,
             });
 
             const meta = new PageMetaDto({
@@ -142,6 +168,7 @@ export class UserService {
 
             return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
         } catch (error) {
+            console.error('Error in filterUsers:', error);
             return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
         }
     }

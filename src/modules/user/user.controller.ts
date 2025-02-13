@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './service/user.service';
 import {
     ApiBearerAuth,
@@ -8,11 +8,12 @@ import {
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { TOKEN_NAME } from '@modules/auth';
+import { CurrentUser, JwtAuthGuard, TOKEN_NAME } from '@modules/auth';
 import { PageDto, PaginationDto } from '@common/dtos';
 import { UserDto } from './dtos/user.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { ProfileFilterDto } from './dtos/user-filter-dto';
+import { UpdateUserDto } from './dtos';
 
 @ApiTags('User')
 @Controller({
@@ -37,12 +38,20 @@ export class UserController {
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('filter')
-    async filterUsers(
-        @Query() pageOptionsDto: PaginationDto,
-        @Query('q') query: ProfileFilterDto
-    ): Promise<UserResponseDto> {
+    async filterUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
         console.log('pageOptionsDto', pageOptionsDto);
-        console.log('query', query);
-        return this.userService.filterUsers(pageOptionsDto, query);
+        return this.userService.filterUsers(pageOptionsDto);
+    }
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ description: 'Update user' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Patch(':id')
+    async updateUser(@CurrentUser() user: UserDto, @Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+        console.log('Updating user:', id, updateUserDto);
+        // return this.userService.updateUser(id, updateUserDto);
+        return;
     }
 }

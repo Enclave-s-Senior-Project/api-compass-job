@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import { SwaggerConfig } from './config';
 import * as cookieParse from 'cookie-parser';
 import helmet from 'helmet';
+import { CustomExceptionFilter } from '@common/http/exceptions';
 
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule);
@@ -23,7 +24,7 @@ const bootstrap = async () => {
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new HttpResponseInterceptor());
     app.useGlobalPipes(new ValidationPipe());
-
+    app.useGlobalFilters(new CustomExceptionFilter());
     app.setGlobalPrefix(AppModule.apiPrefix);
     SwaggerConfig(app, AppModule.apiVersion);
     await app.listen(AppModule.port);

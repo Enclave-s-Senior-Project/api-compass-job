@@ -9,6 +9,7 @@ import { RefreshTokenExpiredException } from './refresh-token-expired.exception'
 import { RoleExistsException } from './role-exists.exception';
 import { UserExistsException } from './user-exists.exception';
 import { NotFoundUserException } from './not-found.exception';
+import { CustomExceptionFilter } from './global.exception';
 
 export {
     ForeignKeyConflictException,
@@ -22,4 +23,5 @@ export {
     AccessTokenExpiredException,
     RefreshTokenExpiredException,
     NotFoundUserException,
+    CustomExceptionFilter,
 };

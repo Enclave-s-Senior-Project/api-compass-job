@@ -24,6 +24,8 @@ import { Response } from 'express';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 import { AccountEntity, ProfileEntity } from '@database/entities';
+import { Role, Roles } from './decorators/roles.decorator';
+import { RolesGuard } from './guards/role.guard';
 
 @ApiTags('Auth')
 @Controller({
@@ -87,6 +89,8 @@ export class AuthController {
     @ApiOkResponse({ description: 'User information' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @UseGuards(JwtAuthGuard)
+    @UseGuards(RolesGuard)
+    @Roles(Role.USER)
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('/me')
     async getMe(@CurrentUser() user: AccountEntity): Promise<RegisterResponseDto> {

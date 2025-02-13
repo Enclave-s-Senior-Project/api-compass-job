@@ -23,7 +23,7 @@ import { TokenService, AuthService } from './services';
 import { Response } from 'express';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
-import { ProfileEntity } from '@database/entities';
+import { AccountEntity, ProfileEntity } from '@database/entities';
 
 @ApiTags('Auth')
 @Controller({
@@ -89,8 +89,8 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('/me')
-    async getMe(@CurrentUser() user: ProfileEntity): Promise<RegisterResponseDto> {
-        return new RegisterResponseDtoBuilder().setValue(user).success().build();
+    async getMe(@CurrentUser() user: AccountEntity): Promise<RegisterResponseDto> {
+        return this.authService.getMe(user.accountId);
     }
 
     @SkipAuth()

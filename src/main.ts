@@ -20,7 +20,6 @@ const bootstrap = async () => {
         credentials: true,
     });
     app.enableVersioning();
-
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new HttpResponseInterceptor());
     app.useGlobalPipes(new ValidationPipe());

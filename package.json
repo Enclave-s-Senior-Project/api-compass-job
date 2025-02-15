@@ -95,11 +95,15 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^@database/(.*)$": "<rootDir>/database/$1",
-      "^@builder/(.*)$": "<rootDir>/builder/$1",
       "^@common/(.*)$": "<rootDir>/common/$1",
-      "^@modules/(.*)$": "<rootDir>/modules/$1",
+      "^@database/(.*)$": "<rootDir>/database/$1",
+      "^@config$": "<rootDir>/config",
       "^@helpers$": "<rootDir>/helpers",
+      "^@modules/(.*)$": "<rootDir>/modules/$1",
+      "^@admin/(.*)$": "<rootDir>/admin/$1",
+      "^@libs/(.*)$": "<rootDir>/libs/$1",
+      "^@builder/(.*)$": "<rootDir>/builder/$1",
+      "^@types/(.*)$": "<rootDir>/types/$1",
       "^@mail/(.*)$": "<rootDir>/mail/$1"
     }
   }

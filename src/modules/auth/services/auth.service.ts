@@ -304,4 +304,17 @@ export class AuthService {
             throw new InternalServerErrorException();
         }
     }
+
+    public async logout(refreshToken: string, accountId: string) {
+        try {
+            const isDeleted = await this.deleteRefreshTokenOnCache(refreshToken, accountId);
+            if (isDeleted) {
+                return new RegisterResponseDtoBuilder().setValue(true).success().build();
+            } else {
+                return new RegisterResponseDtoBuilder().badRequestContent(ErrorType.InvalidCredentials).build();
+            }
+        } catch (error) {
+            throw new RegisterResponseDtoBuilder().setValue(true).success().build();
+        }
+    }
 }

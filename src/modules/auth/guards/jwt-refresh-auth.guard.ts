@@ -1,11 +1,18 @@
-import { Reflector } from '@nestjs/core';
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ExtractJwt } from 'passport-jwt';
-import { InvalidTokenException } from '../../../common/http/exceptions';
-import { TokenService } from '../services';
-import { TokenType } from '../enums';
-import { SKIP_AUTH } from '../constants';
 
 @Injectable()
-export class JwtRefreshAuthGuard extends AuthGuard('jwt-refresh') {}
+export class JwtRefreshAuthGuard extends AuthGuard('jwt-refresh') {
+    /**
+     * Handle request and verify if exist an error or there's not user
+     * @param error
+     * @param user
+     * @returns user || error
+     */
+    handleRequest(error, user) {
+        if (error || !user) {
+            throw new BadRequestException();
+        }
+        return user;
+    }
+}

@@ -2,32 +2,19 @@ import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common
 import { ErrorType } from '@common/enums';
 import { InvalidCredentialsException, DisabledUserException, NotFoundUserException } from '@common/http/exceptions';
 import { omit } from 'lodash';
-import {
-    AuthCredentialsRequestDto,
-    LoginResponseDto,
-    JwtPayload,
-    RegisterResponseDto,
-    AuthRegisterRequestDto,
-} from '../dtos';
+import { AuthCredentialsRequestDto, JwtPayload, RegisterResponseDto, AuthRegisterRequestDto } from '../dtos';
 import { TokenService } from './token.service';
 import { HashHelper } from '@helpers';
-import { hardcodedUsers } from '../mocks/indentify-user.mock';
 import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
 import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
-import { AccountEntity, ProfileEntity } from '@database/entities';
-import { CreateUserDto } from '@modules/user/dtos';
 import { RedisCommander } from 'ioredis';
-
-export enum AccountStatusType {
-    ACTIVE = 'ACTIVE',
-    PENDING = 'PENDING',
-    INACTIVE = 'INACTIVE',
-}
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
 import { UserStatus } from '@database/entities/account.entity';
 import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
-import { MailSenderService } from '@mail/mail.service';
+import { MailSenderService } from 'src/mail/mail.service';
+import * as crypto from 'crypto';
+import { ResetPasswordDto } from '../dtos/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -268,6 +255,51 @@ export class AuthService {
                 .setValue(await this.userService.findUserByAccountId(accountId))
                 .success()
                 .build();
+        } catch (error) {
+            throw new InternalServerErrorException();
+        }
+    }
+
+    public async forgetPassword({ email }: { email: string }) {
+        try {
+            const user = await this.accountRepository
+                .createQueryBuilder('account')
+                .leftJoin('account.profile', 'profile')
+                .select(['account.email', 'profile.fullName']) // Chỉ lấy email và fullName
+                .where('account.email = :email', { email })
+                .getOne();
+
+            if (!user) {
+                return new RegisterResponseDtoBuilder().badRequestContent('EMAIL_NOT_EXIST').build();
+            }
+
+            const token = crypto.randomBytes(32).toString('hex');
+            const url = `${process.env.CLIENT_URL}/reset-password/${token}`;
+            Promise.allSettled([
+                this.redisCache.set(`forget-password:${email}`, token, 'EX', 5 * 60),
+                this.mailService.sendResetPasswordMail(user.profile.fullName, email, token),
+            ]);
+
+            return new RegisterResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw new InternalServerErrorException();
+        }
+    }
+
+    public async resetPassword({ newPassword, token, email }: ResetPasswordDto) {
+        try {
+            const storedToken = await this.redisCache.get(`forget-password:${email}`);
+            if (!storedToken || storedToken !== token) {
+                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+            }
+
+            // delete cache after comparing
+            await this.redisCache.del(`forget-password:${email}`);
+
+            const hashedPassword = await HashHelper.encrypt(newPassword);
+            await this.accountRepository.update({ email: email }, { password: hashedPassword });
+
+            return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
             throw new InternalServerErrorException();
         }

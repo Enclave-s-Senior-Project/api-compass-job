@@ -26,11 +26,11 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         });
     }
 
-    async validate(request: Request, payload: any): Promise<JwtPayload> {
+    async validate(request: Request, payload: JwtPayload): Promise<{ refreshToken: string } & JwtPayload> {
         if (!payload) {
             throw new InvalidCredentialsException();
         }
         // Return the JwtPayload with the required fields
-        return payload as JwtPayload;
+        return { accountId: payload.accountId, roles: payload.roles, refreshToken: request.cookies?.['refresh-token'] };
     }
 }

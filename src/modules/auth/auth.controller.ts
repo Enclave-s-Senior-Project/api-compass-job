@@ -165,4 +165,22 @@ export class AuthController {
     async resetPassword(@Body() data: ResetPasswordDto): Promise<RegisterResponseDto> {
         return await this.authService.resetPassword(data);
     }
+
+    @HttpCode(200)
+    @ApiOperation({ description: 'Resend email verification' })
+    @ApiOkResponse({ description: 'Successfully sent verification code' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @UseGuards(JwtRefreshAuthGuard)
+    @Post('/logout')
+    async logout(@CurrentUser() user, @Res({ passthrough: true }) res: Response) {
+        try {
+            const logoutBuilder = await this.authService.logout(user?.accountId, user?.refreshToken);
+            if (logoutBuilder.value as boolean) {
+                res.clearCookie('refresh-token');
+            }
+            return logoutBuilder;
+        } catch (error) {
+            return error;
+        }
+    }
 }

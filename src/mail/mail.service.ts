@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
 import * as Mail from 'nodemailer/lib/mailer';
 import { confirmMail } from './templates';
+import { resetPassword } from './templates/reset-password.html';
 
 @Injectable()
 export class MailSenderService {
@@ -101,43 +102,32 @@ export class MailSenderService {
     //     );
     //   }
 
-    //   async sendResetPasswordMail(
-    //     name: string,
-    //     email: string,
-    //     token: string,
-    //   ): Promise<boolean> {
-    //     const buttonLink = `${config.project.resetPasswordUrl}?token=${token}`;
+    async sendResetPasswordMail(username: string, email: string, token: string): Promise<boolean> {
+        const buttonLink = `${process.env.CLIENT_URL}/reset-password?token=${token}?email=${email}`;
 
-    //     const mail = resetPassword
-    //       .replace(new RegExp('--PersonName--', 'g'), name)
-    //       .replace(new RegExp('--ProjectName--', 'g'), config.project.name)
-    //       .replace(new RegExp('--ProjectAddress--', 'g'), config.project.address)
-    //       .replace(new RegExp('--ProjectLogo--', 'g'), config.project.logoUrl)
-    //       .replace(new RegExp('--ProjectSlogan--', 'g'), config.project.slogan)
-    //       .replace(new RegExp('--ProjectColor--', 'g'), config.project.color)
-    //       .replace(new RegExp('--ProjectLink--', 'g'), config.project.url)
-    //       .replace(new RegExp('--Socials--', 'g'), this.socials)
-    //       .replace(new RegExp('--ButtonLink--', 'g'), buttonLink);
+        const mail = resetPassword
+            .replace(new RegExp('--ProjectName--', 'g'), process.env.PROJECT_NAME)
+            .replace(new RegExp('--Username--', 'g'), username)
+            .replace(new RegExp('--ProjectLogo--', 'g'), process.env.PROJECT_LOGO_URL)
+            .replace(new RegExp('--ResetPasswordLink--', 'g'), buttonLink);
 
-    //     const mailOptions = {
-    //       from: `"${config.mail.senderCredentials.name}" <${config.mail.senderCredentials.email}>`,
-    //       to: email, // list of receivers (separated by ,)
-    //       subject: `Reset Your ${config.project.name} Account's Password`,
-    //       html: mail,
-    //     };
+        const mailOptions = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: email, // list of receivers (separated by ,)
+            subject: `Reset Your ${process.env.PROJECT_NAME} Account's Password`,
+            html: mail,
+        };
 
-    //     return new Promise<boolean>((resolve) =>
-    //       this.transporter.sendMail(mailOptions, async (error) => {
-    //         if (error) {
-    //           this.logger.warn(
-    //             'Mail sending failed, check your service credentials.',
-    //           );
-    //           resolve(false);
-    //         }
-    //         resolve(true);
-    //       }),
-    //     );
-    //   }
+        return new Promise<boolean>((resolve) =>
+            this.transporter.sendMail(mailOptions, async (error) => {
+                if (error) {
+                    this.logger.warn('Mail sending failed, check your service credentials.');
+                    resolve(false);
+                }
+                resolve(true);
+            })
+        );
+    }
 
     //   async sendPasswordChangeInfoMail(
     //     name: string,

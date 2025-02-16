@@ -26,6 +26,8 @@ import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 import { AccountEntity, ProfileEntity } from '@database/entities';
 import { Role, Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/role.guard';
+import { ForgetPasswordDto } from './dtos/forget-password.dto';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @ApiTags('Auth')
 @Controller({
@@ -142,5 +144,25 @@ export class AuthController {
     @Post('/resend-email')
     async resendEmail(@Body(ValidationPipe) data: EmailVerifyDtoNoCode): Promise<RegisterResponseDto> {
         return await this.authService.resendEmailCode(data);
+    }
+
+    @HttpCode(200)
+    @SkipAuth()
+    @ApiOperation({ description: 'Resend email verification' })
+    @ApiOkResponse({ description: 'Successfully sent verification code' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('/forget-password')
+    async forgetPassword(@Body() data: ForgetPasswordDto): Promise<RegisterResponseDto> {
+        return await this.authService.forgetPassword(data);
+    }
+
+    @HttpCode(200)
+    @SkipAuth()
+    @ApiOperation({ description: 'Resend email verification' })
+    @ApiOkResponse({ description: 'Successfully sent verification code' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('/reset-password')
+    async resetPassword(@Body() data: ResetPasswordDto): Promise<RegisterResponseDto> {
+        return await this.authService.resetPassword(data);
     }
 }

@@ -7,7 +7,7 @@ RUN npm i -g pnpm
 # Install dependencies
 FROM base AS dependencies
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .env ./
 
 # 🔥 Disable Husky to avoid issues
 ENV HUSKY=0  
@@ -24,6 +24,8 @@ ENV HUSKY=0
 
 RUN pnpm build  
 RUN pnpm prune --prod || echo "Skipping prune due to errors"
+
+
 
 # Deploy stage
 FROM node:20-alpine AS deploy

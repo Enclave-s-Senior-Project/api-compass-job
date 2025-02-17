@@ -7,10 +7,12 @@ import { SwaggerConfig } from './config';
 import * as cookieParse from 'cookie-parser';
 import helmet from 'helmet';
 import { CustomExceptionFilter } from '@common/http/exceptions';
+import * as morgan from 'morgan';
 
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule);
 
+    app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
     app.use(helmet());
     app.use(compression());
     app.use(cookieParse());

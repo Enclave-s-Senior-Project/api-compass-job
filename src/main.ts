@@ -11,7 +11,6 @@ import * as morgan from 'morgan';
 
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule);
-
     app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
     app.use(helmet());
     app.use(compression());
@@ -28,6 +27,7 @@ const bootstrap = async () => {
     app.useGlobalFilters(new CustomExceptionFilter());
     app.setGlobalPrefix(AppModule.apiPrefix);
     SwaggerConfig(app, AppModule.apiVersion);
+    app.use(helmet());
     await app.listen(AppModule.port);
     return AppModule.port;
 };

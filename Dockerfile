@@ -7,7 +7,7 @@ RUN npm i -g pnpm
 # Install dependencies
 FROM base AS dependencies
 WORKDIR /app
-COPY package.json pnpm-lock.yaml .env ./
+COPY package.json pnpm-lock.yaml ./
 
 # 🔥 Disable Husky to avoid issues
 ENV HUSKY=0  

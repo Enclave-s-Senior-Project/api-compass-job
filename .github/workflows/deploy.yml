@@ -42,5 +42,5 @@ jobs:
             sudo docker stop jobcompass-api || true
             sudo docker rm jobcompass-api || true
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
-            sudo docker run -d --name jobcompass-api -p 3000:3000 --env-file /path/to/.env ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
+            sudo docker run -d --name jobcompass-api -p 3000:3000 --env-file .env ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
           EOF

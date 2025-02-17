@@ -102,8 +102,8 @@ export class MailSenderService {
     //     );
     //   }
 
-    async sendResetPasswordMail(username: string, email: string, token: string): Promise<boolean> {
-        const buttonLink = `${process.env.CLIENT_URL}/reset-password?token=${token}?email=${email}`;
+    async sendResetPasswordMail(username: string, email: string, token: string, iv: string): Promise<boolean> {
+        const buttonLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&email=${email}&iv=${iv}`;
 
         const mail = resetPassword
             .replace(new RegExp('--ProjectName--', 'g'), process.env.PROJECT_NAME)

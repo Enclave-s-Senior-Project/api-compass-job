@@ -4,7 +4,7 @@ import { InvalidCredentialsException, DisabledUserException, NotFoundUserExcepti
 import { omit } from 'lodash';
 import { AuthCredentialsRequestDto, JwtPayload, RegisterResponseDto, AuthRegisterRequestDto } from '../dtos';
 import { TokenService } from './token.service';
-import { HashHelper } from '@helpers';
+import { HashHelper, TimeHelper } from '@helpers';
 import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
 import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
@@ -272,24 +272,43 @@ export class AuthService {
             if (!user) {
                 return new RegisterResponseDtoBuilder().badRequestContent('EMAIL_NOT_EXIST').build();
             }
-
+            const expiredInMilliseconds = TimeHelper.shorthandToMs(process.env.RESET_PASSWORD_TOKEN_EXPIRES);
             const token = crypto.randomBytes(32).toString('hex');
-            const url = `${process.env.CLIENT_URL}/reset-password/${token}`;
+            const expired = new Date(Date.now() + expiredInMilliseconds);
+
+            const { encryptedData: resetToken, iv } = HashHelper.encode([token, expired].join(','));
+            console.log({ resetToken, iv });
+
             Promise.allSettled([
-                this.redisCache.set(`forget-password:${email}`, token, 'EX', 5 * 60),
-                this.mailService.sendResetPasswordMail(user.profile.fullName, email, token),
+                this.redisCache.set(`forget-password:${email}`, token, 'EX', expiredInMilliseconds / 1000),
+                this.mailService.sendResetPasswordMail(user.profile.fullName, email, resetToken, iv),
             ]);
 
             return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
+            console.error(error);
+
             throw new InternalServerErrorException();
         }
     }
 
-    public async resetPassword({ newPassword, token, email }: ResetPasswordDto) {
+    public async resetPassword({ newPassword, token, email, iv }: ResetPasswordDto) {
         try {
+            // decode reset token
+            const decodedToken = HashHelper.decode(token, iv);
+            if (!decodedToken) {
+                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+            }
+
+            const [baseToken, expires] = decodedToken.split(',');
+            // check token still lives
+            if (isNaN(new Date(expires).getTime()) || new Date(expires).getTime() <= Date.now()) {
+                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+            }
+
+            // check token is valid on cache
             const storedToken = await this.redisCache.get(`forget-password:${email}`);
-            if (!storedToken || storedToken !== token) {
+            if (!storedToken || storedToken !== baseToken) {
                 return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
             }
 
@@ -301,6 +320,7 @@ export class AuthService {
 
             return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
+            console.error(error);
             throw new InternalServerErrorException();
         }
     }

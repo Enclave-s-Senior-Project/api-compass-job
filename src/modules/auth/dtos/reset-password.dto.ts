@@ -26,4 +26,11 @@ export class ResetPasswordDto {
         example: 'a4b0758aadf9ffaf1b7ae061bac3d9e8',
     })
     readonly token: string;
+
+    @IsString({ message: 'IV_MUST_BE_STRING' })
+    @IsNotEmpty({ message: 'IV_REQUIRED' })
+    @ApiProperty({
+        example: 'a4b0758aadf9ffaf1b7ae061bac3d9e8',
+    })
+    readonly iv: string;
 }

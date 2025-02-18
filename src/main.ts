@@ -19,6 +19,7 @@ const bootstrap = async () => {
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
         credentials: true,
     });
+    console.log('process.env.CLIENT_URL', process.env.CLIENT_URL);
     app.enableVersioning();
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new HttpResponseInterceptor());

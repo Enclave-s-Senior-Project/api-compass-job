@@ -295,7 +295,13 @@ export class AuthService {
     public async resetPassword({ newPassword, token, email, iv }: ResetPasswordDto) {
         try {
             // decode reset token
-            const decodedToken = HashHelper.decode(token, iv);
+            let decodedToken;
+            try {
+                decodedToken = HashHelper.decode(token, iv);
+            } catch (error) {
+                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+            }
+
             if (!decodedToken) {
                 return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
             }

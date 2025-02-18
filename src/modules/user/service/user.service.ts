@@ -112,15 +112,15 @@ export class UserService {
     public async getAllUsers(options: PaginationDto): Promise<UserResponseDto> {
         try {
             const [profiles, total] = await this.profileRepository.findAndCount({
-                skip: options.skip,
-                take: options.take,
+                skip: (Number(options.page) - 1) * Number(options.take),
+                take: Number(options.take),
             });
 
             const meta = new PageMetaDto({
                 pageOptionsDto: options,
                 itemCount: total,
             });
-
+            console.log('12-----------', meta);
             return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
         } catch (error) {
             console.error('Error fetching profiles:', error);

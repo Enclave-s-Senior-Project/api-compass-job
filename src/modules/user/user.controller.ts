@@ -24,7 +24,7 @@ import { JwtPayload } from '@modules/auth/dtos';
 @ApiBearerAuth(TOKEN_NAME)
 export class UserController {
     constructor(private readonly userService: UserService) {}
-
+    @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Get all users with pagination' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })

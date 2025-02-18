@@ -6,6 +6,7 @@ import { TmpModule } from '@modules/tmp/tmp.module';
 import { UserModule } from './modules/user/user.module';
 import { CacheModule } from './cache/cache.module';
 import { MailModule } from './mail/mail.module';
+import { JobModule } from './modules/job/job.module';
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { MailModule } from './mail/mail.module';
         UserModule,
         CacheModule,
         MailModule,
+        JobModule,
     ],
 })
 export class AppModule {

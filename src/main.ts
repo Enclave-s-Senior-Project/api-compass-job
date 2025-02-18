@@ -15,7 +15,7 @@ const bootstrap = async () => {
     app.use(compression());
     app.use(cookieParse());
     app.enableCors({
-        origin: '*',
+        origin: process.env.CLIENT_URL,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
         credentials: true,
     });

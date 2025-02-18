@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ProfileRepository } from '../repositories';
 import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { GenderType, ProfileEntity } from '@database/entities';
@@ -8,6 +8,8 @@ import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
 import { ProfileFilterDto } from '../dtos/user-filter-dto';
 import { Like } from 'typeorm';
+import { UserDto } from '../dtos/user.dto';
+import { JwtPayload } from '@modules/auth/dtos';
 
 @Injectable()
 export class UserService {
@@ -32,8 +34,6 @@ export class UserService {
                 view: 0,
                 gender: user.gender ?? GenderType.MALE,
                 education: user.education ?? null,
-                isPremium: user.isPremium ?? false,
-                expiredPremium: user.expiredPremium ?? null,
                 experience: user.experience ?? null,
                 isActive: false,
                 account_id: user.account,
@@ -76,18 +76,22 @@ export class UserService {
      * @returns {Promise<ProfileEntity | null>}
      */
     public async getUserByAccountId(accountId: string): Promise<ProfileEntity | null> {
-        const cacheKey = `profile:${accountId}`;
+        console.log('accountid  ', accountId);
+        const cacheKey = `account:${accountId}`;
 
         try {
+            console.log('vao day getUserByAccountId');
             const cachedProfile = await this.redisCache.get(cacheKey);
             if (cachedProfile) {
+                console.log('vao day getUserByAccountId cache');
                 return JSON.parse(cachedProfile) as ProfileEntity;
             }
-
+            console.log('account id -------->', accountId);
             const profile = await this.profileRepository.findOne({ where: { account_id: accountId } });
+            console.log('get user from database', profile);
             if (!profile) return null;
 
-            await this.redisCache.setex(cacheKey, 600, JSON.stringify(profile));
+            this.redisCache.setex(cacheKey, 600, JSON.stringify(profile));
             return profile;
         } catch (error) {
             console.error('Error fetching profile:', error);
@@ -170,6 +174,45 @@ export class UserService {
         } catch (error) {
             console.error('Error in filterUsers:', error);
             return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
+        }
+    }
+
+    public async updateUser(
+        currentUser: JwtPayload,
+        id: string,
+        newUser: Partial<CreateUserDto>
+    ): Promise<UserResponseDto> {
+        try {
+            console.log('Requesting user:', currentUser);
+
+            const profile = await this.profileRepository.findOne({ where: { profileId: id } });
+
+            if (!profile) {
+                throw new NotFoundException('USER_NOT_FOUND');
+            }
+
+            const isOwner = currentUser.accountId === profile.account_id;
+            const isAdmin = currentUser.roles.includes('ADMIN');
+
+            if (!isOwner && !isAdmin) {
+                throw new ForbiddenException('FORBIDDEN');
+            }
+            const updatedProfile = await this.profileRepository.save({
+                ...profile,
+                ...newUser,
+                account: { id: currentUser.accountId } as any,
+            });
+
+            const cacheKey = `profile:${id}`;
+            await this.redisCache.del(cacheKey);
+
+            return new UserResponseDtoBuilder().setCode(200).setValue(updatedProfile).success().build();
+        } catch (error) {
+            console.error('Error updating user:', error);
+            if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            throw new BadRequestException('UPDATE_USER_FAILED');
         }
     }
 }

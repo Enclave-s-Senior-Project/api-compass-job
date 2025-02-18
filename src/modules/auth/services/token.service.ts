@@ -70,26 +70,6 @@ export class TokenService {
     }
 
     /**
-     * Validate received JWT
-     * @param token {string}
-     * @returns valid: boolean
-     */
-    public async validateToken(token: string): Promise<ValidateTokenResponseDto> {
-        try {
-            const { id } = this.jwtService.verify(token);
-            const user: any = { id: 1, status: UserStatus.ACTIVE };
-            if (!user || user.status == UserStatus.BLOCKED || user.status == UserStatus.INACTIVE) {
-                return { valid: false };
-            }
-
-            return { valid: !!id };
-        } catch (error) {
-            Logger.error('Validation token error', error);
-            return { valid: false };
-        }
-    }
-
-    /**
      * Generate JWT token
      * @private
      * @param payload {JwtPayload}

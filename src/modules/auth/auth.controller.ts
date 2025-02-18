@@ -76,17 +76,6 @@ export class AuthController {
     }
 
     @ApiBearerAuth(TOKEN_NAME)
-    @ApiOperation({ description: 'Validate token' })
-    @ApiOkResponse({ description: 'Validation was successful' })
-    @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @Post('/token/validate')
-    async validateToken(
-        @Body(ValidationPipe) validateToken: ValidateTokenRequestDto
-    ): Promise<ValidateTokenResponseDto> {
-        const { token } = validateToken;
-        return this.tokenService.validateToken(token);
-    }
-    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'Get user information' })
     @ApiOkResponse({ description: 'User information' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })

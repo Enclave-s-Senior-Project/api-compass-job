@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Query, UseGuards, ValidationPipe } from '@nestjs/common';
 import { UserService } from './service/user.service';
 import {
     ApiBearerAuth,
@@ -8,12 +8,13 @@ import {
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { CurrentUser, JwtAuthGuard, TOKEN_NAME } from '@modules/auth';
+import { CurrentUser, JwtAuthGuard, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { PageDto, PaginationDto } from '@common/dtos';
 import { UserDto } from './dtos/user.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { ProfileFilterDto } from './dtos/user-filter-dto';
-import { UpdateUserDto } from './dtos';
+import { CreateUserDto, UpdateUserDto } from './dtos';
+import { JwtPayload } from '@modules/auth/dtos';
 
 @ApiTags('User')
 @Controller({
@@ -44,14 +45,18 @@ export class UserController {
     }
     @HttpCode(200)
     @ApiBearerAuth(TOKEN_NAME)
-    @UseGuards(JwtAuthGuard)
+    @HttpCode(200)
     @ApiOperation({ description: 'Update user' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Patch(':id')
-    async updateUser(@CurrentUser() user: UserDto, @Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-        console.log('Updating user:', id, updateUserDto);
-        // return this.userService.updateUser(id, updateUserDto);
-        return;
+    async updateUser(
+        @CurrentUser() user: JwtPayload,
+        @Param('id') id: string,
+        @Body(ValidationPipe) newUser: CreateUserDto
+    ) {
+        console.log('params id', id);
+
+        return this.userService.updateUser(user, id, newUser);
     }
 }

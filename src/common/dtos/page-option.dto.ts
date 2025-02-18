@@ -32,7 +32,7 @@ export class PaginationDto {
     @ApiPropertyOptional({ type: String, default: '' })
     @IsString()
     @IsOptional()
-    readonly options?: ProfileFilterDto;
+    readonly options?: any;
 
     get skip(): number {
         return (this.page - 1) * this.take;

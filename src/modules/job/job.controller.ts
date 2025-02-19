@@ -29,16 +29,16 @@ export class JobController {
         return this.jobService.getAllJobs(PaginationDto);
     }
 
-    @SkipAuth()
-    @HttpCode(200)
-    @ApiOperation({ description: 'Get job by name, location, category, advance' })
-    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @Get()
-    async findMany(
-        @Query() jobFilterDto: JobFilterDto,
-        @Query() PaginationDto: PaginationDto
-    ): Promise<JobResponseDto> {
-        return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
-    }
+    // @SkipAuth()
+    // @HttpCode(200)
+    // @ApiOperation({ description: 'Get job by name, location, category, advance' })
+    // @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    // @ApiInternalServerErrorResponse({ description: 'Server error' })
+    // @Get()
+    // async findMany(
+    //     @Query() jobFilterDto: JobFilterDto,
+    //     @Query() PaginationDto: PaginationDto
+    // ): Promise<JobResponseDto> {
+    //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
+    // }
 }

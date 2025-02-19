@@ -9,6 +9,12 @@ export class TagEntity extends BaseEntity {
     @Column({ name: 'name', type: 'varchar', unique: true, length: 255 })
     readonly name: string;
 
+    @Column({ name: 'color', type: 'varchar', length: 7, nullable: true })
+    color?: string;
+
+    @Column({ name: 'background_color', type: 'varchar', length: 7, nullable: true })
+    backgroundColor?: string;
+
     @ManyToMany(() => JobEntity, (job) => job.tags)
     jobs: JobEntity[];
 }

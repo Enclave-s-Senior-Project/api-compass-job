@@ -36,5 +36,6 @@ import {
     ],
     controllers: [TmpController],
     providers: [TmpService],
+    exports: [TypeOrmModule],
 })
 export class TmpModule {}

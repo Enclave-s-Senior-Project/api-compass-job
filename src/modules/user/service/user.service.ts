@@ -76,7 +76,6 @@ export class UserService {
      * @returns {Promise<ProfileEntity | null>}
      */
     public async getUserByAccountId(accountId: string): Promise<ProfileEntity | null> {
-        console.log('accountid  ', accountId);
         const cacheKey = `account:${accountId}`;
 
         try {
@@ -86,7 +85,6 @@ export class UserService {
                 console.log('vao day getUserByAccountId cache');
                 return JSON.parse(cachedProfile) as ProfileEntity;
             }
-            console.log('account id -------->', accountId);
             const profile = await this.profileRepository.findOne({ where: { account_id: accountId } });
             console.log('get user from database', profile);
             if (!profile) return null;
@@ -204,8 +202,7 @@ export class UserService {
             });
 
             const cacheKey = `profile:${id}`;
-            await this.redisCache.del(cacheKey);
-
+            await this.setProfileOnRedis(updatedProfile);
             return new UserResponseDtoBuilder().setCode(200).setValue(updatedProfile).success().build();
         } catch (error) {
             console.error('Error updating user:', error);
@@ -214,5 +211,11 @@ export class UserService {
             }
             throw new BadRequestException('UPDATE_USER_FAILED');
         }
+    }
+    private setProfileOnRedis(profile: ProfileEntity) {
+        this.redisCache.set(`profile:${profile.profileId}`, JSON.stringify(profile), 'EX', 432000);
+    }
+    private async getProfileOnRedis(profileId) {
+        return JSON.parse(await this.redisCache.get(`profile:${profileId}`));
     }
 }

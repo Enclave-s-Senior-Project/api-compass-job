@@ -8,7 +8,6 @@ import { CacheModule } from './cache/cache.module';
 import { MailModule } from './mail/mail.module';
 import { JobModule } from '@modules/job/job.module';
 
-
 @Module({
     imports: [
         ConfigModule.forRoot({

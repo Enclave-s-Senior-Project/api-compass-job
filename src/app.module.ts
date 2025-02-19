@@ -8,6 +8,7 @@ import { CacheModule } from './cache/cache.module';
 import { MailModule } from './mail/mail.module';
 import { JobModule } from '@modules/job/job.module';
 import { AddressModule } from './modules/address/address.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { AddressModule } from './modules/address/address.module';
         MailModule,
         JobModule,
         AddressModule,
+        CategoryModule,
     ],
 })
 export class AppModule {

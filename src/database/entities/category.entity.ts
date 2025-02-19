@@ -1,4 +1,13 @@
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+    OneToMany,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 import { BaseEntity, JobEntity } from '@database/entities';
 
 @Entity({ name: 'categories' })
@@ -12,7 +21,10 @@ export class CategoryEntity extends BaseEntity {
     //     relationships
     @ManyToOne(() => CategoryEntity, (category) => category.parent)
     @JoinColumn({ name: 'parent_id' })
-    readonly parent: CategoryEntity;
+    parent: CategoryEntity;
+
+    @OneToMany(() => CategoryEntity, (category) => category.parent)
+    children: CategoryEntity[];
 
     @ManyToMany(() => JobEntity, (job) => job.categories)
     @JoinTable({ name: 'job_categories', joinColumn: { name: 'category_id' }, inverseJoinColumn: { name: 'job_id' } })

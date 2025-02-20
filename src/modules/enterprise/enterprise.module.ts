@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
 import { EnterpriseService } from './service/enterprise.service';
 import { EnterpriseController } from './enterprise.controller';
-import { ProfileEntity } from '@database/entities';
+import { EnterpriseEntity } from '@database/entities';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ProfileRepository } from './repositories';
+import { EnterpriseRepository } from './repositories';
+import { TmpModule } from '@modules/tmp/tmp.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([ProfileEntity])],
+    imports: [TmpModule],
     controllers: [EnterpriseController],
-    providers: [EnterpriseService, ProfileRepository],
+    providers: [EnterpriseService, EnterpriseRepository],
     exports: [EnterpriseService],
 })
-export class UserModule {}
+export class EnterpriseModule {}

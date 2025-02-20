@@ -119,4 +119,7 @@ export class CategoryService {
         }
         await this.categoryRepository.remove(category);
     }
+    async findByIds(ids: string[]): Promise<CategoryEntity[]> {
+        return this.categoryRepository.findByIds(ids);
+    }
 }

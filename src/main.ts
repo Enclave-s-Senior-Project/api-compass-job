@@ -21,10 +21,9 @@ const bootstrap = async () => {
     });
     console.log('process.env.CLIENT_URL', process.env.CLIENT_URL);
     app.enableVersioning();
-    app.useGlobalFilters(new HttpExceptionFilter());
-    app.useGlobalInterceptors(new HttpResponseInterceptor());
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.useGlobalFilters(new CustomExceptionFilter());
+    app.useGlobalInterceptors(new HttpResponseInterceptor());
     app.setGlobalPrefix(AppModule.apiPrefix);
     SwaggerConfig(app, AppModule.apiVersion);
     app.use(helmet());

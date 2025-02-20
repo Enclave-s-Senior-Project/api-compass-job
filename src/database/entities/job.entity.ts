@@ -47,6 +47,10 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'description', type: 'text', nullable: false })
     readonly description: string;
 
+    // responsibility
+    @Column({ name: 'responsibility', type: 'text', nullable: true })
+    readonly responsibility: string;
+
     @Column({ name: 'type', type: 'varchar', length: 50 })
     readonly type: string | null;
 

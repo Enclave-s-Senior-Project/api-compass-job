@@ -8,21 +8,40 @@ import { JobResponseDto, JobResponseDtoBuilder } from '../dtos/job-response.dto'
 import { JobEntity } from '@database/entities';
 import { JobErrorType } from '@common/errors/';
 import { JobFilterDto } from '../dtos/job-filter.dto';
+import { AddressRepository } from '@modules/address/repositories/address.repository';
+import { CategoryRepository } from '@modules/category/repositories';
+import { TagRepository } from '@modules/tag/repositories';
+import { AddressService } from '@modules/address/service/address.service';
+import { CategoryService } from '@modules/category/services';
+import { TagService } from '@modules/tag/services';
 
 @Injectable()
 export class JobService {
     constructor(
-        private readonly jobRespository: JobRepository,
+        private readonly jobRepository: JobRepository,
+        private readonly addressService: AddressService,
+        private readonly categoryService: CategoryService,
+        private readonly tagService: TagService,
         @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
     ) {}
-    create(createJobDto: CreateJobDto) {
-        return 'This action adds a new job';
-    }
+    async create(createJobDto: CreateJobDto) {
+        const { address, categoryIds, tagIds, enterpriseId, ...jobData } = createJobDto;
+        const addresses = await this.addressService.getAddressByIds(address);
+        const categories = await this.categoryService.findByIds(categoryIds);
+        const tags = await this.tagService.findByIds(tagIds);
 
+        const newJob = this.jobRepository.create({
+            ...jobData,
+            addresses,
+            categories,
+            tags,
+        });
+
+        return this.jobRepository.save(newJob);
+    }
     async getAllJobs(options: PaginationDto): Promise<JobResponseDto> {
         try {
-            console.log('12', options);
-            const [profiles, total] = await this.jobRespository.findAndCount({
+            const [profiles, total] = await this.jobRepository.findAndCount({
                 skip: (Number(options.page) - 1) * Number(options.take),
                 take: Number(options.take),
                 relations: ['enterprise', 'addresses'],
@@ -42,7 +61,7 @@ export class JobService {
 
     async getFilterJobs(options: JobFilterDto, pagination: PaginationDto): Promise<JobResponseDto> {
         try {
-            const [profiles, total] = await this.jobRespository.findAndCount({
+            const [profiles, total] = await this.jobRepository.findAndCount({
                 skip: (Number(pagination.page) - 1) * Number(pagination.take),
                 take: Number(pagination.take),
                 relations: ['enterprise', 'addresses'],

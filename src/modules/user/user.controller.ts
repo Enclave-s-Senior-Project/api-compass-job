@@ -40,7 +40,6 @@ export class UserController {
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('filter')
     async filterUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
-        console.log('pageOptionsDto', pageOptionsDto);
         return this.userService.filterUsers(pageOptionsDto);
     }
     @HttpCode(200)
@@ -55,8 +54,6 @@ export class UserController {
         @Param('id') id: string,
         @Body(ValidationPipe) newUser: CreateUserDto
     ) {
-        console.log('params id', id);
-
         return this.userService.updateUser(user, id, newUser);
     }
 }

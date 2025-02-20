@@ -8,5 +8,6 @@ import { TagRepository } from './repositories';
     imports: [TmpModule],
     controllers: [TagController],
     providers: [TagService, TagRepository],
+    exports: [TagService],
 })
 export class TagModule {}

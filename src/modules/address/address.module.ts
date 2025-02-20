@@ -8,5 +8,6 @@ import { TmpModule } from '@modules/tmp/tmp.module';
     imports: [TmpModule],
     controllers: [AddressController],
     providers: [AddressService, AddressRepository],
+    exports: [AddressService],
 })
 export class AddressModule {}

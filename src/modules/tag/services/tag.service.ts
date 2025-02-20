@@ -60,4 +60,7 @@ export class TagService {
 
         await this.tagRepository.remove(tag);
     }
+    async findByIds(tagIds: string[]): Promise<TagEntity[]> {
+        return this.tagRepository.findByIds(tagIds);
+    }
 }

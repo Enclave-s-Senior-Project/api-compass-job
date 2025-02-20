@@ -6,9 +6,12 @@ import { JobEntity } from '@database/entities';
 import { CacheModule } from 'src/cache/cache.module';
 import { JobRepository } from './repositories';
 import { TmpModule } from '@modules/tmp/tmp.module';
+import { TagModule } from '@modules/tag/tag.module';
+import { CategoryModule } from '@modules/category/category.module';
+import { AddressModule } from '@modules/address/address.module';
 
 @Module({
-    imports: [TmpModule, CacheModule],
+    imports: [TmpModule, CacheModule, TagModule, CategoryModule, AddressModule],
     controllers: [JobController],
     providers: [JobService, JobRepository],
     exports: [JobService],

@@ -8,5 +8,6 @@ import { CategoryRepository } from './repositories';
     imports: [TmpModule],
     controllers: [CategoryController],
     providers: [CategoryService, CategoryRepository],
+    exports: [CategoryService],
 })
 export class CategoryModule {}

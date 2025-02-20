@@ -81,4 +81,7 @@ export class AddressService {
             throw new InternalServerErrorException('Failed to delete address.');
         }
     }
+    async getAddressByIds(ids: string[]): Promise<AddressEntity[]> {
+        return this.addressRepository.findByIds(ids);
+    }
 }

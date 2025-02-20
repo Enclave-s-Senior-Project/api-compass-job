@@ -79,14 +79,11 @@ export class UserService {
         const cacheKey = `account:${accountId}`;
 
         try {
-            console.log('vao day getUserByAccountId');
             const cachedProfile = await this.redisCache.get(cacheKey);
             if (cachedProfile) {
-                console.log('vao day getUserByAccountId cache');
                 return JSON.parse(cachedProfile) as ProfileEntity;
             }
             const profile = await this.profileRepository.findOne({ where: { account_id: accountId } });
-            console.log('get user from database', profile);
             if (!profile) return null;
 
             this.redisCache.setex(cacheKey, 600, JSON.stringify(profile));
@@ -181,8 +178,6 @@ export class UserService {
         newUser: Partial<CreateUserDto>
     ): Promise<UserResponseDto> {
         try {
-            console.log('Requesting user:', currentUser);
-
             const profile = await this.profileRepository.findOne({ where: { profileId: id } });
 
             if (!profile) {

@@ -11,6 +11,7 @@ import { AddressModule } from './modules/address/address.module';
 import { CategoryModule } from './modules/category/category.module';
 import { TagModule } from './modules/tag/tag.module';
 import { WebsiteModule } from './modules/website/website.module';
+import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { WebsiteModule } from './modules/website/website.module';
         CacheModule,
         MailModule,
         JobModule,
+        EnterpriseModule,
         AddressModule,
         CategoryModule,
         TagModule,

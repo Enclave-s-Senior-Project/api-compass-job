@@ -1,3 +1,3 @@
-import { ProfileRepository } from './enterprise.repository';
+import { EnterpriseRepository } from './enterprise.repository';
 
-export { ProfileRepository };
+export { EnterpriseRepository };

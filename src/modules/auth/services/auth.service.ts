@@ -277,7 +277,6 @@ export class AuthService {
             const expired = new Date(Date.now() + expiredInMilliseconds);
 
             const { encryptedData: resetToken, iv } = HashHelper.encode([token, expired].join(','));
-            console.log({ resetToken, iv });
 
             Promise.allSettled([
                 this.redisCache.set(`forget-password:${email}`, token, 'EX', expiredInMilliseconds / 1000),

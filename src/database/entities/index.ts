@@ -10,7 +10,7 @@ import { JobRecentlyEntity } from './job-recently.entity';
 import { ProfileEntity } from './profile.entity';
 import { TagEntity } from './tag.entity';
 import { UserRatingEntity } from './user-rating.entity';
-import { WebsiteEntity } from './website.entity';
+import { WebsiteEntity, SocialType } from './website.entity';
 import { GenderType } from './profile.entity';
 
 export {
@@ -28,4 +28,5 @@ export {
     AppliedJobEntity,
     CategoryEntity,
     AddressEntity,
+    SocialType,
 };

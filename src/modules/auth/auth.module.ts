@@ -14,10 +14,11 @@ import { UserModule } from '@modules/user/user.module';
 import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
 import { CacheModule } from 'src/cache/cache.module';
 import { MailModule } from 'src/mail/mail.module';
+import { TmpModule } from '@modules/tmp/tmp.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([AccountEntity]),
+        TmpModule,
         ConfigModule,
         PassportModule.register({
             defaultStrategy: 'jwt',

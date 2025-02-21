@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { WebsiteService } from './services';
 import { CreateWebsiteDto } from './dtos/create-website.dto';
 import { UpdateWebsiteDto } from './dtos/update-website.dto';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiOkResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
 import { SkipAuth } from '@modules/auth';
+import { TagResponseDto } from '@modules/tag/dtos';
+import { PaginationDto } from '@common/dtos';
+import { WebsiteResponseDto } from './dtos';
 
 @ApiTags('Website')
 @Controller('website')
@@ -20,8 +23,10 @@ export class WebsiteController {
     @SkipAuth()
     @Get()
     @ApiOperation({ summary: 'Get all websites' })
-    findAll() {
-        return this.websiteService.findAll();
+    @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
+    @ApiInternalServerErrorResponse({ description: 'Server error.' })
+    findAll(@Query() pageOptionsDto: PaginationDto): Promise<WebsiteResponseDto> {
+        return this.websiteService.findAll(pageOptionsDto);
     }
 
     @SkipAuth()

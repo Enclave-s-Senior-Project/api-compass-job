@@ -25,12 +25,12 @@ export class CreateJobDto {
     @ApiProperty({ description: 'Lowest wage', example: '3000.00', required: false })
     @IsOptional()
     @IsString()
-    readonly lowestWage?: string;
+    readonly lowestWage?: number;
 
     @ApiProperty({ description: 'Highest wage', example: '5000.00', required: false })
     @IsOptional()
     @IsString()
-    readonly highestWage?: string;
+    readonly highestWage?: number;
 
     @ApiProperty({ description: 'Job description', example: 'Develop and maintain web applications.' })
     @IsString()

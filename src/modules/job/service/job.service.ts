@@ -14,6 +14,7 @@ import { TagRepository } from '@modules/tag/repositories';
 import { AddressService } from '@modules/address/service/address.service';
 import { CategoryService } from '@modules/category/services';
 import { TagService } from '@modules/tag/services';
+import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 
 @Injectable()
 export class JobService {
@@ -21,24 +22,32 @@ export class JobService {
         private readonly jobRepository: JobRepository,
         private readonly addressService: AddressService,
         private readonly categoryService: CategoryService,
+        private readonly enterpriseService: EnterpriseService,
         private readonly tagService: TagService,
         @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
     ) {}
-    async create(createJobDto: CreateJobDto) {
+
+    async create(createJobDto: CreateJobDto, accountId: string) {
         const { address, categoryIds, tagIds, enterpriseId, ...jobData } = createJobDto;
-        const addresses = await this.addressService.getAddressByIds(address);
-        const categories = await this.categoryService.findByIds(categoryIds);
-        const tags = await this.tagService.findByIds(tagIds);
+
+        const [enterprise, addresses, categories, tags] = await Promise.all([
+            this.enterpriseService.getEnterpriseByAccountId(accountId),
+            this.addressService.getAddressByIds(address),
+            this.categoryService.findByIds(categoryIds),
+            this.tagService.findByIds(tagIds),
+        ]);
 
         const newJob = this.jobRepository.create({
             ...jobData,
+            enterprise,
             addresses,
             categories,
             tags,
         });
 
-        return this.jobRepository.save(newJob);
+        return new JobResponseDtoBuilder().setValue(newJob).success().build();
     }
+
     async getAllJobs(options: PaginationDto): Promise<JobResponseDto> {
         try {
             const [profiles, total] = await this.jobRepository.findAndCount({

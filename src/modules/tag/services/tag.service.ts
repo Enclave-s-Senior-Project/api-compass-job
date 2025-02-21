@@ -2,31 +2,50 @@ import { Injectable, NotFoundException, BadRequestException, InternalServerError
 import { CreateTagDto, UpdateTagDto, TagResponseDto, TagResponseDtoBuilder } from '../dtos';
 import { TagRepository } from '../repositories/tag.repository';
 import { TagEntity } from '@database/entities';
+import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 
 @Injectable()
 export class TagService {
     constructor(private readonly tagRepository: TagRepository) {}
 
-    async create(createTagDto: CreateTagDto): Promise<TagResponseDto> {
+    async create(createTagDtos: CreateTagDto[]): Promise<TagResponseDto> {
         try {
-            const existingTag = await this.tagRepository.findOneBy({ name: createTagDto.name });
-            if (existingTag) {
-                throw new BadRequestException('Tag with this name already exists.');
+            const tagNames = createTagDtos.map((tag) => tag.name);
+
+            const existingTags = await this.tagRepository
+                .createQueryBuilder('tag')
+                .where('tag.name IN (:...names)', { names: tagNames })
+                .getMany();
+
+            if (existingTags.length > 0) {
+                const existingNames = existingTags.map((tag) => tag.name);
+                throw new BadRequestException(`Tags with these names already exist: ${existingNames.join(', ')}`);
             }
 
-            const tag = this.tagRepository.create(createTagDto);
-            await this.tagRepository.save(tag);
+            const tags = this.tagRepository.create(createTagDtos);
+            await this.tagRepository.save(tags);
 
-            return new TagResponseDtoBuilder().success().build();
+            return new TagResponseDtoBuilder().success().setValue(tags).build();
         } catch (error) {
-            throw new InternalServerErrorException('Failed to create tag.');
+            throw new InternalServerErrorException(`Failed to create tags: ${error.message}`);
         }
     }
 
-    async findAll(): Promise<TagResponseDto> {
+    async findAll(options: PaginationDto): Promise<TagResponseDto> {
         try {
-            const tags = await this.tagRepository.find();
-            return new TagResponseDtoBuilder().success().setValue(tags).build();
+            const { order, take, skip } = options;
+
+            const [tags, total] = await this.tagRepository.findAndCount({
+                order: { name: order }, // Assumes 'name' is the column to order by
+                take,
+                skip,
+            });
+            const meta = new PageMetaDto({
+                pageOptionsDto: options,
+                itemCount: total,
+            });
+
+            return new TagResponseDtoBuilder().success().setValue(new PageDto<TagEntity>(tags, meta)).build();
         } catch (error) {
             throw new InternalServerErrorException('Failed to retrieve tags.');
         }
@@ -45,8 +64,6 @@ export class TagService {
         if (!tag) {
             throw new NotFoundException('Tag not found.');
         }
-
-        Object.assign(tag, updateTagDto);
         await this.tagRepository.save(tag);
 
         return new TagResponseDtoBuilder().success().setValue(tag).build();

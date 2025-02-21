@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WebsiteEntity } from '@database/entities';
-import { CreateWebsiteDto, UpdateWebsiteDto } from '../dtos';
+import { TagEntity, WebsiteEntity } from '@database/entities';
+import { CreateWebsiteDto, UpdateWebsiteDto, WebsiteResponseDto, WebsiteResponseDtoBuilder } from '../dtos';
+import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
+import { Website } from '../entities/website.entity';
 
 @Injectable()
 export class WebsiteService {
@@ -16,8 +18,21 @@ export class WebsiteService {
         return this.websiteRepository.save(website);
     }
 
-    async findAll(): Promise<WebsiteEntity[]> {
-        return this.websiteRepository.find({ relations: ['enterprise', 'profile'] });
+    async findAll(options: PaginationDto): Promise<WebsiteResponseDto> {
+        const { order, take, skip } = options;
+
+        const [websites, total] = await this.websiteRepository.findAndCount({
+            relations: ['enterprise', 'profile'],
+            order: { socialType: order },
+            take,
+            skip,
+        });
+        const meta = new PageMetaDto({
+            pageOptionsDto: options,
+            itemCount: total,
+        });
+
+        return new WebsiteResponseDtoBuilder().success().setValue(new PageDto<WebsiteEntity>(websites, meta)).build();
     }
 
     async findOne(id: string): Promise<WebsiteEntity> {

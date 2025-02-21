@@ -82,14 +82,4 @@ export class CreateEnterpriseDto {
     @IsOptional()
     @IsString()
     readonly bio?: string;
-
-    @ApiPropertyOptional({ description: 'Is premium status', default: false })
-    @IsOptional()
-    @IsBoolean()
-    readonly isPremium?: boolean;
-
-    @ApiPropertyOptional({ description: 'Premium expiration date', type: String, format: 'date' })
-    @IsOptional()
-    @IsDateString()
-    readonly expiredPremium?: Date;
 }

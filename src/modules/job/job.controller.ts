@@ -12,17 +12,22 @@ import {
 } from '@nestjs/swagger';
 import { PaginationDto } from '@common/dtos';
 import { JobRepository } from './repositories';
-import { SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { JobFilterDto } from './dtos/job-filter.dto';
+import { RolesGuard } from '@modules/auth/guards/role.guard';
+import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
+import { JwtPayload } from '@modules/auth/dtos';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
 export class JobController {
     constructor(private readonly jobService: JobService) {}
     @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
-    create(@Body() createJobDto: CreateJobDto) {
-        return this.jobService.create(createJobDto);
+    create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
+        return this.jobService.create(createJobDto, user.accountId);
     }
 
     @SkipAuth()

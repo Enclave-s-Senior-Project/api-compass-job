@@ -1,5 +1,5 @@
 // tag.controller.ts
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Delete, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Delete, ValidationPipe, Query } from '@nestjs/common';
 import { TagService } from './services';
 import {
     ApiBearerAuth,
@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { TagResponseDto, CreateTagDto, UpdateTagDto } from './dtos/';
 import { SkipAuth } from '@modules/auth';
+import { PaginationDto } from '@common/dtos';
 
 @ApiTags('Tag')
 @Controller({
@@ -31,7 +32,7 @@ export class TagController {
     @ApiCreatedResponse({ description: 'Tag created successfully.', type: TagResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid Tag data.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async createTag(@Body(ValidationPipe) createTagDto: CreateTagDto): Promise<TagResponseDto> {
+    async createTag(@Body(ValidationPipe) createTagDto: CreateTagDto[]): Promise<TagResponseDto> {
         return this.tagService.create(createTagDto);
     }
 
@@ -41,8 +42,8 @@ export class TagController {
     @ApiOperation({ summary: 'Get all Tags', description: 'Retrieve all Tags without pagination.' })
     @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async getAllTags(): Promise<TagResponseDto> {
-        return this.tagService.findAll();
+    async getAllTags(@Query() pageOptionsDto: PaginationDto): Promise<TagResponseDto> {
+        return this.tagService.findAll(pageOptionsDto);
     }
 
     @SkipAuth()

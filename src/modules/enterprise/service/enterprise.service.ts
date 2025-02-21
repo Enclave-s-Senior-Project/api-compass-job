@@ -22,6 +22,16 @@ export class EnterpriseService {
         }
     }
 
+    async getEnterpriseByAccountId(accountId: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({ where: { account: { accountId } } });
+            return enterprise;
+        } catch (error) {
+            console.error('Error fetching enterprise by account ID:', error);
+            throw error;
+        }
+    }
+
     async findAll() {
         return this.enterpriseRepository.find({ relations: ['account', 'websites', 'jobs', 'addresses'] });
     }

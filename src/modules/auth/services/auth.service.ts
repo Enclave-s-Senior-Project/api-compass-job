@@ -2,7 +2,7 @@ import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common
 import { ErrorType } from '@common/enums';
 import { InvalidCredentialsException, DisabledUserException, NotFoundUserException } from '@common/http/exceptions';
 import { omit } from 'lodash';
-import { AuthCredentialsRequestDto, JwtPayload, RegisterResponseDto, AuthRegisterRequestDto } from '../dtos';
+import { AuthCredentialsRequestDto, RegisterResponseDto, AuthRegisterRequestDto } from '../dtos';
 import { TokenService } from './token.service';
 import { HashHelper, TimeHelper } from '@helpers';
 import { RegisterResponseDtoBuilder } from '../dtos/register-response.dto';
@@ -15,6 +15,7 @@ import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.d
 import { MailSenderService } from 'src/mail/mail.service';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
+import { JwtPayload } from '@common/dtos';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +29,17 @@ export class AuthService {
 
     public async login({ username, password }: AuthCredentialsRequestDto) {
         try {
-            const account = await this.accountRepository.findOne({ where: { email: username } });
+            const account = await this.accountRepository.findOne({
+                where: { email: username },
+                select: {
+                    profile: {
+                        profileId: true,
+                    },
+                },
+                relations: {
+                    profile: true,
+                },
+            });
             if (!account) {
                 throw new NotFoundUserException(ErrorType.NotFoundUserException);
             }
@@ -52,6 +63,7 @@ export class AuthService {
             const payload: JwtPayload = {
                 accountId: userPayload.accountId,
                 roles: userPayload.roles,
+                profileId: userPayload.profile.profileId,
             };
 
             const token = await this.tokenService.generateAuthToken(payload);
@@ -124,14 +136,21 @@ export class AuthService {
                 throw new InvalidCredentialsException();
             }
 
-            const roles = [];
+            const { roles } = await this.accountRepository.findOne({
+                where: { accountId: payload.accountId },
+                select: { roles: true },
+            });
             const {
                 accessToken,
                 accessTokenExpires,
                 refreshToken: newRefreshToken,
                 refreshTokenExpires,
                 tokenType,
-            } = this.tokenService.generateAuthToken({ accountId: payload.accountId, roles: roles });
+            } = await this.tokenService.generateAuthToken({
+                accountId: payload.accountId,
+                roles: roles,
+                profileId: payload.profileId,
+            });
 
             // store new fresh token to redis
             await this.storeRefreshTokenOnCache(payload.accountId, newRefreshToken, refreshTokenExpires / 1000); // convert to seconds

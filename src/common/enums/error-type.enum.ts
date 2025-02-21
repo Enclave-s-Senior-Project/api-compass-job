@@ -12,4 +12,5 @@ export enum ErrorType {
     PendingUSer = 'USER_NEED_VERIFY',
     ForeignKeyConflict = 'FOREIGN_KEY_CONFLICT',
     NotFoundUserException = 'NOT_FOUND_USER_EXCEPTION',
+    InternalErrorServer = 'INTERNAL_ERROR_SERVER',
 }

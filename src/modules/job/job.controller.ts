@@ -1,8 +1,5 @@
-import { JobResponseDto } from './dtos/job-response.dto';
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JobService } from './service/job.service';
-import { CreateJobDto } from './dtos/create-job.dto';
-import { UpdateJobDto } from './dtos/update-job.dto';
 import {
     ApiBearerAuth,
     ApiInternalServerErrorResponse,
@@ -10,13 +7,11 @@ import {
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { PaginationDto } from '@common/dtos';
-import { JobRepository } from './repositories';
-import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { JobFilterDto } from './dtos/job-filter.dto';
+import { JwtPayload, PaginationDto } from '@common/dtos';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
-import { JwtPayload } from '@modules/auth/dtos';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { CreateJobDto, CreateJobWishListDto, JobResponseDto } from './dtos';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -38,6 +33,33 @@ export class JobController {
     @Get()
     async findAll(@Query() PaginationDto: PaginationDto): Promise<JobResponseDto> {
         return this.jobService.getAllJobs(PaginationDto);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Add job into wishlist' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('wishlist')
+    createJobWishlist(@CurrentUser() user, @Body() body: CreateJobWishListDto): Promise<JobResponseDto> {
+        return this.jobService.createJobWishList(body, user);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Delete job from wishlist' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Delete('wishlist/:id')
+    deleteJobWishlist(@CurrentUser() user, @Param('id') id: string): Promise<JobResponseDto> {
+        return this.jobService.deleteJobWishList(id, user);
+    }
+    @ApiBearerAuth(TOKEN_NAME)
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get jobs from wishlist' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('wishlist')
+    getJobWishList(@CurrentUser() user, @Query() query: PaginationDto): Promise<JobResponseDto> {
+        return this.jobService.getJobWishList(query, user);
     }
 
     // @SkipAuth()

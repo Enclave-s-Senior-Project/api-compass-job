@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { InvalidCredentialsException } from '@common/http/exceptions';
-import { JwtPayload } from './dtos';
+import { JwtPayload } from '@common/dtos';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -31,6 +31,11 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
             throw new InvalidCredentialsException();
         }
         // Return the JwtPayload with the required fields
-        return { accountId: payload.accountId, roles: payload.roles, refreshToken: request.cookies?.['refresh-token'] };
+        return {
+            accountId: payload.accountId,
+            roles: payload.roles,
+            refreshToken: request.cookies?.['refresh-token'],
+            profileId: payload.profileId,
+        };
     }
 }

@@ -4,12 +4,9 @@ import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { GenderType, ProfileEntity } from '@database/entities';
 import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
-import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
+import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
-import { ProfileFilterDto } from '../dtos/user-filter-dto';
 import { Like } from 'typeorm';
-import { UserDto } from '../dtos/user.dto';
-import { JwtPayload } from '@modules/auth/dtos';
 
 @Injectable()
 export class UserService {

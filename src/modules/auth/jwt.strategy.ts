@@ -1,14 +1,9 @@
-// import { UsersRepository } from '@modules/admin/access/users/users.repository';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-// import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
-import { JwtPayload } from './dtos';
-import { DisabledUserException, InvalidCredentialsException } from '../../common/http/exceptions';
-import { ErrorType } from '../../common/enums';
-import { UserStatus } from '@database/entities/account.entity';
 import { UserService } from '@modules/user/service';
+import { JwtPayload } from '@common/dtos';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

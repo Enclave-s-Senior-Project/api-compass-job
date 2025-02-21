@@ -3,10 +3,10 @@ import { EnterpriseService } from './service/enterprise.service';
 import { CreateEnterpriseDto, EnterpriseResponseDto, UpdateEnterpriseDto } from './dtos';
 
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtPayload } from '@modules/auth/dtos';
 import { CurrentUser, TOKEN_NAME } from '@modules/auth';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
+import { JwtPayload } from '@common/dtos';
 
 @ApiTags('Enterprise')
 @Controller({

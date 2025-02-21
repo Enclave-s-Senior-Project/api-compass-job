@@ -9,12 +9,11 @@ import {
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, JwtAuthGuard, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { PageDto, PaginationDto } from '@common/dtos';
+import { JwtPayload, PageDto, PaginationDto } from '@common/dtos';
 import { UserDto } from './dtos/user.dto';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { ProfileFilterDto } from './dtos/user-filter-dto';
 import { CreateUserDto, UpdateUserDto } from './dtos';
-import { JwtPayload } from '@modules/auth/dtos';
 
 @ApiTags('User')
 @Controller({

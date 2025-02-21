@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
-import { JwtPayload } from '@modules/auth/dtos';
 import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder } from '../dtos';
+import { JwtPayload } from '@common/dtos';
 
 @Injectable()
 export class EnterpriseService {
@@ -15,6 +15,8 @@ export class EnterpriseService {
                 ...createEnterpriseDto,
                 account: { accountId: user.accountId },
             });
+
+            await this.enterpriseRepository.save(enterprise);
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error creating enterprise:', error);

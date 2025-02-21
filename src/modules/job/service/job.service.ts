@@ -1,16 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateJobDto } from '../dtos/create-job.dto';
-import { UpdateJobDto } from '../dtos/update-job.dto';
-import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
+import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { JobRepository } from '../repositories';
 import { RedisCommander } from 'ioredis';
-import { JobResponseDto, JobResponseDtoBuilder } from '../dtos/job-response.dto';
 import { JobEntity } from '@database/entities';
 import { JobErrorType } from '@common/errors/';
-import { JobFilterDto } from '../dtos/job-filter.dto';
-import { AddressRepository } from '@modules/address/repositories/address.repository';
-import { CategoryRepository } from '@modules/category/repositories';
-import { TagRepository } from '@modules/tag/repositories';
+import { ErrorType } from '@common/enums';
+import { CreateJobWishListDto, CreateJobDto, JobResponseDto, JobResponseDtoBuilder, JobFilterDto } from '../dtos';
 import { AddressService } from '@modules/address/service/address.service';
 import { CategoryService } from '@modules/category/services';
 import { TagService } from '@modules/tag/services';
@@ -88,6 +83,75 @@ export class JobService {
         } catch (error) {
             console.error('Error fetching profiles:', error);
             return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
+        }
+    }
+
+    async createJobWishList(payload: CreateJobWishListDto, user: JwtPayload) {
+        try {
+            const isExistedJob = await this.jobRepository.existsBy({ jobId: payload.jobId });
+            if (!isExistedJob) {
+                return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
+            }
+
+            const isExistedWishList =
+                (await this.jobRepository
+                    .createQueryBuilder()
+                    .innerJoin('jobs_favorite', 'jf', 'jf.job_id=:jobId', { jobId: payload.jobId })
+                    .getCount()) > 0;
+            if (isExistedWishList) {
+                return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_ADDED_WISHLIST).build();
+            }
+
+            await this.jobRepository
+                .createQueryBuilder()
+                .insert()
+                .into('jobs_favorite')
+                .values([{ job_id: payload.jobId, profile_id: user.profileId }])
+                .execute();
+
+            return new JobResponseDtoBuilder().success().build();
+        } catch (error) {
+            console.error('Error create job wish list');
+            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+        }
+    }
+
+    async deleteJobWishList(id: string, user: JwtPayload) {
+        try {
+            await this.jobRepository
+                .createQueryBuilder()
+                .delete()
+                .from('jobs_favorite')
+                .where('job_id = :jobId', { jobId: id })
+                .andWhere('profile_id = :profileId', { profileId: user.profileId })
+                .execute();
+            return new JobResponseDtoBuilder().success().build();
+        } catch (error) {
+            console.error('Error delete job wish list');
+            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+        }
+    }
+
+    async getJobWishList(query: PaginationDto, user: JwtPayload) {
+        try {
+            const [result, total] = await this.jobRepository.findAndCount({
+                where: { profiles: { profileId: user.profileId } },
+                relations: {
+                    enterprise: true,
+                    addresses: true,
+                },
+                skip: (Number(query.page) - 1) * Number(query.take),
+                take: Number(query.take),
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: query,
+                itemCount: total,
+            });
+            return new JobResponseDtoBuilder().setValue(new PageDto<JobEntity>(result, meta)).success().build();
+        } catch (error) {
+            console.error('Error get jobs wish list: ', error);
+            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
         }
     }
 }

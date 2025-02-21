@@ -1,3 +1,4 @@
 import { CreateWebsiteDto } from './create-website.dto';
 import { UpdateWebsiteDto } from './update-website.dto';
-export { CreateWebsiteDto, UpdateWebsiteDto };
+import { WebsiteResponseDto, WebsiteResponseDtoBuilder } from './website.response';
+export { CreateWebsiteDto, UpdateWebsiteDto, WebsiteResponseDto, WebsiteResponseDtoBuilder };

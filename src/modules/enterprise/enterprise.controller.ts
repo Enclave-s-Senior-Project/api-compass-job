@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ValidationPipe, UseGuards } from '@nestjs/common';
 import { EnterpriseService } from './service/enterprise.service';
 import { CreateEnterpriseDto, EnterpriseResponseDto, UpdateEnterpriseDto } from './dtos';
 
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtPayload } from '@modules/auth/dtos';
 import { CurrentUser, TOKEN_NAME } from '@modules/auth';
+import { RolesGuard } from '@modules/auth/guards/role.guard';
+import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -14,6 +16,9 @@ import { CurrentUser, TOKEN_NAME } from '@modules/auth';
 export class EnterpriseController {
     constructor(private readonly enterpriseService: EnterpriseService) {}
     @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards()
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
     @ApiOperation({ summary: 'Create a new enterprise' })
     @ApiResponse({ status: 201, description: 'Enterprise created successfully.' })
@@ -39,7 +44,19 @@ export class EnterpriseController {
         return this.enterpriseService.findOne(id);
     }
 
+    @Get(':id')
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @ApiOperation({ summary: 'Get enterprise by account Id.' })
+    @ApiResponse({ status: 200, description: 'Get Enterprise by successfully.' })
+    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    getEnterpriseByAccountId(@CurrentUser() user: JwtPayload) {
+        return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
+    }
+
     @Patch(':id')
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
     @ApiOperation({ summary: 'Update an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise updated successfully.' })
     @ApiResponse({ status: 404, description: 'Enterprise not found.' })
@@ -47,6 +64,8 @@ export class EnterpriseController {
         return this.enterpriseService.update(id, updateEnterpriseDto);
     }
 
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
     @Delete(':id')
     @ApiOperation({ summary: 'Delete an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise deleted successfully.' })

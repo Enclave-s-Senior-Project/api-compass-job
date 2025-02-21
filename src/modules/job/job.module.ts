@@ -9,9 +9,10 @@ import { TmpModule } from '@modules/tmp/tmp.module';
 import { TagModule } from '@modules/tag/tag.module';
 import { CategoryModule } from '@modules/category/category.module';
 import { AddressModule } from '@modules/address/address.module';
+import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 
 @Module({
-    imports: [TmpModule, CacheModule, TagModule, CategoryModule, AddressModule],
+    imports: [TmpModule, CacheModule, TagModule, CategoryModule, AddressModule, EnterpriseModule],
     controllers: [JobController],
     providers: [JobService, JobRepository],
     exports: [JobService],

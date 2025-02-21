@@ -28,21 +28,11 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'name', type: 'varchar', length: 255, nullable: false })
     readonly name: string;
 
-    @Column({
-        name: 'lowest_wage',
-        type: 'numeric',
-        precision: 10,
-        scale: 2,
-    })
-    readonly lowestWage: string | null;
+    @Column({ name: 'lowest_wage', type: 'int', nullable: true })
+    lowestWage: number | null;
 
-    @Column({
-        name: 'highest_wage',
-        type: 'numeric',
-        precision: 10,
-        scale: 2,
-    })
-    readonly highestWage: string | null;
+    @Column({ name: 'highest_wage', type: 'int', nullable: true })
+    highestWage: number | null;
 
     @Column({ name: 'description', type: 'text', nullable: false })
     readonly description: string;

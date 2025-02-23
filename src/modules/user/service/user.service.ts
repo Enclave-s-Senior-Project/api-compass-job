@@ -10,9 +10,12 @@ import { Like } from 'typeorm';
 import { ImagekitService } from '@imagekit/imagekit.service';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
+<<<<<<< HEAD
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
 const sharp = require('sharp');
+=======
+>>>>>>> 3eb3805 (feat: update personal profile)
 
 @Injectable()
 export class UserService {
@@ -217,6 +220,7 @@ export class UserService {
         return JSON.parse(await this.redisCache.get(`profile:${profileId}`));
     }
 
+<<<<<<< HEAD
     public async updatePersonalProfile(payload: UpdatePersonalProfileDto, user: JwtPayload) {
         try {
             const profile = await this.profileRepository.findOne({
@@ -268,4 +272,7 @@ export class UserService {
             return new UserResponseDtoBuilder().internalServerError().build();
         }
     }
+=======
+    public updatePersonalProfile(payload: UpdatePersonalProfileDto, user: JwtPayload) {}
+>>>>>>> 3eb3805 (feat: update personal profile)
 }

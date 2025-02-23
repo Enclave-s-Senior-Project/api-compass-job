@@ -74,4 +74,15 @@ export class JobController {
     // ): Promise<JobResponseDto> {
     //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
     // }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get jobs combine favorite' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('favorite')
+    getListJobCombineFavorite(@CurrentUser() user, @Query() query: PaginationDto): Promise<JobResponseDto> {
+        console.log('log', user);
+        return this.jobService.getListJobsCombineJobFavorites(query, user);
+    }
 }

@@ -18,7 +18,9 @@
             "@libs/*": ["src/libs/*"],
             "@builder/*": ["src/builder/*"],
             "@types/*": ["src/types/*"],
-            "@mail/*": ["src/mail/*"]
+            "@mail/*": ["src/mail/*"],
+            "@cache/*": ["src/cache/*"],
+            "@imagekit/*": ["src/imagekit/*"]
         },
         "module": "commonjs",
         "declaration": true,

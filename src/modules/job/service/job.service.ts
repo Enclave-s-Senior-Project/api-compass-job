@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Query } from '@nestjs/common';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { JobRepository } from '../repositories';
 import { RedisCommander } from 'ioredis';
@@ -153,5 +153,34 @@ export class JobService {
             console.error('Error get jobs wish list: ', error);
             return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
         }
+    }
+
+    async getListJobsCombineJobFavorites(query: PaginationDto, user: JwtPayload) {
+        try {
+            const [result, total] = await this.jobRepository.findAndCount({
+                relations: ['enterprise', 'addresses', 'profiles'],
+                skip: (Number(query.page) - 1) * Number(query.take),
+                take: Number(query.take),
+            });
+            const jobsWithFavorite = result.map((job) => {
+                const isFavorite = job.profiles.some((profile) => profile.profileId === user.profileId);
+                return { ...job, isFavorite };
+            });
+            const meta = new PageMetaDto({
+                pageOptionsDto: query,
+                itemCount: total,
+            });
+            return new JobResponseDtoBuilder()
+                .setValue(new PageDto<JobEntity>(jobsWithFavorite, meta))
+                .success()
+                .build();
+        } catch (error) {
+            console.error('Error get list jobs combine job favorites: ', error);
+            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+        }
+    }
+
+    async getJobById(id: string): Promise<JobEntity> {
+        return await this.jobRepository.findOne({ where: { jobId: id } });
     }
 }

@@ -9,10 +9,10 @@ export class AppliedJobEntity extends BaseEntity {
     @Column({ name: 'cover_letter', type: 'text', nullable: false })
     readonly coverLetter: string;
 
-    @Column({ name: 'status', type: 'boolean', nullable: false })
+    @Column({ name: 'status', type: 'boolean', nullable: true })
     readonly status: boolean;
 
-    @Column({ name: 'is_denied', type: 'boolean', nullable: false })
+    @Column({ name: 'is_denied', type: 'boolean', nullable: true })
     readonly isDenied: boolean;
 
     //     relationships

@@ -12,10 +12,6 @@ import { CategoryModule } from '@modules/category/category.module';
 import { TagModule } from '@modules/tag/tag.module';
 import { WebsiteModule } from '@modules/website/website.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
-import { ApplyJobModule } from '@modules/apply-job/apply-job.module';
-import { CvModule } from '@modules/cv/cv.module';
-import { ImagekitModule } from '@imagekit/imagekit.module';
-import { AwsModule } from '@modules/upload/upload.module';
 
 @Module({
     imports: [
@@ -34,11 +30,6 @@ import { AwsModule } from '@modules/upload/upload.module';
         CategoryModule,
         TagModule,
         WebsiteModule,
-        ApplyJobModule,
-        CvModule,
-        ImagekitModule,
-        AwsModule,
-        ImagekitModule,
     ],
 })
 export class AppModule {

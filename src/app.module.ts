@@ -3,17 +3,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '@database/database.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
-import { UserModule } from './modules/user/user.module';
-import { CacheModule } from './cache/cache.module';
-import { MailModule } from './mail/mail.module';
+import { UserModule } from '@modules/user/user.module';
+import { CacheModule } from '@cache/cache.module';
+import { MailModule } from '@mail/mail.module';
 import { JobModule } from '@modules/job/job.module';
-import { AddressModule } from './modules/address/address.module';
-import { CategoryModule } from './modules/category/category.module';
-import { TagModule } from './modules/tag/tag.module';
-import { WebsiteModule } from './modules/website/website.module';
+import { AddressModule } from '@modules/address/address.module';
+import { CategoryModule } from '@modules/category/category.module';
+import { TagModule } from '@modules/tag/tag.module';
+import { WebsiteModule } from '@modules/website/website.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
-import { ApplyJobModule } from './modules/apply-job/apply-job.module';
-import { CvModule } from './modules/cv/cv.module';
+import { ApplyJobModule } from '@modules/apply-job/apply-job.module';
+import { CvModule } from '@modules/cv/cv.module';
+import { ImagekitModule } from '@imagekit/imagekit.module';
 
 @Module({
     imports: [
@@ -34,6 +35,7 @@ import { CvModule } from './modules/cv/cv.module';
         WebsiteModule,
         ApplyJobModule,
         CvModule,
+        ImagekitModule,
     ],
 })
 export class AppModule {

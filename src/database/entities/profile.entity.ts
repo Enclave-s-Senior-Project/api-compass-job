@@ -30,7 +30,7 @@ export class ProfileEntity extends BaseEntity {
         nullable: true,
         default: process.env.AVATAR_IMAGE_URL,
     })
-    readonly avatarUrl: string;
+    readonly profileUrl: string;
 
     @Column({ name: 'page_url', type: 'varchar', length: 255, nullable: true, default: process.env.PAGE_IMAGE_URL })
     readonly pageUrl: string;

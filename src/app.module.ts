@@ -38,6 +38,7 @@ import { AwsModule } from '@modules/upload/upload.module';
         CvModule,
         ImagekitModule,
         AwsModule,
+        ImagekitModule,
     ],
 })
 export class AppModule {

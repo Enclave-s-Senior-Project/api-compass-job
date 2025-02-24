@@ -19,6 +19,6 @@ export class AwsService {
             ContentType: contentType,
         });
 
-        return await getSignedUrl(this.s3, command, { expiresIn: 3600 }); // URL valid for 1 hour
+        return await getSignedUrl(this.s3, command, { expiresIn: 5 * 60 }); // URL valid for 5 minutes
     }
 }

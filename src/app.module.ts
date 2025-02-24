@@ -15,6 +15,7 @@ import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { ApplyJobModule } from '@modules/apply-job/apply-job.module';
 import { CvModule } from '@modules/cv/cv.module';
 import { ImagekitModule } from '@imagekit/imagekit.module';
+import { AwsModule } from '@modules/upload/upload.module';
 
 @Module({
     imports: [
@@ -36,6 +37,7 @@ import { ImagekitModule } from '@imagekit/imagekit.module';
         ApplyJobModule,
         CvModule,
         ImagekitModule,
+        AwsModule,
     ],
 })
 export class AppModule {

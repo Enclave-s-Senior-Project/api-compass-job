@@ -10,6 +10,7 @@ import { Like } from 'typeorm';
 import { ImagekitService } from '@imagekit/imagekit.service';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
+const sharp = require('sharp');
 
 @Injectable()
 export class UserService {
@@ -197,7 +198,6 @@ export class UserService {
                 account: { id: currentUser.accountId } as any,
             });
 
-            const cacheKey = `profile:${id}`;
             await this.setProfileOnRedis(updatedProfile);
             return new UserResponseDtoBuilder().setCode(200).setValue(updatedProfile).success().build();
         } catch (error) {
@@ -208,23 +208,76 @@ export class UserService {
             throw new BadRequestException('UPDATE_USER_FAILED');
         }
     }
-    private setProfileOnRedis(profile: ProfileEntity) {
-        this.redisCache.set(`profile:${profile.profileId}`, JSON.stringify(profile), 'EX', 432000);
+    private async setProfileOnRedis(profile: ProfileEntity) {
+        await this.redisCache.set(`profile:${profile.profileId}`, JSON.stringify(profile), 'EX', 432000);
     }
     private async getProfileOnRedis(profileId) {
         return JSON.parse(await this.redisCache.get(`profile:${profileId}`));
     }
 
-    public updatePersonalProfile(files: Express.Multer.File[], body: UpdatePersonalProfileDto, user: JwtPayload) {
+    public async updatePersonalProfile(
+        files: { avatar: Express.Multer.File[]; background: Express.Multer.File[] },
+        body: UpdatePersonalProfileDto,
+        user: JwtPayload
+    ) {
         try {
-            const profile = this.profileRepository.findOne({
+            const profile = await this.profileRepository.findOne({
                 where: { profileId: user.profileId, account: { accountId: user.accountId } },
             });
             if (!profile) {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
 
-            return new UserResponseDtoBuilder().setValue(files).success().build();
+            const uploadPromises = [];
+
+            if (files?.avatar) {
+                const avatarPromise = (async (): Promise<string> => {
+                    const compressBuffer = await sharp(files.avatar[0].buffer)
+                        .resize({ width: 400, height: 400, fit: 'inside', withoutEnlargement: true })
+                        .webp({ quality: 80 })
+                        .toBuffer();
+
+                    const response = await this.imagekitService.uploadAvatarImage({
+                        file: compressBuffer,
+                        fileName: `avatar_${Date.now()}`,
+                    });
+                    return response.url;
+                })();
+
+                uploadPromises.push(avatarPromise);
+            }
+
+            if (files?.background) {
+                const avatarPromise = (async (): Promise<string> => {
+                    const compressBuffer = await sharp(files.background[0].buffer)
+                        .resize({ width: 1280, height: 768, fit: 'inside', withoutEnlargement: true })
+                        .webp({ quality: 80 })
+                        .toBuffer();
+
+                    const response = await this.imagekitService.uploadPageImage({
+                        file: compressBuffer,
+                        fileName: `background_${Date.now()}`,
+                    });
+                    return response.url;
+                })();
+
+                uploadPromises.push(avatarPromise);
+            }
+
+            const [avatarUrl, backgroundUrl] = await Promise.all(uploadPromises);
+
+            const updatedProfile = await this.profileRepository.save({
+                ...profile,
+                profileUrl: avatarUrl ?? profile.profileUrl,
+                pageUrl: backgroundUrl ?? profile.pageUrl,
+                education: body.education,
+                experience: body.experience,
+                phone: body.phone,
+            });
+
+            this.setProfileOnRedis(updatedProfile);
+
+            return new UserResponseDtoBuilder().setValue(updatedProfile).success().build();
         } catch (error) {
             return new UserResponseDtoBuilder().internalServerError().build();
         }

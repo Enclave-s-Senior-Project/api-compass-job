@@ -16,7 +16,7 @@ const bootstrap = async () => {
     app.use(cookieParse());
     app.enableCors({
         origin: process.env.CLIENT_URL,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
         credentials: true,
     });
     console.log('process.env.CLIENT_URL', process.env.CLIENT_URL);

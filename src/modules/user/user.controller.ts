@@ -6,7 +6,6 @@ import {
     Param,
     Patch,
     Query,
-    UploadedFile,
     UploadedFiles,
     UseInterceptors,
     ValidationPipe,
@@ -18,6 +17,7 @@ import {
     ApiConsumes,
     ApiInternalServerErrorResponse,
     ApiOperation,
+    ApiProperty,
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -25,7 +25,7 @@ import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { JwtPayload, PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { CreateUserDto } from './dtos';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { FileStorageConfig } from 'src/config/multer.config';
 import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 
@@ -48,34 +48,58 @@ export class UserController {
     }
 
     @HttpCode(200)
-    @SkipAuth()
-    // @ApiBearerAuth(TOKEN_NAME)
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'Update personal profile' })
     @ApiConsumes('multipart/form-data')
-    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    @ApiInternalServerErrorResponse({ description: 'Server error' })
     @ApiBody({
-        description: 'Upload multiple images under "images" field',
         schema: {
             type: 'object',
             properties: {
-                images: {
-                    type: 'array',
-                    items: { type: 'string', format: 'binary' },
+                avatar: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'First image file (max 2MB)',
+                },
+                background: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Second image file (max 5MB)',
+                },
+                education: {
+                    type: 'string',
+                    example: 'Bachelor of Science, Computer Science',
+                },
+                experience: {
+                    type: 'string',
+                    example: '5 years of experience',
+                },
+                phone: {
+                    type: 'string',
+                    example: '+123 45 6789',
                 },
             },
+            required: ['avatar', 'background'],
         },
     })
-    @UseInterceptors(FileInterceptor('images', new FileStorageConfig(2).getMulterOptions()))
+    @UseInterceptors(
+        FileFieldsInterceptor(
+            [
+                {
+                    name: 'avatar',
+                    maxCount: 1,
+                },
+                { name: 'background', maxCount: 1 },
+            ],
+            new FileStorageConfig(5).getMulterOptions(['avatar', 'background'])
+        )
+    )
     @Patch('personal')
     async updatePersonalProfile(
-        @UploadedFiles() files: Express.Multer.File[]
-        // @Body() body: UpdatePersonalProfileDto,
-        // @CurrentUser() user
+        @UploadedFiles() files: { avatar: Express.Multer.File[]; background: Express.Multer.File[] },
+        @Body() body: UpdatePersonalProfileDto,
+        @CurrentUser() user
     ) {
-        // return this.userService.updatePersonalProfile(files, body, user);
-        console.log(files);
-        return files;
+        return this.userService.updatePersonalProfile(files, body, user);
     }
 
     @HttpCode(200)
@@ -88,7 +112,6 @@ export class UserController {
     }
     @HttpCode(200)
     @ApiBearerAuth(TOKEN_NAME)
-    @HttpCode(200)
     @ApiOperation({ description: 'Update user' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })

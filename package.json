@@ -28,7 +28,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^11.0.1",
-    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-express": "^10.4.15",
     "@nestjs/swagger": "^8.1.1",
     "@nestjs/typeorm": "^7.1.5",
     "bcryptjs": "^2.4.3",
@@ -48,6 +48,7 @@
     "pg": "^8.13.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "sharp": "^0.33.5",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

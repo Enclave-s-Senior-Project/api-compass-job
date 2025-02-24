@@ -1,4 +1,5 @@
 import { BaseResponseDto } from '@common/dtos/response.dto';
+import { ErrorType } from '@common/enums';
 
 export class BaseResponseDtoBuilder<T extends BaseResponseDto> {
     protected responseDto: T;
@@ -31,6 +32,10 @@ export class BaseResponseDtoBuilder<T extends BaseResponseDto> {
 
     public badRequestContent(message): this {
         return this.setCode(400).setMessageCode(message);
+    }
+
+    public internalServerError(): this {
+        return this.setCode(500).setMessageCode(ErrorType.InternalErrorServer);
     }
 
     public build(): T {

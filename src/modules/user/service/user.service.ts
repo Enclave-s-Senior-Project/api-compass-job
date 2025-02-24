@@ -215,5 +215,18 @@ export class UserService {
         return JSON.parse(await this.redisCache.get(`profile:${profileId}`));
     }
 
-    public updatePersonalProfile(payload: UpdatePersonalProfileDto, user: JwtPayload) {}
+    public updatePersonalProfile(files: Express.Multer.File[], body: UpdatePersonalProfileDto, user: JwtPayload) {
+        try {
+            const profile = this.profileRepository.findOne({
+                where: { profileId: user.profileId, account: { accountId: user.accountId } },
+            });
+            if (!profile) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
+
+            return new UserResponseDtoBuilder().setValue(files).success().build();
+        } catch (error) {
+            return new UserResponseDtoBuilder().internalServerError().build();
+        }
+    }
 }

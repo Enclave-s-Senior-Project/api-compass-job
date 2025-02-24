@@ -1,19 +1,33 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Query, UseGuards, ValidationPipe } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    Param,
+    Patch,
+    Query,
+    UploadedFile,
+    UploadedFiles,
+    UseInterceptors,
+    ValidationPipe,
+} from '@nestjs/common';
 import { UserService } from './service/user.service';
 import {
     ApiBearerAuth,
+    ApiBody,
+    ApiConsumes,
     ApiInternalServerErrorResponse,
-    ApiOkResponse,
     ApiOperation,
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { CurrentUser, JwtAuthGuard, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { JwtPayload, PageDto, PaginationDto } from '@common/dtos';
-import { UserDto } from './dtos/user.dto';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { JwtPayload, PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
-import { ProfileFilterDto } from './dtos/user-filter-dto';
-import { CreateUserDto, UpdateUserDto } from './dtos';
+import { CreateUserDto } from './dtos';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FileStorageConfig } from 'src/config/multer.config';
+import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 
 @ApiTags('User')
 @Controller({
@@ -31,6 +45,37 @@ export class UserController {
     @Get()
     async getAllUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
         return this.userService.getAllUsers(pageOptionsDto);
+    }
+
+    @HttpCode(200)
+    @SkipAuth()
+    // @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Update personal profile' })
+    @ApiConsumes('multipart/form-data')
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @ApiBody({
+        description: 'Upload multiple images under "images" field',
+        schema: {
+            type: 'object',
+            properties: {
+                images: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                },
+            },
+        },
+    })
+    @UseInterceptors(FileInterceptor('images', new FileStorageConfig(2).getMulterOptions()))
+    @Patch('personal')
+    async updatePersonalProfile(
+        @UploadedFiles() files: Express.Multer.File[]
+        // @Body() body: UpdatePersonalProfileDto,
+        // @CurrentUser() user
+    ) {
+        // return this.userService.updatePersonalProfile(files, body, user);
+        console.log(files);
+        return files;
     }
 
     @HttpCode(200)

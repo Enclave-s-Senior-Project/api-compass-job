@@ -12,6 +12,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { TagModule } from './modules/tag/tag.module';
 import { WebsiteModule } from './modules/website/website.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
+import { AwsModule } from '@modules/upload/upload.module';
 
 @Module({
     imports: [
@@ -30,6 +31,7 @@ import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
         CategoryModule,
         TagModule,
         WebsiteModule,
+        AwsModule,
     ],
 })
 export class AppModule {

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, UseGuards } from '@nestjs/common';
 import { ApplyJobService } from './services/apply-job.service';
-import { CreateApplyJobDto } from './dto/create-apply-job.dto';
-import { UpdateApplyJobDto } from './dto/update-apply-job.dto';
+import { CreateApplyJobDto } from './dtos/create-apply-job.dto';
+import { UpdateApplyJobDto } from './dtos/update-apply-job.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, TOKEN_NAME } from '@modules/auth';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
@@ -17,31 +17,11 @@ export class ApplyJobController {
     @UseGuards(RolesGuard)
     @Roles(Role.USER)
     @Post()
-    async doApplyJob(
+    async applyJob(
         @Body() createApplyJobDto: CreateApplyJobDto,
         @CurrentUser() user: JwtPayload
     ): Promise<ApplyJobResponseDto> {
-        return this.applyJobService.doApplyJob(createApplyJobDto, user);
-    }
-
-    @Get()
-    findAll() {
-        return this.applyJobService.findAll();
-    }
-
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.applyJobService.findOne(+id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateApplyJobDto: UpdateApplyJobDto) {
-        return this.applyJobService.update(+id, updateApplyJobDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.applyJobService.remove(+id);
+        return this.applyJobService.applyJob(createApplyJobDto, user);
     }
 }
-import { ApplyJobResponseDto } from './dto';
+import { ApplyJobResponseDto } from './dtos';

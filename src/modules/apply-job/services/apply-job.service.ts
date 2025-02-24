@@ -1,10 +1,10 @@
 import { JobService } from './../../job/service/job.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateApplyJobDto } from '../dto/create-apply-job.dto';
-import { UpdateApplyJobDto } from '../dto/update-apply-job.dto';
+import { CreateApplyJobDto } from '../dtos/create-apply-job.dto';
+import { UpdateApplyJobDto } from '../dtos/update-apply-job.dto';
 import { ApplyJobRepository } from '../repositories/apply-job.repository';
 import { JwtPayload } from '@common/dtos';
-import { ApplyJobResponseDto, ApplyJobResponseDtoBuilder } from '../dto';
+import { ApplyJobResponseDto, ApplyJobResponseDtoBuilder } from '../dtos';
 import { JobErrorType, UserErrorType } from '@common/errors';
 import { CvService } from '@modules/cv/services/cv.service';
 import { CvErrorType } from '@common/errors/cv-error-type';
@@ -18,7 +18,7 @@ export class ApplyJobService {
         private readonly cvService: CvService,
         private readonly userService: UserService
     ) {}
-    async doApplyJob(createApplyJobDto: CreateApplyJobDto, user: JwtPayload) {
+    async applyJob(createApplyJobDto: CreateApplyJobDto, user: JwtPayload) {
         try {
             const { cvId, coverLetter, jobId } = createApplyJobDto;
             const [job, cv, profile] = await Promise.all([
@@ -46,21 +46,5 @@ export class ApplyJobService {
         } catch (error) {
             throw new BadRequestException('Failed to do apply job. Please check the provided data.');
         }
-    }
-
-    findAll() {
-        return `This action returns all applyJob`;
-    }
-
-    findOne(id: number) {
-        return `This action returns a #${id} applyJob`;
-    }
-
-    update(id: number, updateApplyJobDto: UpdateApplyJobDto) {
-        return `This action updates a #${id} applyJob`;
-    }
-
-    remove(id: number) {
-        return `This action removes a #${id} applyJob`;
     }
 }

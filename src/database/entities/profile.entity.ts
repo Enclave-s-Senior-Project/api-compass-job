@@ -1,4 +1,14 @@
-import { Column, Entity, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn,
+    Timestamp,
+    Unique,
+} from 'typeorm';
 import {
     AccountEntity,
     BaseEntity,
@@ -15,6 +25,12 @@ export enum GenderType {
     MALE = 'MALE',
     FEMALE = 'FEMALE',
 }
+
+export enum MaritalStatusType {
+    ALONE = 'ALONE',
+    MARRIED = 'MARRIED',
+}
+
 @Entity({ name: 'profiles' })
 export class ProfileEntity extends BaseEntity {
     @PrimaryGeneratedColumn('uuid', { name: 'profile_id' })
@@ -55,6 +71,15 @@ export class ProfileEntity extends BaseEntity {
 
     @Column({ name: 'education', type: 'text', nullable: true })
     readonly education: string | null;
+
+    @Column({ name: 'nationality', type: 'text', nullable: true })
+    readonly nationality: string | null;
+
+    @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+    readonly dateOfBirth: Date | null;
+
+    @Column({ name: 'marital_status', type: 'text', nullable: true })
+    readonly maritalStatus: MaritalStatusType | null;
 
     @Column({ name: 'is_premium', type: 'boolean', default: false, nullable: false })
     readonly isPremium: boolean;

@@ -10,6 +10,8 @@ import { Like } from 'typeorm';
 import { ImagekitService } from '@imagekit/imagekit.service';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
+import { UserStatus } from '@database/entities/account.entity';
+import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
 const sharp = require('sharp');
 
 @Injectable()
@@ -211,68 +213,52 @@ export class UserService {
     private async setProfileOnRedis(profile: ProfileEntity) {
         await this.redisCache.set(`profile:${profile.profileId}`, JSON.stringify(profile), 'EX', 432000);
     }
-    private async getProfileOnRedis(profileId) {
+    private async getProfileOnRedis(profileId: string) {
         return JSON.parse(await this.redisCache.get(`profile:${profileId}`));
     }
 
-    public async updatePersonalProfile(
-        files: { avatar: Express.Multer.File[]; background: Express.Multer.File[] },
-        body: UpdatePersonalProfileDto,
-        user: JwtPayload
-    ) {
+    public async updatePersonalProfile(payload: UpdatePersonalProfileDto, user: JwtPayload) {
         try {
             const profile = await this.profileRepository.findOne({
-                where: { profileId: user.profileId, account: { accountId: user.accountId } },
+                where: { profileId: user.profileId, account: { accountId: user.accountId, status: UserStatus.ACTIVE } },
             });
             if (!profile) {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
 
-            const uploadPromises = [];
+            const updatedProfile = await this.profileRepository.save({
+                ...profile,
+                profileUrl: payload.profileUrl,
+                pageUrl: payload.pageUrl,
+                education: payload.education,
+                experience: payload.experience,
+                phone: payload.phone,
+            });
 
-            if (files?.avatar) {
-                const avatarPromise = (async (): Promise<string> => {
-                    const compressBuffer = await sharp(files.avatar[0].buffer)
-                        .resize({ width: 400, height: 400, fit: 'inside', withoutEnlargement: true })
-                        .webp({ quality: 80 })
-                        .toBuffer();
+            this.setProfileOnRedis(updatedProfile);
 
-                    const response = await this.imagekitService.uploadAvatarImage({
-                        file: compressBuffer,
-                        fileName: `avatar_${Date.now()}`,
-                    });
-                    return response.url;
-                })();
+            return new UserResponseDtoBuilder().setValue(updatedProfile).success().build();
+        } catch (error) {
+            return new UserResponseDtoBuilder().internalServerError().build();
+        }
+    }
 
-                uploadPromises.push(avatarPromise);
+    public async updateCandidateProfile(payload: UpdateCandidateProfileDto, user: JwtPayload) {
+        try {
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: user.profileId, account: { accountId: user.accountId, status: UserStatus.ACTIVE } },
+            });
+            if (!profile) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
-
-            if (files?.background) {
-                const avatarPromise = (async (): Promise<string> => {
-                    const compressBuffer = await sharp(files.background[0].buffer)
-                        .resize({ width: 1280, height: 768, fit: 'inside', withoutEnlargement: true })
-                        .webp({ quality: 80 })
-                        .toBuffer();
-
-                    const response = await this.imagekitService.uploadPageImage({
-                        file: compressBuffer,
-                        fileName: `background_${Date.now()}`,
-                    });
-                    return response.url;
-                })();
-
-                uploadPromises.push(avatarPromise);
-            }
-
-            const [avatarUrl, backgroundUrl] = await Promise.all(uploadPromises);
 
             const updatedProfile = await this.profileRepository.save({
                 ...profile,
-                profileUrl: avatarUrl ?? profile.profileUrl,
-                pageUrl: backgroundUrl ?? profile.pageUrl,
-                education: body.education,
-                experience: body.experience,
-                phone: body.phone,
+                nationality: payload.nationality,
+                maritalStatus: payload.maritalStatus,
+                gender: payload.gender,
+                dateOfBirth: payload.dateOfBirth,
+                introduction: payload.introduction,
             });
 
             this.setProfileOnRedis(updatedProfile);

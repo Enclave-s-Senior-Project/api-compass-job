@@ -15,14 +15,17 @@ export class FileStorageConfig {
         this.allowedMimeTypes = allowedMimeTypes;
     }
 
-    public getMulterOptions = (): MulterOptions => ({
+    public getMulterOptions = (acceptedFilenames: string[] = []): MulterOptions => ({
         storage: memoryStorage(),
         limits: { fileSize: this.maxFileSize },
         fileFilter: (req, file, callback) => {
-            if (this.allowedMimeTypes.includes(file.mimetype)) {
-                callback(null, true);
+            if (!acceptedFilenames.includes(file?.fieldname)) {
+                return callback(null, true);
+            }
+            if (this.allowedMimeTypes.includes(file?.mimetype)) {
+                return callback(null, true);
             } else {
-                callback(new BadRequestException(ErrorType.InternalErrorServer), false);
+                return callback(new BadRequestException(ErrorType.InternalErrorServer), false);
             }
         },
     });

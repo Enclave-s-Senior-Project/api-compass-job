@@ -69,7 +69,7 @@ export class AuthService {
                 accountId: userPayload.accountId,
                 roles: userPayload.roles,
                 profileId: userPayload.profile.profileId,
-                enterpriseId: userPayload.enterprise,
+                enterpriseId: userPayload.enterprise.enterpriseId,
             };
 
             const token = await this.tokenService.generateAuthToken(payload);

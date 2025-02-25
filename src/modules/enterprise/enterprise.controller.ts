@@ -81,10 +81,14 @@ export class EnterpriseController {
         return this.enterpriseService.findJobsByEnterpriseId(id);
     }
 
-    @Get(':id/addresses')
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards()
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Get('me/addresses')
     @ApiOperation({ summary: 'Get all addresses associated with an enterprise' })
     @ApiResponse({ status: 200, description: 'List of addresses related to the enterprise.' })
-    findAddressesByEnterprise(@Param('id') id: string) {
-        return this.enterpriseService.findAddressesByEnterpriseId(id);
+    findAddressesByEnterprise(@CurrentUser() user: JwtPayload) {
+        return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
     }
 }

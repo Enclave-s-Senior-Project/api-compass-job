@@ -22,8 +22,8 @@ export class JobService {
         @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
     ) {}
 
-    async create(createJobDto: CreateJobDto, accountId: string) {
-        const { address, categoryIds, tagIds, enterpriseId, ...jobData } = createJobDto;
+    async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
+        const { address, categoryIds, tagIds, ...jobData } = createJobDto;
 
         const [enterprise, addresses, categories, tags] = await Promise.all([
             this.enterpriseService.getEnterpriseByAccountId(accountId),
@@ -156,6 +156,29 @@ export class JobService {
     }
 
     async getJobById(id: string): Promise<JobEntity> {
-        return await this.jobRepository.findOne({ where: { jobId: id } });
+        try {
+            const job = await this.jobRepository.findOne({ where: { jobId: id } });
+            return job;
+        } catch (err) {
+            console.log('Error getting job by id: ', err);
+            return null;
+        }
+    }
+
+    async getDetailJobById(id: string): Promise<JobResponseDto> {
+        try {
+            const job = await this.jobRepository.findOne({
+                where: { jobId: id },
+                relations: ['tags', 'enterprise', 'addresses'],
+            });
+            if (!job) {
+                return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
+            }
+
+            return new JobResponseDtoBuilder().setValue(job).success().build();
+        } catch (error) {
+            console.error('Error get detail job by id: ', error);
+            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+        }
     }
 }

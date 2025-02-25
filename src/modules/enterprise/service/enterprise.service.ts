@@ -94,15 +94,20 @@ export class EnterpriseService {
         return enterprise.jobs;
     }
     async findAddressesByEnterpriseId(enterpriseId: string) {
-        const enterprise = await this.enterpriseRepository.findOne({
-            where: { enterpriseId },
-            relations: ['addresses'],
-        });
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId },
+                relations: ['addresses'],
+            });
 
-        if (!enterprise) {
-            throw new NotFoundException(`Enterprise with ID ${enterpriseId} not found.`);
+            if (!enterprise) {
+                throw new NotFoundException(`Enterprise with ID ${enterpriseId} not found.`);
+            }
+
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
+        } catch (error) {
+            console.error('Error creating enterprise:', error);
+            throw error;
         }
-
-        return enterprise.addresses;
     }
 }

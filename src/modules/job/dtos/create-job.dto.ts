@@ -68,6 +68,10 @@ export class CreateJobDto {
     @IsBoolean()
     readonly status: boolean;
 
+    @ApiProperty({ description: 'Job Education', example: true })
+    @IsBoolean()
+    readonly education: string;
+
     @ApiProperty({ description: 'Enterprise ID', example: 'f9a74c91-6ebf-4d92-8b57-d4d9cacf8abc' })
     @IsString()
     @IsNotEmpty()

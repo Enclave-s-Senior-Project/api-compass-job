@@ -13,8 +13,8 @@ import {
     ApiNoContentResponse,
 } from '@nestjs/swagger';
 import { AddressResponseDto, CreateAddressDto, UpdateAddressDto } from './dtos/';
-import { PaginationDto } from '@common/dtos';
-import { SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { JwtPayload, PaginationDto } from '@common/dtos';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 
 @ApiTags('Address')
 @Controller({

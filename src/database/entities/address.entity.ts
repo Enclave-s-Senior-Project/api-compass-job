@@ -26,7 +26,7 @@ export class AddressEntity extends BaseEntity {
     @ManyToMany(() => EnterpriseEntity, (enterprise) => enterprise.addresses)
     @JoinTable({
         name: 'enterprise_addresses',
-        joinColumn: { name: 'job_id' },
+        joinColumn: { name: 'address_id' },
         inverseJoinColumn: { name: 'enterprise_id' },
     })
     readonly enterprises: EnterpriseEntity[];

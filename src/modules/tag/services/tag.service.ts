@@ -3,6 +3,9 @@ import { CreateTagDto, UpdateTagDto, TagResponseDto, TagResponseDtoBuilder } fro
 import { TagRepository } from '../repositories/tag.repository';
 import { TagEntity } from '@database/entities';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
+import { ILike, Like } from 'typeorm';
+import { Tag } from '../entities/tag.entity';
+import { query } from 'express';
 
 @Injectable()
 export class TagService {
@@ -78,6 +81,25 @@ export class TagService {
         await this.tagRepository.remove(tag);
     }
     async findByIds(tagIds: string[]): Promise<TagEntity[]> {
-        return this.tagRepository.findByIds(tagIds);
+        return await this.tagRepository.findByIds(tagIds);
+    }
+
+    async findByName(name?: string): Promise<TagResponseDto> {
+        try {
+            let tags: TagEntity[];
+
+            if (!name?.trim()) {
+                tags = await this.tagRepository.find();
+            } else {
+                tags = await this.tagRepository.find({
+                    where: { name: ILike(`%${name}%`) },
+                });
+            }
+
+            return new TagResponseDtoBuilder().success().setValue(tags).build();
+        } catch (error) {
+            console.error('Error fetching tags by name:', error);
+            throw new InternalServerErrorException('Failed to retrieve tags.');
+        }
     }
 }

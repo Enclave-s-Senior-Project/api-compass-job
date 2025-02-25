@@ -16,6 +16,7 @@ import {
 import { TagResponseDto, CreateTagDto, UpdateTagDto } from './dtos/';
 import { SkipAuth } from '@modules/auth';
 import { PaginationDto } from '@common/dtos';
+import { GetTagsByNameDto } from './dtos/filter-tag.dto';
 
 @ApiTags('Tag')
 @Controller({
@@ -24,6 +25,17 @@ import { PaginationDto } from '@common/dtos';
 })
 export class TagController {
     constructor(private readonly tagService: TagService) {}
+
+    @SkipAuth()
+    @Get('filter')
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get Tags by Names' })
+    @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
+    @ApiBadRequestResponse({ description: 'Invalid IDs.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error.' })
+    async getTagsByName(@Query() query: GetTagsByNameDto): Promise<TagResponseDto> {
+        return this.tagService.findByName(query.name);
+    }
 
     @SkipAuth()
     @Post()

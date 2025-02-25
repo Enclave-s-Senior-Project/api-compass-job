@@ -60,6 +60,9 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'status', type: 'boolean', default: false })
     readonly status: boolean;
 
+    @Column({ name: 'education', type: 'varchar', length: 50, nullable: true })
+    readonly education: string;
+
     @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.jobs)
     @JoinColumn({ name: 'enterprise_id' })
     readonly enterprise: EnterpriseEntity;

@@ -12,6 +12,7 @@ import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { CreateJobDto, CreateJobWishListDto, JobResponseDto } from './dtos';
+import { SKIP_AUTH } from '@modules/auth/constants';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -21,8 +22,11 @@ export class JobController {
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
-    create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
-        return this.jobService.create(createJobDto, user.accountId);
+    create(
+        @Body() createJobDto: Omit<CreateJobDto, 'enterpriseId'>,
+        @CurrentUser() user: JwtPayload
+    ): Promise<JobResponseDto> {
+        return this.jobService.create(createJobDto, user.accountId, user.enterpriseId);
     }
 
     @SkipAuth()
@@ -62,16 +66,13 @@ export class JobController {
         return this.jobService.getJobWishList(query, user);
     }
 
-    // @SkipAuth()
-    // @HttpCode(200)
-    // @ApiOperation({ description: 'Get job by name, location, category, advance' })
-    // @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    // @ApiInternalServerErrorResponse({ description: 'Server error' })
-    // @Get()
-    // async findMany(
-    //     @Query() jobFilterDto: JobFilterDto,
-    //     @Query() PaginationDto: PaginationDto
-    // ): Promise<JobResponseDto> {
-    //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
-    // }
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get job by ID' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get(':id')
+    getJobByID(@Param('id') id: string) {
+        return this.jobService.getDetailJobById(id);
+    }
 }

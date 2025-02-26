@@ -251,7 +251,6 @@ export class UserService {
             if (!profile) {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
-
             const updatedProfile = await this.profileRepository.save({
                 ...profile,
                 nationality: payload.nationality,

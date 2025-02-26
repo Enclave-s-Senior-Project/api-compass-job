@@ -14,8 +14,8 @@ export class UpdatePersonalProfileDto {
         description: 'User avatar profile image URL',
     })
     @IsUrl({ allow_query_components: false }, { message: UpdatePersonalProfileDtoErrorType.INVALID_PROFILE_URL })
-    @IsNotEmpty({ message: UpdatePersonalProfileDtoErrorType.PROFILE_URL_REQUIRED })
-    readonly profileUrl: string;
+    @IsOptional()
+    readonly profileUrl?: string;
 
     @ApiProperty({
         default:
@@ -23,8 +23,8 @@ export class UpdatePersonalProfileDto {
         description: 'User background profile image URL',
     })
     @IsUrl({ allow_query_components: false }, { message: UpdatePersonalProfileDtoErrorType.INVALID_PAGE_URL })
-    @IsNotEmpty({ message: UpdatePersonalProfileDtoErrorType.PAGE_URL_REQUIRED })
-    readonly pageUrl: string;
+    @IsOptional()
+    readonly pageUrl?: string;
 
     @ApiProperty({
         default: 'Achieved bachelor of DUY TAN UNIVERSITY - 2025',

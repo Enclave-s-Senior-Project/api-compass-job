@@ -1,8 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AwsService } from './services';
 import { SkipAuth } from '@modules/auth';
+import { ApiTags } from '@nestjs/swagger';
 
-@Controller('upload')
+@ApiTags('Upload files')
+@Controller({ path: 'upload', version: '1' })
 export class AwsController {
     constructor(private readonly awsService: AwsService) {}
     @SkipAuth()
@@ -14,7 +16,6 @@ export class AwsController {
     @Get('presigned-url')
     async getPresignedUrl(@Query('filename') filename: string, @Query('contentType') contentType: string) {
         const key = `uploads/${Date.now()}-${filename}`;
-        const url = await this.awsService.generatePresignedUrl(key, contentType);
-        return { url, key };
+        return await this.awsService.generatePresignedUrl(key, contentType);
     }
 }

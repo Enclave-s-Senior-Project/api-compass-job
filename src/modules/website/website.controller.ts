@@ -17,6 +17,7 @@ import { TagResponseDto } from '@modules/tag/dtos';
 import { JwtPayload, PaginationDto } from '@common/dtos';
 import { WebsiteResponseDto } from './dtos';
 import { UserDto } from '@modules/user/dtos/user.dto';
+import { SocialType } from '@database/entities';
 
 @ApiTags('Website')
 @Controller('website')
@@ -71,8 +72,23 @@ export class WebsiteController {
         description: "Creates a new website associated with the authenticated user's profile ID.",
     })
     @ApiBody({
-        type: CreateWebsiteDto,
-        description: 'Data required to create a website',
+        type: [CreateWebsiteDto], // Specify an array of CreateWebsiteDto
+        description: 'Array of website creation data',
+        examples: {
+            multipleWebsites: {
+                summary: 'Example of creating multiple websites',
+                value: [
+                    {
+                        socialType: SocialType.FACEBOOK,
+                        socialLink: 'https://www.facebook.com/example',
+                    },
+                    {
+                        socialType: SocialType.TWITTER,
+                        socialLink: 'https://twitter.com/example',
+                    },
+                ],
+            },
+        },
     })
     @ApiResponse({
         status: 201,
@@ -80,10 +96,10 @@ export class WebsiteController {
         type: WebsiteResponseDto,
     })
     createWebsiteByProfileId(
-        @Body() createWebsiteDto: CreateWebsiteDto,
+        @Body() createWebsiteDto: CreateWebsiteDto[],
         @CurrentUser() user: JwtPayload
     ): Promise<WebsiteResponseDto> {
-        return this.websiteService.createWebsiteByProfileId(createWebsiteDto, user);
+        return this.websiteService.createWebsitesByProfileId(createWebsiteDto, user);
     }
 
     @SkipAuth()
@@ -101,7 +117,6 @@ export class WebsiteController {
     @ApiResponse({
         status: 200,
         description: 'List of websites retrieved successfully',
-        type: [WebsiteResponseDto], // Assuming it returns an array; adjust if it's a single object
     })
     findByProfileId(@Param('profileId') profileId: string) {
         return this.websiteService.findByProfileId(profileId);
@@ -114,8 +129,23 @@ export class WebsiteController {
         description: "Creates a new website associated with the authenticated user's enterprise ID.",
     })
     @ApiBody({
-        type: CreateWebsiteDto,
-        description: 'Data required to create a website',
+        type: [CreateWebsiteDto], // Specify an array of CreateWebsiteDto
+        description: 'Array of website creation data',
+        examples: {
+            multipleWebsites: {
+                summary: 'Example of creating multiple websites',
+                value: [
+                    {
+                        socialType: SocialType.FACEBOOK,
+                        socialLink: 'https://www.facebook.com/example',
+                    },
+                    {
+                        socialType: SocialType.TWITTER,
+                        socialLink: 'https://twitter.com/example',
+                    },
+                ],
+            },
+        },
     })
     @ApiResponse({
         status: 201,

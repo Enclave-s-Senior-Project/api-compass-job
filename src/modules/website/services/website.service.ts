@@ -106,12 +106,19 @@ export class WebsiteService {
         }
     }
 
-    async createWebsiteByProfileId(createWebsiteDto: CreateWebsiteDto, user: JwtPayload): Promise<WebsiteResponseDto> {
-        const website = this.websiteRepository.create({
-            ...createWebsiteDto,
-            profile: { profileId: user.profileId },
-        });
-        return new WebsiteResponseDtoBuilder().setValue(this.websiteRepository.save(website)).success().build();
+    async createWebsitesByProfileId(
+        createWebsiteDTO: CreateWebsiteDto[],
+        user: JwtPayload
+    ): Promise<WebsiteResponseDto> {
+        const websites = createWebsiteDTO.map((dto) =>
+            this.websiteRepository.create({
+                ...dto,
+                profile: { profileId: user.profileId },
+            })
+        );
+        const savedWebsites = await this.websiteRepository.save(websites);
+
+        return new WebsiteResponseDtoBuilder().setValue(savedWebsites).success().build();
     }
     async createWebsiteByEnterpriseId(
         createWebsiteDto: CreateWebsiteDto,

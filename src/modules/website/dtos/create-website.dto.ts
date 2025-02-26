@@ -24,20 +24,4 @@ export class CreateWebsiteDto {
         message: 'Social link must be a valid URL.',
     })
     readonly socialLink?: string;
-
-    @ApiPropertyOptional({
-        description: 'UUID of the associated enterprise',
-        example: 'e3b0c442-98fc-462c-bc19-7b9c5f6f25da',
-    })
-    @IsOptional()
-    @IsUUID('4', { message: 'Enterprise ID must be a valid UUID.' })
-    readonly enterpriseId?: string;
-
-    @ApiPropertyOptional({
-        description: 'UUID of the associated profile',
-        example: '4b5b5c0a-9bcd-4f98-902d-2c3f8e6c1c99',
-    })
-    @IsOptional()
-    @IsUUID('4', { message: 'Profile ID must be a valid UUID.' })
-    readonly profileId?: string;
 }

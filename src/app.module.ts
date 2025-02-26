@@ -13,6 +13,8 @@ import { TagModule } from '@modules/tag/tag.module';
 import { WebsiteModule } from '@modules/website/website.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { AwsModule } from '@modules/upload/upload.module';
+import { ApplyJobModule } from '@modules/apply-job/apply-job.module';
+import { CvModule } from '@modules/cv/cv.module';
 
 @Module({
     imports: [
@@ -32,6 +34,8 @@ import { AwsModule } from '@modules/upload/upload.module';
         TagModule,
         WebsiteModule,
         AwsModule,
+        ApplyJobModule,
+        CvModule,
     ],
 })
 export class AppModule {

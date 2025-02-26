@@ -84,4 +84,24 @@ export class AddressService {
     async getAddressByIds(ids: string[]): Promise<AddressEntity[]> {
         return this.addressRepository.findByIds(ids);
     }
+    async getAddressEnterpriseIdsByEnterpriseId(enterpriseId: string): Promise<AddressResponseDto> {
+        try {
+            const result = this.addressRepository
+                .createQueryBuilder('address')
+                .select('enterprise_addresses.address_id', 'address_id')
+                .addSelect('enterprise_addresses.enterprise_id', 'enterprise_id')
+                .leftJoin(
+                    'enterprise_addresses',
+                    'enterprise_addresses',
+                    'enterprise_addresses.address_id = address.address_id'
+                )
+                .where('enterprise_addresses.enterprise_id = :enterpriseId', { enterpriseId })
+                .getRawMany();
+
+            return new AddressResponseDtoBuilder().setValue(result).success().build();
+        } catch (error) {
+            console.error('Error fetching addresses:', error);
+            throw new InternalServerErrorException('Failed to retrieve addresses.');
+        }
+    }
 }

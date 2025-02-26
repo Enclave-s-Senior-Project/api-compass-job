@@ -34,10 +34,21 @@ export class TagService {
         }
     }
 
-    async findAll(): Promise<TagResponseDto> {
+    async findAll(options: PaginationDto): Promise<TagResponseDto> {
         try {
-            const tags = await this.tagRepository.find();
-            return new TagResponseDtoBuilder().success().setValue(tags).build();
+            const { order, take, skip } = options;
+
+            const [tags, total] = await this.tagRepository.findAndCount({
+                order: { name: order }, // Assumes 'name' is the column to order by
+                take,
+                skip,
+            });
+            const meta = new PageMetaDto({
+                pageOptionsDto: options,
+                itemCount: total,
+            });
+
+            return new TagResponseDtoBuilder().success().setValue(new PageDto<TagEntity>(tags, meta)).build();
         } catch (error) {
             throw new InternalServerErrorException('Failed to retrieve tags.');
         }

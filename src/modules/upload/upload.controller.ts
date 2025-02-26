@@ -3,7 +3,7 @@ import { AwsService } from './services';
 import { SkipAuth } from '@modules/auth';
 import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Upload files')
+@ApiTags('Upload file/images')
 @Controller({ path: 'upload', version: '1' })
 export class AwsController {
     constructor(private readonly awsService: AwsService) {}

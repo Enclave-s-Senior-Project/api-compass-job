@@ -4,6 +4,7 @@ import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
 import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder } from '../dtos';
 import { JwtPayload } from '@common/dtos';
+import { EnterpriseErrorType } from '@common/errors/enterprises-error-type';
 
 @Injectable()
 export class EnterpriseService {
@@ -11,11 +12,18 @@ export class EnterpriseService {
 
     async create(createEnterpriseDto: CreateEnterpriseDto, user: JwtPayload): Promise<EnterpriseResponseDto> {
         try {
+            const isEnterprises = await this.enterpriseRepository.findOne({
+                where: { account: { accountId: user.accountId } },
+            });
+            if (isEnterprises) {
+                return new EnterpriseResponseDtoBuilder()
+                    .badRequestContent(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS)
+                    .build();
+            }
             const enterprise = await this.enterpriseRepository.create({
                 ...createEnterpriseDto,
                 account: { accountId: user.accountId },
             });
-
             await this.enterpriseRepository.save(enterprise);
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {

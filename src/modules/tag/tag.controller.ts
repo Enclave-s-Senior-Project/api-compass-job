@@ -54,8 +54,8 @@ export class TagController {
     @ApiOperation({ summary: 'Get all Tags', description: 'Retrieve all Tags without pagination.' })
     @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async getAllTags(): Promise<TagResponseDto> {
-        return this.tagService.findAll();
+    async getAllTags(@Query() pageOptionsDto: PaginationDto): Promise<TagResponseDto> {
+        return this.tagService.findAll(pageOptionsDto);
     }
 
     @SkipAuth()

@@ -1,0 +1,3 @@
+export enum EnterpriseErrorType {
+    ENTERPRISE_ALREADY_EXISTS = 'ENTERPRISE_ALREADY_EXISTS',
+}

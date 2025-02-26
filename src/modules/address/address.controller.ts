@@ -82,4 +82,17 @@ export class AddressController {
     async deleteAddress(@Param('id') id: string): Promise<void> {
         return this.addressService.remove(id);
     }
+
+    // @Get('/enterprise/')
+    // @HttpCode(200)
+    // @ApiOperation({
+    //     summary: 'Get all addresses by enterprise',
+    // })
+    // @ApiOkResponse({ description: 'Addresses retrieved successfully.', type: AddressResponseDto })
+    // @ApiUnauthorizedResponse({ description: 'Invalid credentials.' })
+    // @ApiInternalServerErrorResponse({ description: 'Server error.' })
+    // async getAllAddressesByEnterprise(@CurrentUser() user: JwtPayload): Promise<AddressResponseDto> {
+    //     console.log('user.enterpriseId', user);
+    //     return;
+    // }
 }

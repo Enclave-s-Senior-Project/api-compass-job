@@ -16,6 +16,7 @@ import { MailSenderService } from 'src/mail/mail.service';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
+import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 
 @Injectable()
 export class AuthService {
@@ -35,9 +36,13 @@ export class AuthService {
                     profile: {
                         profileId: true,
                     },
+                    enterprise: {
+                        enterpriseId: true,
+                    },
                 },
                 relations: {
                     profile: true,
+                    enterprise: true,
                 },
             });
             if (!account) {
@@ -64,6 +69,7 @@ export class AuthService {
                 accountId: userPayload.accountId,
                 roles: userPayload.roles,
                 profileId: userPayload.profile.profileId,
+                enterpriseId: userPayload.enterprise,
             };
 
             const token = await this.tokenService.generateAuthToken(payload);

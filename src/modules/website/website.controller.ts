@@ -29,7 +29,6 @@ export class WebsiteController {
     @Post()
     @ApiOperation({ summary: 'Create a new website' })
     create(@Body() createWebsiteDto: CreateWebsiteDto, @CurrentUser() user: UserDto) {
-        console.log('user', user);
         return this.websiteService.create(createWebsiteDto);
     }
 

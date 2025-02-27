@@ -19,7 +19,6 @@ export class CvController {
     @Roles(Role.USER)
     @Get('')
     async getAllCvByIdProfile(@CurrentUser() user): Promise<CvResponseDto> {
-        console.log(user);
         return this.cvService.getAllCvByIdProfile(user.profileId);
     }
 }

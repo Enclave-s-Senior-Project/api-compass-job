@@ -110,24 +110,49 @@ export class WebsiteService {
         createWebsiteDTO: CreateWebsiteDto[],
         user: JwtPayload
     ): Promise<WebsiteResponseDto> {
-        const websites = createWebsiteDTO.map((dto) =>
-            this.websiteRepository.create({
-                ...dto,
-                profile: { profileId: user.profileId },
-            })
-        );
-        const savedWebsites = await this.websiteRepository.save(websites);
+        try {
+            const profileCondition = { profile: { profileId: user.profileId } };
 
-        return new WebsiteResponseDtoBuilder().setValue(savedWebsites).success().build();
+            await Promise.all([
+                this.websiteRepository.delete(profileCondition),
+                this.websiteRepository.save(
+                    this.websiteRepository.create(
+                        createWebsiteDTO.map((dto) => ({
+                            ...dto,
+                            profile: { profileId: user.profileId },
+                        }))
+                    )
+                ),
+            ]);
+
+            return new WebsiteResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw new BadRequestException(error);
+        }
     }
+
     async createWebsiteByEnterpriseId(
-        createWebsiteDto: CreateWebsiteDto,
+        createWebsiteDto: CreateWebsiteDto[],
         user: JwtPayload
     ): Promise<WebsiteResponseDto> {
-        const website = this.websiteRepository.create({
-            ...createWebsiteDto,
-            enterprise: { enterpriseId: user.enterpriseId },
-        });
-        return new WebsiteResponseDtoBuilder().setValue(this.websiteRepository.save(website)).success().build();
+        try {
+            const enterpriseCondition = { enterprise: { enterpriseId: user.enterpriseId } };
+
+            await Promise.all([
+                this.websiteRepository.delete(enterpriseCondition),
+                this.websiteRepository.save(
+                    this.websiteRepository.create(
+                        createWebsiteDto.map((dto) => ({
+                            ...dto,
+                            enterprise: { enterpriseId: user.enterpriseId },
+                        }))
+                    )
+                ),
+            ]);
+
+            return new WebsiteResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw new BadRequestException(error);
+        }
     }
 }

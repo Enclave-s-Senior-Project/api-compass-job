@@ -152,7 +152,7 @@ export class WebsiteController {
         type: WebsiteResponseDto,
     })
     createWebsiteByEnterpriseId(
-        @Body() createWebsiteDto: CreateWebsiteDto,
+        @Body() createWebsiteDto: CreateWebsiteDto[],
         @CurrentUser() user: JwtPayload
     ): Promise<WebsiteResponseDto> {
         return this.websiteService.createWebsiteByEnterpriseId(createWebsiteDto, user);

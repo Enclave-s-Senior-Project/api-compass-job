@@ -15,8 +15,8 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - .:/app  
-      - /app/node_modules 
+      - .:/app
+      - /app/node_modules
 
   redis:
     container_name: redis_cache
@@ -37,6 +37,9 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_USER=${TYPEORM_USERNAME}
+      - POSTGRES_PASSWORD=${TYPEORM_PASSWORD}
+      - POSTGRES_DB=${TYPEORM_DATABASE}
       - PG_DATA=/var/lib/postgresql/data
     ports:
       - '${TYPEORM_PORT}:5432'

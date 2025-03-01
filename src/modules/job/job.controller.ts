@@ -66,13 +66,26 @@ export class JobController {
         return this.jobService.getJobWishList(query, user);
     }
 
-    @SkipAuth()
     @HttpCode(200)
-    @ApiOperation({ description: 'Get job by ID' })
+    @SkipAuth()
+    @ApiOperation({ description: 'Get jobs from enterprise' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @Get(':id')
-    getJobByID(@Param('id') id: string) {
-        return this.jobService.getDetailJobById(id);
+    @Get('enterprise/:id')
+    getJobEnterprise(@Param('id') id: string, @Query() pagination: PaginationDto): Promise<JobResponseDto> {
+        return this.jobService.getJobOfEnterprise(id, pagination);
     }
+
+    // @SkipAuth()
+    // @HttpCode(200)
+    // @ApiOperation({ description: 'Get job by name, location, category, advance' })
+    // @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    // @ApiInternalServerErrorResponse({ description: 'Server error' })
+    // @Get()
+    // async findMany(
+    //     @Query() jobFilterDto: JobFilterDto,
+    //     @Query() PaginationDto: PaginationDto
+    // ): Promise<JobResponseDto> {
+    //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
+    // }
 }

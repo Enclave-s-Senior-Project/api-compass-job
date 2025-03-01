@@ -1,4 +1,4 @@
-import { Inject, Injectable, Query } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { JobRepository } from '../repositories';
 import { RedisCommander } from 'ioredis';
@@ -10,6 +10,7 @@ import { AddressService } from '@modules/address/service/address.service';
 import { CategoryService } from '@modules/category/services';
 import { TagService } from '@modules/tag/services';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
+import { redisProviderName } from '@cache/cache.provider';
 
 @Injectable()
 export class JobService {
@@ -19,7 +20,7 @@ export class JobService {
         private readonly categoryService: CategoryService,
         private readonly enterpriseService: EnterpriseService,
         private readonly tagService: TagService,
-        @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
+        @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
 
     async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
@@ -178,6 +179,33 @@ export class JobService {
             return new JobResponseDtoBuilder().setValue(job).success().build();
         } catch (error) {
             console.error('Error get detail job by id: ', error);
+            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+        }
+    }
+
+    async getJobOfEnterprise(enterpriseId: string, pagination: PaginationDto) {
+        try {
+            const [result, total] = await this.jobRepository.findAndCount({
+                where: {
+                    enterprise: {
+                        enterpriseId: enterpriseId,
+                    },
+                },
+                relations: {
+                    enterprise: true,
+                    addresses: true,
+                },
+                skip: (Number(pagination.page) - 1) * Number(pagination.take),
+                take: Number(pagination.take),
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: pagination,
+                itemCount: total,
+            });
+
+            return new JobResponseDtoBuilder().setValue(new PageDto(result, meta)).build();
+        } catch (error) {
             return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
         }
     }

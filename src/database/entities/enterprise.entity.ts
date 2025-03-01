@@ -56,7 +56,7 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'is_premium', type: 'boolean', default: false, nullable: false })
     readonly isPremium: boolean;
 
-    @Column({ name: 'expired_premium', type: 'date' })
+    @Column({ name: 'expired_premium', type: 'date', nullable: true })
     readonly expiredPremium: Date | null;
 
     //     relationships

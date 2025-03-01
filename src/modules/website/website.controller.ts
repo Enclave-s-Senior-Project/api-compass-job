@@ -20,7 +20,7 @@ import { UserDto } from '@modules/user/dtos/user.dto';
 import { SocialType } from '@database/entities';
 
 @ApiTags('Website')
-@Controller('website')
+@Controller({ path: 'website', version: '1' })
 export class WebsiteController {
     constructor(private readonly websiteService: WebsiteService) {}
 

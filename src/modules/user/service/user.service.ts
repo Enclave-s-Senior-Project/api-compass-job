@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ProfileRepository } from '../repositories';
 import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
-import { GenderType, ProfileEntity } from '@database/entities';
+import { AccountEntity, GenderType, ProfileEntity } from '@database/entities';
 import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
@@ -12,7 +12,8 @@ import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-pro
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
-const sharp = require('sharp');
+
+type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
 @Injectable()
 export class UserService {
@@ -79,19 +80,30 @@ export class UserService {
      * @param accountId {string}
      * @returns {Promise<ProfileEntity | null>}
      */
-    public async getUserByAccountId(accountId: string): Promise<ProfileEntity | null> {
+    public async getUserByAccountId(accountId: string): Promise<ProfileAndRoles> | null {
         const cacheKey = `account:${accountId}`;
 
         try {
             const cachedProfile = await this.redisCache.get(cacheKey);
             if (cachedProfile) {
-                return JSON.parse(cachedProfile) as ProfileEntity;
+                return JSON.parse(cachedProfile) as ProfileAndRoles;
             }
-            const profile = await this.profileRepository.findOne({ where: { account_id: accountId } });
+            const profile = await this.profileRepository.findOne({
+                where: { account_id: accountId },
+                relations: { account: true },
+                select: {
+                    account: {
+                        roles: true,
+                    },
+                },
+            });
             if (!profile) return null;
 
-            this.redisCache.setex(cacheKey, 600, JSON.stringify(profile));
-            return profile;
+            const result = { ...profile, roles: profile.account.roles };
+            delete result.account;
+
+            this.redisCache.setex(cacheKey, 600, JSON.stringify(result));
+            return result;
         } catch (error) {
             console.error('Error fetching profile:', error);
             return null;

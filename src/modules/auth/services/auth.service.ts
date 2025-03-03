@@ -277,7 +277,7 @@ export class AuthService {
     public async getMe(accountId: string): Promise<RegisterResponseDto | null> {
         try {
             return new RegisterResponseDtoBuilder()
-                .setValue(await this.userService.findUserByAccountId(accountId))
+                .setValue(await this.userService.getUserByAccountId(accountId))
                 .success()
                 .build();
         } catch (error) {

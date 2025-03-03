@@ -1,4 +1,4 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ErrorType } from '@common/enums';
 import { InvalidCredentialsException, DisabledUserException, NotFoundUserException } from '@common/http/exceptions';
 import { omit } from 'lodash';
@@ -16,7 +16,7 @@ import { MailSenderService } from 'src/mail/mail.service';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
-import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
+import { AuthErrorType } from '@common/errors';
 
 @Injectable()
 export class AuthService {
@@ -45,6 +45,7 @@ export class AuthService {
                     enterprise: true,
                 },
             });
+            console.log('account', account);
             if (!account) {
                 throw new NotFoundUserException(ErrorType.NotFoundUserException);
             }
@@ -64,16 +65,16 @@ export class AuthService {
             }
 
             const userPayload = omit(account, ['password', 'active']);
-
+            console.log('userPayload', userPayload);
             const payload: JwtPayload = {
                 accountId: userPayload.accountId,
                 roles: userPayload.roles,
                 profileId: userPayload.profile.profileId,
-                enterpriseId: userPayload.enterprise.enterpriseId,
+                enterpriseId: userPayload.enterprise?.enterpriseId || null,
             };
 
             const token = await this.tokenService.generateAuthToken(payload);
-
+            console.log('userPayload', payload);
             await this.storeRefreshTokenOnCache(
                 userPayload.accountId,
                 token.refreshToken,
@@ -86,7 +87,6 @@ export class AuthService {
                 builder: new LoginResponseDtoBuilder()
                     .setValue({
                         ...tokenWithoutRefreshToken,
-                        user: userPayload,
                     })
                     .success()
                     .build(),
@@ -94,7 +94,7 @@ export class AuthService {
                 refreshTokenExpires,
             };
         } catch (error) {
-            throw new LoginResponseDtoBuilder().badRequestContent(error.response.errorType).build();
+            throw new BadRequestException(AuthErrorType.AUTH_FAILED);
         }
     }
 
@@ -274,12 +274,14 @@ export class AuthService {
         if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
         return Boolean(exists);
     }
-    public async getMe(accountId: string): Promise<RegisterResponseDto | null> {
+    public async getMe(user: JwtPayload): Promise<RegisterResponseDto | null> {
         try {
-            return new RegisterResponseDtoBuilder()
-                .setValue(await this.userService.getUserByAccountId(accountId))
-                .success()
-                .build();
+            let result = {} as any;
+            if (user.accountId) {
+                result = await this.userService.getUserByAccountId(user.accountId);
+            }
+
+            return new RegisterResponseDtoBuilder().setValue(result).success().build();
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -310,8 +312,6 @@ export class AuthService {
 
             return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
-            console.error(error);
-
             throw new InternalServerErrorException();
         }
     }

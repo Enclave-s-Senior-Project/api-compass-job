@@ -3,20 +3,37 @@ import { Response } from 'express';
 
 @Catch(HttpException)
 export class CustomExceptionFilter implements ExceptionFilter {
-    catch(exception: HttpException, host: ArgumentsHost) {
+    catch(exception: HttpException, host: ArgumentsHost): void {
+        console.log('CustomExceptionFilter triggered'); // Add this to check if filter runs
+
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
         const status = exception.getStatus();
         const exceptionResponse = exception.getResponse();
 
-        let message = 'An unknown error occurred';
+        interface ExceptionResponse {
+            message?: string | string[];
+            error?: string;
+        }
+
+        let message: string;
 
         if (typeof exceptionResponse === 'string') {
-            message = exceptionResponse; // If it's a simple string message
-        } else if (typeof exceptionResponse === 'object' && exceptionResponse && 'message' in exceptionResponse) {
-            // If message is an array or string inside the response object
-            message = (exceptionResponse as any).message;
+            message = exceptionResponse;
+        } else if (exceptionResponse && typeof exceptionResponse === 'object') {
+            const responseObj = exceptionResponse as ExceptionResponse;
+            message = Array.isArray(responseObj.message)
+                ? responseObj.message.join(', ')
+                : responseObj.message || 'An unknown error occurred';
+        } else {
+            message = 'An unknown error occurred';
         }
+
+        console.error('Error occurred:', {
+            status,
+            message,
+            exceptionResponse,
+        });
 
         response.status(status).json({
             payload: {
@@ -24,7 +41,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
                 message_code: exception.message || 'UNKNOWN_ERROR',
                 message,
             },
-            timestamp: Date.now(),
+            timestamp: new Date().toISOString(),
         });
     }
 }

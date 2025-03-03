@@ -86,6 +86,7 @@ export class UserService {
         try {
             const cachedProfile = await this.redisCache.get(cacheKey);
             if (cachedProfile) {
+                console.log('Using cached profile:', cachedProfile);
                 return JSON.parse(cachedProfile) as ProfileAndRoles;
             }
             const profile = await this.profileRepository.findOne({

@@ -28,6 +28,7 @@ import { Role, Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/role.guard';
 import { ForgetPasswordDto } from './dtos/forget-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { JwtPayload } from '@common/dtos';
 
 @ApiTags('Auth')
 @Controller({
@@ -62,7 +63,7 @@ export class AuthController {
 
             return builder;
         } catch (error) {
-            return error;
+            throw error;
         }
     }
     @HttpCode(200)
@@ -75,6 +76,7 @@ export class AuthController {
         return this.authService.register(authCredentialsDto);
     }
 
+    @HttpCode(200)
     @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'Get user information' })
     @ApiOkResponse({ description: 'User information' })
@@ -84,8 +86,8 @@ export class AuthController {
     @Roles(Role.USER)
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('/me')
-    async getMe(@CurrentUser() user: AccountEntity): Promise<RegisterResponseDto> {
-        return this.authService.getMe(user.accountId);
+    async getMe(@CurrentUser() user: JwtPayload): Promise<RegisterResponseDto> {
+        return this.authService.getMe(user);
     }
 
     @SkipAuth()

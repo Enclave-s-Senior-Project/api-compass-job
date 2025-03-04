@@ -40,7 +40,7 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             sudo docker stop jobcompass-api || true
-            sudo docker rm jobcompass-api || true
+            sudo docker rm ${{ secrets.DOCKER_USERNAME }}/jobcompass-api || true
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
             sudo docker run -d --name jobcompass-api -p 3000:3000 --env-file .env ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
           EOF

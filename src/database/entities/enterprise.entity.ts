@@ -36,7 +36,13 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'logo_url', type: 'varchar', length: 255, default: process.env.ENTERPRISE_LOGO_URL })
     readonly logoUrl: string;
 
-    @Column({ name: 'background_image_url', type: 'varchar', length: 255, default: process.env.ENTERPRISE_LOGO_URL })
+    @Column({
+        name: 'background_image_url',
+        type: 'varchar',
+        length: 255,
+        default: process.env.ENTERPRISE_LOGO_URL,
+        nullable: true,
+    })
     readonly backgroundImageUrl: string;
 
     @Column({ name: 'founded_in', type: 'date' })
@@ -48,7 +54,13 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'team_size', type: 'varchar', length: 50 })
     readonly teamSize: string | null;
 
-    @Column({ name: 'status', type: 'enum', enum: EnterpriseStatus, nullable: false })
+    @Column({
+        name: 'status',
+        type: 'enum',
+        enum: EnterpriseStatus,
+        nullable: false,
+        default: EnterpriseStatus.PENDING,
+    })
     readonly status: EnterpriseStatus;
 
     @Column('varchar', {

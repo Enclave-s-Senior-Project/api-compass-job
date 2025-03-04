@@ -81,13 +81,10 @@ export class UserService {
      * @returns {Promise<ProfileEntity | null>}
      */
     public async getUserByAccountId(accountId: string): Promise<ProfileAndRoles> | null {
-        const cacheKey = `account:${accountId}`;
-
         try {
-            const cachedProfile = await this.redisCache.get(cacheKey);
-            if (cachedProfile) {
-                return JSON.parse(cachedProfile) as ProfileAndRoles;
-            }
+            const cachedProfile = await this.getProfileOnRedis(accountId);
+            if (cachedProfile) return cachedProfile;
+
             const profile = await this.profileRepository.findOne({
                 where: { account_id: accountId },
                 relations: { account: true },
@@ -102,16 +99,8 @@ export class UserService {
             const result = { ...profile, roles: profile.account.roles };
             delete result.account;
 
-            this.redisCache.setex(cacheKey, 600, JSON.stringify(result));
+            this.setProfileOnRedis(accountId, result);
             return result;
-        } catch (error) {
-            console.error('Error fetching profile:', error);
-            return null;
-        }
-    }
-    public async findUserByAccountId(accountId: string): Promise<ProfileEntity | null> {
-        try {
-            return this.profileRepository.findOne({ where: { account_id: accountId } });
         } catch (error) {
             console.error('Error fetching profile:', error);
             return null;
@@ -194,7 +183,16 @@ export class UserService {
         newUser: Partial<CreateUserDto>
     ): Promise<UserResponseDto> {
         try {
-            const profile = await this.profileRepository.findOne({ where: { profileId: id } });
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: id },
+                relations: { account: true },
+                select: {
+                    account: {
+                        roles: true,
+                        accountId: true,
+                    },
+                },
+            });
 
             if (!profile) {
                 throw new NotFoundException('USER_NOT_FOUND');
@@ -206,13 +204,23 @@ export class UserService {
             if (!isOwner && !isAdmin) {
                 throw new ForbiddenException('FORBIDDEN');
             }
+
+            const { account, ...profileWithoutRoles } = profile;
+
             const updatedProfile = await this.profileRepository.save({
-                ...profile,
-                ...newUser,
-                account: { id: currentUser.accountId } as any,
+                ...profileWithoutRoles,
+                fullName: newUser.fullName,
+                introduction: newUser.introduction,
+                phone: newUser.phone,
+                gender: newUser.gender,
+                education: newUser.education,
+                experience: newUser.experience,
+                email: newUser.email,
             });
 
-            await this.setProfileOnRedis(updatedProfile);
+            const result: ProfileAndRoles = { ...(updatedProfile as ProfileEntity), roles: account.roles };
+
+            await this.setProfileOnRedis(account.accountId, result);
             return new UserResponseDtoBuilder().setCode(200).setValue(updatedProfile).success().build();
         } catch (error) {
             console.error('Error updating user:', error);
@@ -222,11 +230,11 @@ export class UserService {
             throw new BadRequestException('UPDATE_USER_FAILED');
         }
     }
-    private async setProfileOnRedis(profile: ProfileEntity) {
-        await this.redisCache.set(`profile:${profile.profileId}`, JSON.stringify(profile), 'EX', 432000);
+    private async setProfileOnRedis(accountId: string, payload: ProfileAndRoles) {
+        await this.redisCache.set(`user-information:${accountId}`, JSON.stringify(payload), 'EX', 432000);
     }
-    private async getProfileOnRedis(profileId: string) {
-        return JSON.parse(await this.redisCache.get(`profile:${profileId}`));
+    private async getProfileOnRedis(accountId: string) {
+        return JSON.parse(await this.redisCache.get(`user-information:${accountId}`));
     }
 
     public async updatePersonalProfile(payload: UpdatePersonalProfileDto, user: JwtPayload) {
@@ -247,7 +255,7 @@ export class UserService {
                 phone: payload.phone,
             });
 
-            this.setProfileOnRedis(updatedProfile);
+            this.setProfileOnRedis(user.accountId, { ...updatedProfile, roles: user.roles });
 
             return new UserResponseDtoBuilder().setValue(updatedProfile).success().build();
         } catch (error) {
@@ -272,7 +280,7 @@ export class UserService {
                 introduction: payload.introduction,
             });
 
-            this.setProfileOnRedis(updatedProfile);
+            this.setProfileOnRedis(user.accountId, { ...updatedProfile, roles: user.roles });
 
             return new UserResponseDtoBuilder().setValue(updatedProfile).success().build();
         } catch (error) {

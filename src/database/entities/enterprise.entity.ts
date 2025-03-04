@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { AccountEntity, WebsiteEntity, BaseEntity, JobEntity } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
+import { EnterpriseStatus } from '@common/enums';
 
 enum OrganizationType {
     PRIVATE = 'PRIVATE',
@@ -44,6 +45,8 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'team_size', type: 'varchar', length: 50 })
     readonly teamSize: string | null;
 
+    @Column({ name: 'status', type: 'enum', enum: EnterpriseStatus, nullable: false })
+    readonly status: EnterpriseStatus;
     @Column('varchar', {
         name: 'industry_type',
         length: 255,

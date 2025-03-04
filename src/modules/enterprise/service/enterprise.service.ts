@@ -118,4 +118,21 @@ export class EnterpriseService {
             throw error;
         }
     }
+
+    async checkStatus(id: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { account: { accountId: id } },
+            });
+            if (!enterprise || enterprise == null) {
+                return new EnterpriseResponseDtoBuilder()
+                    .badRequestContent(EnterpriseErrorType.ENTERPRISE_CAN_REGISTER)
+                    .build();
+            }
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
+        } catch (error) {
+            console.error('Error creating enterprise:', error);
+            throw error;
+        }
+    }
 }

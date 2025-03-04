@@ -91,4 +91,13 @@ export class EnterpriseController {
     findAddressesByEnterprise(@CurrentUser() user: JwtPayload) {
         return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
     }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @Get('me/check')
+    @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
+    @ApiResponse({ status: 200, description: 'User has an enterprise.' })
+    checkUserEnterprise(@CurrentUser() user: JwtPayload) {
+        console.log('s', user.accountId);
+        return this.enterpriseService.checkStatus(user.accountId);
+    }
 }

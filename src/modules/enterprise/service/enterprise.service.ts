@@ -1,14 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
 import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder } from '../dtos';
 import { JwtPayload } from '@common/dtos';
 import { EnterpriseErrorType } from '@common/errors/enterprises-error-type';
+import { UpdateCompanyInfoDto } from '../dtos/update-company-info.dto';
+import { EnterpriseEntity } from '@database/entities';
+import { redisProviderName } from '@cache/cache.provider';
+import { RedisCommander } from 'ioredis';
+import { EnterpriseStatus } from '@common/enums';
+import { UpdateFoundingInfoDto } from '../dtos/update-founding-dto';
 
 @Injectable()
 export class EnterpriseService {
-    constructor(private readonly enterpriseRepository: EnterpriseRepository) {}
+    constructor(
+        private readonly enterpriseRepository: EnterpriseRepository,
+        @Inject(redisProviderName) private readonly redisCache: RedisCommander
+    ) {}
 
     async create(createEnterpriseDto: CreateEnterpriseDto, user: JwtPayload): Promise<EnterpriseResponseDto> {
         try {
@@ -134,5 +143,38 @@ export class EnterpriseService {
             console.error('Error creating enterprise:', error);
             throw error;
         }
+    }
+
+    async updateCompanyInfo(payload: UpdateCompanyInfoDto, user: JwtPayload) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: user.enterpriseId, status: EnterpriseStatus.ACTIVE },
+                relations: {
+                    addresses: true,
+                },
+            });
+            const { addresses, ...enterpriseWithoutAddresses } = enterprise;
+            const updatedEnterprise = await this.enterpriseRepository.save({
+                ...enterpriseWithoutAddresses,
+                ...payload,
+            });
+
+            this.storeEnterpriseOnRedis(updatedEnterprise.enterpriseId, updatedEnterprise);
+
+            return new EnterpriseResponseDtoBuilder().setValue(updatedEnterprise).build();
+        } catch (error) {
+            console.error('Error updating company info:', error);
+            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+        }
+    }
+
+    async updateFoundingInfo(payload: UpdateFoundingInfoDto, user: JwtPayload) {}
+
+    async storeEnterpriseOnRedis(enterpriseId: string, payload: EnterpriseEntity) {
+        await this.redisCache.set(`enterprise:${enterpriseId}`, JSON.stringify(payload), 'EX', 432000); // 5 days
+    }
+
+    async getEnterpriseFromRedis(enterpriseId: string) {
+        return JSON.parse(await this.redisCache.get(`enterprise:${enterpriseId}`));
     }
 }

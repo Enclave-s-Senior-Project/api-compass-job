@@ -34,17 +34,32 @@ export class TagService {
         }
     }
 
-    async findAll(options: PaginationDto): Promise<TagResponseDto> {
+    async findAll(filter: PaginationDto, name?: string): Promise<TagResponseDto> {
         try {
-            const { order, take, skip } = options;
+            const { order, take, skip, options } = filter;
+            const searchName = name !== undefined && name !== null ? name : '';
+
+            if (searchName) {
+                const [tags, total] = await this.tagRepository.findAndCount({
+                    order: { name: order },
+                    take,
+                    skip,
+                    where: { name: ILike(`%${searchName}%`) },
+                });
+                const meta = new PageMetaDto({
+                    pageOptionsDto: filter,
+                    itemCount: total,
+                });
+                return new TagResponseDtoBuilder().success().setValue(new PageDto<TagEntity>(tags, meta)).build();
+            }
 
             const [tags, total] = await this.tagRepository.findAndCount({
-                order: { name: order }, // Assumes 'name' is the column to order by
+                order: { name: order },
                 take,
                 skip,
             });
             const meta = new PageMetaDto({
-                pageOptionsDto: options,
+                pageOptionsDto: filter,
                 itemCount: total,
             });
 

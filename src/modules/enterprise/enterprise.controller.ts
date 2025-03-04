@@ -68,7 +68,7 @@ export class EnterpriseController {
     }
 
     @UseGuards(RolesGuard)
-    @Roles(Role.ADMIN)
+    @Roles(Role.ADMIN, Role.USER, Role.ENTERPRISE)
     @Delete(':id')
     @ApiOperation({ summary: 'Delete an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise deleted successfully.' })

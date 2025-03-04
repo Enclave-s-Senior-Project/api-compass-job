@@ -45,7 +45,6 @@ export class AuthService {
                     enterprise: true,
                 },
             });
-            console.log('account', account);
             if (!account) {
                 throw new NotFoundUserException(ErrorType.NotFoundUserException);
             }
@@ -65,7 +64,6 @@ export class AuthService {
             }
 
             const userPayload = omit(account, ['password', 'active']);
-            console.log('userPayload', userPayload);
             const payload: JwtPayload = {
                 accountId: userPayload.accountId,
                 roles: userPayload.roles,
@@ -74,7 +72,6 @@ export class AuthService {
             };
 
             const token = await this.tokenService.generateAuthToken(payload);
-            console.log('userPayload', payload);
             await this.storeRefreshTokenOnCache(
                 userPayload.accountId,
                 token.refreshToken,

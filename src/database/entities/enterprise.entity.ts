@@ -3,7 +3,7 @@ import { AccountEntity, WebsiteEntity, BaseEntity, JobEntity } from '@database/e
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
 
-enum OrganizationType {
+export enum OrganizationType {
     PRIVATE = 'PRIVATE',
     FLAT = 'FLAT',
     PUBLIC = 'PUBLIC',
@@ -36,6 +36,9 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'logo_url', type: 'varchar', length: 255, default: process.env.ENTERPRISE_LOGO_URL })
     readonly logoUrl: string;
 
+    @Column({ name: 'background_image_url', type: 'varchar', length: 255, default: process.env.ENTERPRISE_LOGO_URL })
+    readonly backgroundImageUrl: string;
+
     @Column({ name: 'founded_in', type: 'date' })
     readonly foundedIn: Date | null;
 
@@ -47,11 +50,12 @@ export class EnterpriseEntity extends BaseEntity {
 
     @Column({ name: 'status', type: 'enum', enum: EnterpriseStatus, nullable: false })
     readonly status: EnterpriseStatus;
+
     @Column('varchar', {
         name: 'industry_type',
         length: 255,
     })
-    industryType: string | null;
+    readonly industryType: string | null;
 
     @Column({ name: 'bio', type: 'text' })
     bio: string | null;

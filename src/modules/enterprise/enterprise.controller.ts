@@ -7,6 +7,8 @@ import { CurrentUser, TOKEN_NAME } from '@modules/auth';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { JwtPayload } from '@common/dtos';
+import { UpdateCompanyInfoDto } from './dtos/update-company-info.dto';
+import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -99,5 +101,27 @@ export class EnterpriseController {
     checkUserEnterprise(@CurrentUser() user: JwtPayload) {
         console.log('s', user.accountId);
         return this.enterpriseService.checkStatus(user.accountId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards()
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Patch('company')
+    @ApiOperation({ summary: "Update information about enterprise's company" })
+    @ApiResponse({ status: 200, description: 'Updated information.' })
+    updateCompanyInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateCompanyInfoDto) {
+        return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards()
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Patch('founding')
+    @ApiOperation({ summary: "Update information about enterprise's founding" })
+    @ApiResponse({ status: 200, description: 'Updated information.' })
+    updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
+        return this.enterpriseService.updateFoundingInfo(body, user);
     }
 }

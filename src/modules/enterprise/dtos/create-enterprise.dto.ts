@@ -1,3 +1,4 @@
+import { EnterpriseStatus } from '@common/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     IsBoolean,
@@ -77,6 +78,11 @@ export class CreateEnterpriseDto {
     @IsString()
     @Length(0, 50)
     readonly teamSize?: string;
+
+    @ApiPropertyOptional({ description: 'Status', enum: EnterpriseStatus })
+    @IsOptional()
+    @IsEnum(EnterpriseStatus, { message: 'Status must be one of: PENDING, ACTIVE, REJECTED, BLOACKED.' })
+    readonly status?: EnterpriseStatus;
 
     @ApiPropertyOptional({ description: 'Industry type', maxLength: 255 })
     @IsOptional()

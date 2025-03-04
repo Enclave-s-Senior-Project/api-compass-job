@@ -231,6 +231,7 @@ export class UserService {
         }
     }
     private async setProfileOnRedis(accountId: string, payload: ProfileAndRoles) {
+        console.log('Cache');
         await this.redisCache.set(`user-information:${accountId}`, JSON.stringify(payload), 'EX', 432000);
     }
     private async getProfileOnRedis(accountId: string) {

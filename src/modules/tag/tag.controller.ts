@@ -1,5 +1,17 @@
 // tag.controller.ts
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Delete, ValidationPipe, Query } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    Param,
+    Patch,
+    Post,
+    Delete,
+    ValidationPipe,
+    Query,
+    DefaultValuePipe,
+} from '@nestjs/common';
 import { TagService } from './services';
 import {
     ApiBearerAuth,
@@ -12,6 +24,7 @@ import {
     ApiBadRequestResponse,
     ApiCreatedResponse,
     ApiNoContentResponse,
+    ApiQuery,
 } from '@nestjs/swagger';
 import { TagResponseDto, CreateTagDto, UpdateTagDto } from './dtos/';
 import { SkipAuth } from '@modules/auth';
@@ -53,9 +66,10 @@ export class TagController {
     @HttpCode(200)
     @ApiOperation({ summary: 'Get all Tags', description: 'Retrieve all Tags without pagination.' })
     @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
+    @ApiQuery({ name: 'name', required: false, description: 'Tên của tag', schema: { default: '' } })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async getAllTags(@Query() pageOptionsDto: PaginationDto): Promise<TagResponseDto> {
-        return this.tagService.findAll(pageOptionsDto);
+    async getAllTags(@Query() pageOptionsDto: PaginationDto, @Query('name') name?: string): Promise<TagResponseDto> {
+        return this.tagService.findAll(pageOptionsDto, name);
     }
 
     @SkipAuth()

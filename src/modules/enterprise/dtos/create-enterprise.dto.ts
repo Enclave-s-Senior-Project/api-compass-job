@@ -56,6 +56,12 @@ export class CreateEnterpriseDto {
     @Length(0, 255)
     readonly logoUrl?: string;
 
+    @ApiPropertyOptional({ description: 'Background URL', maxLength: 255 })
+    @IsOptional()
+    @IsString()
+    @Length(0, 255)
+    readonly backgroundImageUrl?: string;
+
     @ApiPropertyOptional({ description: 'Founded date', type: String, format: 'date' })
     @IsOptional()
     @IsDateString()

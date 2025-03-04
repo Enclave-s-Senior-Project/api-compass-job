@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
@@ -68,10 +68,19 @@ export class EnterpriseService {
         return enterprise;
     }
 
-    async update(id: string, updateEnterpriseDto: UpdateEnterpriseDto) {
-        const enterprise = await this.findOne(id);
-        Object.assign(enterprise, updateEnterpriseDto);
-        return this.enterpriseRepository.save(enterprise);
+    // Overloaded update method signatures
+    public update(id: string, payload: UpdateEnterpriseDto): Promise<EnterpriseEntity>;
+    public update(enterprise: EnterpriseEntity, payload: UpdateEnterpriseDto): Promise<EnterpriseEntity>;
+
+    public async update(
+        arg1: string | EnterpriseEntity,
+        payload: UpdateCompanyInfoDto | UpdateFoundingInfoDto
+    ): Promise<EnterpriseEntity> {
+        if (typeof arg1 === 'string') {
+            const enterprise = await this.findOne(arg1);
+            return this.enterpriseRepository.save({ ...enterprise, ...payload });
+        }
+        return this.enterpriseRepository.save({ ...arg1, ...payload });
     }
 
     async remove(id: string) {
@@ -145,30 +154,39 @@ export class EnterpriseService {
         }
     }
 
-    async updateCompanyInfo(payload: UpdateCompanyInfoDto, user: JwtPayload) {
+    async updatePartialInfoActive(payload: UpdateEnterpriseDto, user: JwtPayload) {
         try {
-            const enterprise = await this.enterpriseRepository.findOne({
-                where: { enterpriseId: user.enterpriseId, status: EnterpriseStatus.ACTIVE },
-                relations: {
-                    addresses: true,
-                },
-            });
-            const { addresses, ...enterpriseWithoutAddresses } = enterprise;
-            const updatedEnterprise = await this.enterpriseRepository.save({
-                ...enterpriseWithoutAddresses,
-                ...payload,
-            });
+            const enterprise = await this.getActiveEnterprise(user.enterpriseId);
+            await this.update(enterprise, payload);
 
-            this.storeEnterpriseOnRedis(updatedEnterprise.enterpriseId, updatedEnterprise);
+            // this.storeEnterpriseOnRedis(updatedEnterprise.enterpriseId, updatedEnterprise);
 
-            return new EnterpriseResponseDtoBuilder().setValue(updatedEnterprise).build();
+            return new EnterpriseResponseDtoBuilder().setValue(payload).build();
         } catch (error) {
-            console.error('Error updating company info:', error);
+            if (error instanceof HttpException) {
+                return new EnterpriseResponseDtoBuilder()
+                    .setCode(error.getStatus())
+                    .setMessageCode(error.message)
+                    .build();
+            }
             return new EnterpriseResponseDtoBuilder().internalServerError().build();
         }
     }
 
-    async updateFoundingInfo(payload: UpdateFoundingInfoDto, user: JwtPayload) {}
+    private async getActiveEnterprise(enterpriseId: string) {
+        const enterprise = await this.enterpriseRepository.findOne({
+            where: {
+                enterpriseId,
+                status: EnterpriseStatus.ACTIVE,
+            },
+        });
+
+        if (!enterprise) {
+            throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+        }
+
+        return enterprise;
+    }
 
     async storeEnterpriseOnRedis(enterpriseId: string, payload: EnterpriseEntity) {
         await this.redisCache.set(`enterprise:${enterpriseId}`, JSON.stringify(payload), 'EX', 432000); // 5 days

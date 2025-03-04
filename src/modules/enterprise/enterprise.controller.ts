@@ -111,7 +111,7 @@ export class EnterpriseController {
     @ApiOperation({ summary: "Update information about enterprise's company" })
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateCompanyInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateCompanyInfoDto) {
-        return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
+        return this.enterpriseService.updatePartialInfoActive(body, user);
     }
 
     @ApiBearerAuth(TOKEN_NAME)
@@ -122,6 +122,6 @@ export class EnterpriseController {
     @ApiOperation({ summary: "Update information about enterprise's founding" })
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
-        return this.enterpriseService.updateFoundingInfo(body, user);
+        return this.enterpriseService.updatePartialInfoActive(body, user);
     }
 }

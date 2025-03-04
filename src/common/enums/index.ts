@@ -1,4 +1,5 @@
+import { EnterpriseStatus } from './enterprise-status.enum';
 import { DBErrorCode } from './db-error-code.enum';
 import { ErrorType } from './error-type.enum';
 
-export { DBErrorCode, ErrorType };
+export { DBErrorCode, ErrorType, EnterpriseStatus };

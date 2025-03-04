@@ -53,6 +53,7 @@ export class UserController {
     @ApiOperation({ description: 'Update personal profile' })
     @Patch('personal')
     async updatePersonalProfile(@Body() body: UpdatePersonalProfileDto, @CurrentUser() user) {
+        console.log('Body: ', body);
         return this.userService.updatePersonalProfile(body, user);
     }
 

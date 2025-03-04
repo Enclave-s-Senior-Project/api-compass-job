@@ -1,12 +1,14 @@
 import { UpdatePersonalProfileDtoErrorType } from '@common/errors/class-validator-error-type';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
+import { IsEmpty, IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
 
 export class UpdatePersonalProfileDto {
     @ApiProperty({
         default: 'John Smith',
         description: 'Full name of user',
     })
+    @IsString({ message: UpdatePersonalProfileDtoErrorType.FULL_NAME_REQUIRED })
+    @IsNotEmpty({ message: UpdatePersonalProfileDtoErrorType.FULL_NAME_REQUIRED })
     readonly fullName: string;
 
     @ApiProperty({

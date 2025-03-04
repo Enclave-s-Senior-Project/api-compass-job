@@ -231,6 +231,7 @@ export class UserService {
         }
     }
     private async setProfileOnRedis(accountId: string, payload: ProfileAndRoles) {
+        console.log('Cache');
         await this.redisCache.set(`user-information:${accountId}`, JSON.stringify(payload), 'EX', 432000);
     }
     private async getProfileOnRedis(accountId: string) {
@@ -253,11 +254,14 @@ export class UserService {
                 education: payload.education,
                 experience: payload.experience,
                 phone: payload.phone,
+                fullName: payload.fullName,
             });
 
-            this.setProfileOnRedis(user.accountId, { ...updatedProfile, roles: user.roles });
+            const finalResult = { ...updatedProfile, roles: user.roles };
 
-            return new UserResponseDtoBuilder().setValue(updatedProfile).success().build();
+            this.setProfileOnRedis(user.accountId, finalResult);
+
+            return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
             return new UserResponseDtoBuilder().internalServerError().build();
         }
@@ -280,9 +284,11 @@ export class UserService {
                 introduction: payload.introduction,
             });
 
-            this.setProfileOnRedis(user.accountId, { ...updatedProfile, roles: user.roles });
+            const finalResult = { ...updatedProfile, roles: user.roles };
 
-            return new UserResponseDtoBuilder().setValue(updatedProfile).success().build();
+            this.setProfileOnRedis(user.accountId, finalResult);
+
+            return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
             return new UserResponseDtoBuilder().internalServerError().build();
         }

@@ -38,8 +38,8 @@ export class CustomExceptionFilter implements ExceptionFilter {
         response.status(status).json({
             payload: {
                 code: status,
-                message_code: exception.message || 'UNKNOWN_ERROR',
-                message,
+                message_code: message || 'UNKNOWN_ERROR',
+                message: exception.message,
             },
             timestamp: new Date().toISOString(),
         });

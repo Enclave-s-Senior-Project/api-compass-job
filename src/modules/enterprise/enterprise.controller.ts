@@ -17,8 +17,8 @@ import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
 })
 export class EnterpriseController {
     constructor(private readonly enterpriseService: EnterpriseService) {}
+
     @ApiBearerAuth(TOKEN_NAME)
-    @UseGuards()
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
@@ -56,16 +56,6 @@ export class EnterpriseController {
         return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
     }
 
-    @Patch(':id')
-    @UseGuards(RolesGuard)
-    @Roles(Role.ENTERPRISE, Role.ADMIN)
-    @ApiOperation({ summary: 'Update an enterprise by ID' })
-    @ApiResponse({ status: 200, description: 'Enterprise updated successfully.' })
-    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
-    update(@Param('id') id: string, @Body() updateEnterpriseDto: UpdateEnterpriseDto) {
-        return this.enterpriseService.update(id, updateEnterpriseDto);
-    }
-
     @UseGuards(RolesGuard)
     @Roles(Role.ADMIN)
     @Delete(':id')
@@ -84,7 +74,6 @@ export class EnterpriseController {
     }
 
     @ApiBearerAuth(TOKEN_NAME)
-    @UseGuards()
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Get('me/addresses')
@@ -104,18 +93,16 @@ export class EnterpriseController {
     }
 
     @ApiBearerAuth(TOKEN_NAME)
-    @UseGuards()
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
-    @Patch('company')
     @ApiOperation({ summary: "Update information about enterprise's company" })
     @ApiResponse({ status: 200, description: 'Updated information.' })
+    @Patch('company')
     updateCompanyInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateCompanyInfoDto) {
         return this.enterpriseService.updatePartialInfoActive(body, user);
     }
 
     @ApiBearerAuth(TOKEN_NAME)
-    @UseGuards()
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
     @Patch('founding')
@@ -123,5 +110,15 @@ export class EnterpriseController {
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
         return this.enterpriseService.updatePartialInfoActive(body, user);
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @ApiOperation({ summary: 'Update an enterprise by ID' })
+    @ApiResponse({ status: 200, description: 'Enterprise updated successfully.' })
+    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateEnterpriseDto: UpdateEnterpriseDto) {
+        return this.enterpriseService.update(id, updateEnterpriseDto);
     }
 }

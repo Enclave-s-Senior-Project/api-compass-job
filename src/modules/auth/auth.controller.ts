@@ -95,6 +95,7 @@ export class AuthController {
     @Post('/refresh-token')
     async refreshToken(
         @Req() request: any,
+        @CurrentUser() user,
         @Res({ passthrough: true }) response: Response
     ): Promise<RefreshTokenResponseDto> {
         try {
@@ -103,7 +104,7 @@ export class AuthController {
                 refreshToken: newRefreshToken,
                 refreshTokenExpires,
                 builder,
-            } = await this.authService.refreshToken(request?.user, refreshToken);
+            } = await this.authService.refreshToken(user, refreshToken);
 
             response.cookie('refresh-token', newRefreshToken, {
                 httpOnly: true,

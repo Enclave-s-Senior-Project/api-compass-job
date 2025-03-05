@@ -81,6 +81,14 @@ export class WebsiteService {
                     await this.websiteRepository.find({
                         where: { profile: { profileId } },
                         relations: ['profile'],
+                        select: {
+                            profile: {
+                                profileId: true,
+                            },
+                            websiteId: true,
+                            socialLink: true,
+                            socialType: true,
+                        },
                     })
                 )
                 .success()

@@ -45,7 +45,6 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
     @ApiResponse({ status: 200, description: 'User has an enterprise.' })
     getCurrentEnterprise(@CurrentUser() user: JwtPayload) {
-
         return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
     }
 
@@ -68,7 +67,7 @@ export class EnterpriseController {
     }
 
     @UseGuards(RolesGuard)
-    @Roles(Role.ADMIN, Role.USER, Role.ENTERPRISE)
+    @Roles(Role.ADMIN, Role.ENTERPRISE)
     @Delete(':id')
     @ApiOperation({ summary: 'Delete an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise deleted successfully.' })
@@ -93,7 +92,6 @@ export class EnterpriseController {
     findAddressesByEnterprise(@CurrentUser() user: JwtPayload) {
         return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
     }
-
 
     @ApiBearerAuth(TOKEN_NAME)
     @Get('me/check')
@@ -132,5 +130,25 @@ export class EnterpriseController {
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateEnterpriseDto: UpdateEnterpriseDto) {
         return this.enterpriseService.update(id, updateEnterpriseDto);
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(Role.USER, Role.ENTERPRISE)
+    @ApiOperation({ summary: 'Get enterprise by account Id.' })
+    @ApiResponse({ status: 200, description: 'Get Enterprise by successfully.' })
+    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    @Delete('/cancel-enterprise/:id')
+    cancelEnterprises(@Param('id') id: string) {
+        return this.enterpriseService.cancelEnterprise(id);
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(Role.USER)
+    @ApiOperation({ summary: 'Update an enterprise by ID' })
+    @ApiResponse({ status: 200, description: 'Enterprise updated successfully.' })
+    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    @Patch('/update-enterprise/:id')
+    updateEnterprise(@Param('id') id: string, @Body() updateEnterpriseDto: UpdateEnterpriseDto) {
+        return this.enterpriseService.updateRegisterEnterprise(id, updateEnterpriseDto);
     }
 }

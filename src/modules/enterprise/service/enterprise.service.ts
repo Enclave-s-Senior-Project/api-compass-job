@@ -195,4 +195,47 @@ export class EnterpriseService {
     async getEnterpriseFromRedis(enterpriseId: string) {
         return JSON.parse(await this.redisCache.get(`enterprise:${enterpriseId}`));
     }
+
+    async cancelEnterprise(id: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId: id });
+            if (enterprise.status === 'PENDING') {
+                const temp = await this.enterpriseRepository.remove(enterprise);
+                return new EnterpriseResponseDtoBuilder().success().build();
+            } else {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
+            }
+        } catch (error) {
+            if (error instanceof HttpException) {
+                return new EnterpriseResponseDtoBuilder()
+                    .setCode(error.getStatus())
+                    .setMessageCode(error.message)
+                    .build();
+            }
+            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+        }
+    }
+
+    async updateRegisterEnterprise(id: string, enterprise: UpdateEnterpriseDto) {
+        try {
+            const temp = await this.enterpriseRepository.findOneBy({ enterpriseId: id });
+            if (!temp) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+            if (temp.status === 'PENDING') {
+                const updateEnterprise = await this.enterpriseRepository.save({ ...temp, ...enterprise });
+                return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
+            } else {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
+            }
+        } catch (error) {
+            if (error instanceof HttpException) {
+                return new EnterpriseResponseDtoBuilder()
+                    .setCode(error.getStatus())
+                    .setMessageCode(error.message)
+                    .build();
+            }
+            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+        }
+    }
 }

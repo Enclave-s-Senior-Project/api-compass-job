@@ -45,7 +45,6 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
     @ApiResponse({ status: 200, description: 'User has an enterprise.' })
     getCurrentEnterprise(@CurrentUser() user: JwtPayload) {
-
         return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
     }
 
@@ -93,7 +92,6 @@ export class EnterpriseController {
     findAddressesByEnterprise(@CurrentUser() user: JwtPayload) {
         return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
     }
-
 
     @ApiBearerAuth(TOKEN_NAME)
     @Get('me/check')

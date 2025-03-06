@@ -44,7 +44,7 @@ export class EnterpriseService {
     async getEnterpriseByAccountId(accountId: string) {
         try {
             const enterprise = await this.enterpriseRepository.findOne({ where: { account: { accountId } } });
-            return enterprise;
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error fetching enterprise by account ID:', error);
             throw error;

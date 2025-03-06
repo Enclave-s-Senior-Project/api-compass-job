@@ -27,7 +27,7 @@ export class JobService {
         const { address, categoryIds, tagIds, ...jobData } = createJobDto;
 
         const [enterprise, addresses, categories, tags] = await Promise.all([
-            this.enterpriseService.getEnterpriseByAccountId(accountId),
+            (await this.enterpriseService.getEnterpriseByAccountId(accountId)).value,
             this.addressService.getAddressByIds(address),
             this.categoryService.findByIds(categoryIds),
             this.tagService.findByIds(tagIds),

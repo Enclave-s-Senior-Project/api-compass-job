@@ -269,6 +269,7 @@ export class AuthService {
     private async validateRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
         const exists = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
         if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
+        console.log('exists', `refreshtoken:${accountId}:${refreshToken}`);
         return Boolean(exists);
     }
     public async getMe(user: JwtPayload): Promise<RegisterResponseDto | null> {

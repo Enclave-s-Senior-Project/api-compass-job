@@ -38,6 +38,17 @@ export class EnterpriseController {
         return this.enterpriseService.findAll();
     }
 
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Get('me')
+    @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
+    @ApiResponse({ status: 200, description: 'User has an enterprise.' })
+    getCurrentEnterprise(@CurrentUser() user: JwtPayload) {
+
+        return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Retrieve an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise details.' })
@@ -82,6 +93,7 @@ export class EnterpriseController {
     findAddressesByEnterprise(@CurrentUser() user: JwtPayload) {
         return this.enterpriseService.findAddressesByEnterpriseId(user?.enterpriseId);
     }
+
 
     @ApiBearerAuth(TOKEN_NAME)
     @Get('me/check')

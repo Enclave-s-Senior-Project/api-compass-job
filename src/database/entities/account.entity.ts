@@ -20,6 +20,9 @@ export class AccountEntity extends BaseEntity {
     @PrimaryGeneratedColumn('uuid', { name: 'account_id' })
     readonly accountId: string;
 
+    @Column({ name: 'google_id', type: 'varchar', length: 255, default: null, nullable: true })
+    readonly googleId: string;
+
     @Column({ name: 'email', type: 'varchar', length: 255, unique: true })
     readonly email: string;
 

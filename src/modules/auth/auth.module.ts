@@ -8,13 +8,13 @@ import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AccountRepository } from './repositories';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AccountEntity } from '@database/entities';
 import { UserModule } from '@modules/user/user.module';
 import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
 import { CacheModule } from 'src/cache/cache.module';
 import { MailModule } from 'src/mail/mail.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
+import { FacebookModule } from './facebook/facebook.module';
+import { FacebookStrategy } from './facebook/facebook-oauth2.strategy';
 
 @Module({
     imports: [
@@ -36,12 +36,14 @@ import { TmpModule } from '@modules/tmp/tmp.module';
         UserModule,
         CacheModule,
         MailModule,
+        FacebookModule,
     ],
     controllers: [AuthController],
     providers: [
         AuthService,
         JwtStrategy,
         JwtRefreshStrategy,
+        FacebookStrategy,
         TokenService,
         {
             provide: APP_GUARD,

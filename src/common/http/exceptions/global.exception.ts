@@ -4,8 +4,6 @@ import { Response } from 'express';
 @Catch(HttpException)
 export class CustomExceptionFilter implements ExceptionFilter {
     catch(exception: HttpException, host: ArgumentsHost): void {
-        console.log('CustomExceptionFilter triggered'); // Add this to check if filter runs
-
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
         const status = exception.getStatus();
@@ -28,12 +26,6 @@ export class CustomExceptionFilter implements ExceptionFilter {
         } else {
             message = 'An unknown error occurred';
         }
-
-        console.error('Error occurred:', {
-            status,
-            message,
-            exceptionResponse,
-        });
 
         response.status(status).json({
             payload: {

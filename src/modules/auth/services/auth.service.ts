@@ -17,6 +17,7 @@ import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
 import { AuthErrorType } from '@common/errors';
+import { Role } from '../decorators/roles.decorator';
 
 @Injectable()
 export class AuthService {

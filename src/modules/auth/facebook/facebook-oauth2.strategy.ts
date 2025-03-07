@@ -2,6 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from 'passport-facebook';
 import { ConfigService } from '@nestjs/config';
+import * as passport from 'passport';
+
+// Serialize user into session (store minimal data for efficiency)
+passport.serializeUser((user, done) => {
+    done(null, user); // You could store just `user.providerId` if you lookup later
+});
+
+// Deserialize user from session
+passport.deserializeUser((user, done) => {
+    done(null, user); // Retrieve the user as-is
+});
 
 @Injectable()
 export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
@@ -11,31 +22,23 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
             clientSecret: configService.get<string>('OAUTH_FACEBOOK_SECRET'),
             callbackURL: configService.get<string>('OAUTH_FACEBOOK_CALLBACK_URL'),
             profileFields: ['id', 'displayName', 'photos', 'email'],
-            scope: ['email', 'public_profile'], // Explicitly request these scopes
-            enableProof: true,
             passReqToCallback: true,
         });
     }
 
-    async validate(req: any, accessToken: string, refreshToken: string, profile: Profile) {
-        console.log({ profile });
+    async validate(req: any, accessToken: string, refreshToken: string, profile: Profile, done: Function) {
         if (!profile) {
-            throw new Error('Profile is undefined');
+            done(Error('Profile is undefined'), null);
         }
         const { id, emails, displayName, photos } = profile;
-        return {
-            provider: 'facebook', // Corrected from 'google' to 'facebook'
+        const payload = {
+            provider: 'facebook',
             providerId: id,
             name: displayName,
-            email: emails?.[0]?.value, // Emails is an array of objects with 'value'
-            photo: photos?.[0]?.value, // Photos is an array of objects with 'value'
+            email: emails?.[0]?.value,
+            photo: photos?.[0]?.value,
+            accessToken,
         };
+        done(null, { payload });
     }
 }
-
-// @Get('facebook/callback')
-// @UseGuards(AuthGuard('facebook'))
-// async facebookLoginCallback(@Req() req): Promise<any> {
-//   // handles the Facebook OAuth2 callback
-//   return req.user;
-// }

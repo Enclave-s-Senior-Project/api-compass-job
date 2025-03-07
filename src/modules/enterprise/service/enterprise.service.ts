@@ -3,7 +3,7 @@ import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
 import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder } from '../dtos';
-import { JwtPayload } from '@common/dtos';
+import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { EnterpriseErrorType } from '@common/errors/enterprises-error-type';
 import { UpdateCompanyInfoDto } from '../dtos/update-company-info.dto';
 import { EnterpriseEntity } from '@database/entities';
@@ -52,8 +52,32 @@ export class EnterpriseService {
         }
     }
 
-    async findAll() {
-        return this.enterpriseRepository.find({ relations: ['account', 'websites', 'jobs', 'addresses'] });
+    async findAll(pagination: PaginationDto) {
+        try {
+            const [profiles, total] = await this.enterpriseRepository.findAndCount({
+                skip: (Number(pagination.page) - 1) * Number(pagination.take),
+                take: Number(pagination.take),
+                relations: ['addresses'],
+            });
+            const meta = new PageMetaDto({
+                pageOptionsDto: pagination,
+                itemCount: total,
+            });
+            if (!profiles) {
+                throw new EnterpriseResponseDtoBuilder()
+                    .badRequestContent(EnterpriseErrorType.ENTERPRISE_NOT_FOUND)
+                    .build();
+            }
+            return new EnterpriseResponseDtoBuilder().setValue(new PageDto<EnterpriseEntity>(profiles, meta)).build();
+        } catch (error) {
+            if (error instanceof HttpException) {
+                return new EnterpriseResponseDtoBuilder()
+                    .setCode(error.getStatus())
+                    .setMessageCode(error.message)
+                    .build();
+            }
+            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+        }
     }
 
     async findOne(id: string) {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -8,7 +8,7 @@ import {
     CreateChildCategoriesDto,
     UpdateCategoryDto,
 } from '../dtos';
-import { PaginationDto } from '@common/dtos';
+import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { CategoryEntity } from '@database/entities';
 
 @Injectable()
@@ -51,10 +51,10 @@ export class CategoryService {
     }
 
     async findPrimaryCategories(): Promise<CategoryResponseDto> {
-        const primaryCategories = await this.categoryRepository.find({
-            where: { parent: null },
-            relations: ['parent'],
-        });
+        const primaryCategories = await this.categoryRepository
+            .createQueryBuilder('category')
+            .where('category.parent_id IS NULL')
+            .getMany();
         return new CategoryResponseDtoBuilder().setValue(primaryCategories).success().build();
     }
 
@@ -66,12 +66,43 @@ export class CategoryService {
         return new CategoryResponseDtoBuilder().setValue(category).success().build();
     }
 
-    async findChildren(parentId: string): Promise<CategoryResponseDto> {
+    async findChildren(parentId: string, filter: PaginationDto, name?: string): Promise<CategoryResponseDto> {
+        const { order, take = 5, skip = 0 } = filter;
+        const searchName = name ? name : '';
         const children = await this.categoryRepository.find({
             where: { parent: { categoryId: parentId } },
             relations: ['parent'],
         });
-        return new CategoryResponseDtoBuilder().setValue(children).success().build();
+        if (children.length == 0) {
+            throw new NotFoundException(`Parent category with ID ${parentId} not found.`);
+        }
+        let queryBuilder = this.categoryRepository
+            .createQueryBuilder('category')
+            .where('category.parent_id = :parentId', { parentId })
+            .orderBy('category.category_name', order)
+            .skip(skip)
+            .take(take);
+
+        if (searchName) {
+            queryBuilder = queryBuilder.andWhere('category.category_name ILIKE :name', {
+                name: `%${searchName}%`,
+            });
+        }
+
+        const [categories, total] = await queryBuilder.getManyAndCount();
+
+        const meta = new PageMetaDto({
+            pageOptionsDto: filter,
+            itemCount: total,
+        });
+
+        return new CategoryResponseDtoBuilder()
+            .success()
+            .setValue(new PageDto<CategoryEntity>(categories, meta))
+            .build();
+    }
+    catch(error) {
+        throw new InternalServerErrorException('Failed to retrieve child categories.');
     }
 
     async findParent(id: string): Promise<CategoryResponseDto> {

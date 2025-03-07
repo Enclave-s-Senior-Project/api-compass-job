@@ -13,6 +13,7 @@ import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { CreateJobDto, CreateJobWishListDto, JobResponseDto } from './dtos';
 import { SKIP_AUTH } from '@modules/auth/constants';
+import { JobEntity } from '@database/entities';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -85,4 +86,14 @@ export class JobController {
     // ): Promise<JobResponseDto> {
     //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
     // }
+
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get job by ID' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get(':id')
+    getDetailJobByJobId(@Param('id') id: string): Promise<JobResponseDto> {
+        return this.jobService.getDetailJobById(id);
+    }
 }

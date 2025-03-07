@@ -105,4 +105,9 @@ export class CreateJobDto {
     @IsArray()
     @IsString({ each: true })
     readonly address?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    readonly specializationIds?: string[];
 }

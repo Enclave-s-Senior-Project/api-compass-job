@@ -63,7 +63,7 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'education', type: 'varchar', length: 50, nullable: true })
     readonly education: string;
 
-    @Column({ name: 'enterprise_benefits', type: 'text' })
+    @Column({ name: 'enterprise_benefits', type: 'text', nullable: true })
     readonly enterpriseBenefits: string | null;
 
     @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.jobs)
@@ -102,4 +102,12 @@ export class JobEntity extends BaseEntity {
 
     @ManyToMany(() => AddressEntity, (address) => address.jobs)
     readonly addresses: AddressEntity[];
+
+    @ManyToMany(() => CategoryEntity, (category) => category.jobs)
+    @JoinTable({
+        name: 'job_specializations',
+        joinColumn: { name: 'job_id' },
+        inverseJoinColumn: { name: 'category_id' },
+    })
+    readonly specializations: CategoryEntity[];
 }

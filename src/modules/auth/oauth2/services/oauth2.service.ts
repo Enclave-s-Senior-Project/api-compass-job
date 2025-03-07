@@ -61,7 +61,6 @@ export class OAuth2Service extends AuthService {
             throw new NotAcceptableException(AuthErrorType.EMAIL_ALREADY_EXISTS);
         }
         const randomHashedPassword = await HashHelper.encrypt(crypto.randomUUID());
-
         const oauth2Id =
             payload.provider === 'facebook'
                 ? { facebookId: payload.providerId }

@@ -11,9 +11,11 @@ import {
     ApiBadRequestResponse,
     ApiCreatedResponse,
     ApiNoContentResponse,
+    ApiQuery,
 } from '@nestjs/swagger';
 import { CategoryResponseDto, CreateCategoryDto, CreateChildCategoriesDto, UpdateCategoryDto } from './dtos';
 import { SkipAuth } from '@modules/auth';
+import { PaginationDto } from '@common/dtos';
 
 @ApiTags('Category')
 @Controller({
@@ -84,8 +86,13 @@ export class CategoryController {
     @HttpCode(200)
     @ApiOperation({ summary: 'Get child categories', description: 'Retrieve child categories of a parent category.' })
     @ApiOkResponse({ description: 'Child categories retrieved successfully.', type: [CategoryResponseDto] })
-    async getChildCategories(@Param('parentId') parentId: string): Promise<CategoryResponseDto> {
-        return this.categoryService.findChildren(parentId);
+    @ApiQuery({ name: 'name', required: false, description: 'Name of categoriess', schema: { default: '' } })
+    async getChildCategories(
+        @Param('parentId') parentId: string,
+        @Query() pageOptionsDto: PaginationDto,
+        @Query('name') name?: string
+    ): Promise<CategoryResponseDto> {
+        return this.categoryService.findChildren(parentId, pageOptionsDto, name);
     }
 
     @SkipAuth()

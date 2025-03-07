@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { HttpResponseInterceptor, HttpExceptionFilter } from './common/http';
+import { HttpResponseInterceptor } from './common/http';
 import * as compression from 'compression';
 import { AppModule } from './app.module';
 import { SwaggerConfig } from './config';
@@ -8,9 +8,23 @@ import * as cookieParse from 'cookie-parser';
 import helmet from 'helmet';
 import { CustomExceptionFilter } from '@common/http/exceptions';
 import * as morgan from 'morgan';
+import * as session from 'express-session';
+import * as passport from 'passport';
 
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule);
+
+    // Enable session support
+    app.use(
+        session({
+            secret: 'your-secret-key',
+            resave: false,
+            saveUninitialized: false,
+        })
+    );
+    // Initialize Passport
+    app.use(passport.initialize());
+    app.use(passport.session());
     app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
     app.use(compression());
     app.use(cookieParse());
@@ -24,8 +38,9 @@ const bootstrap = async () => {
     app.useGlobalFilters(new CustomExceptionFilter());
     app.useGlobalInterceptors(new HttpResponseInterceptor());
     app.setGlobalPrefix(AppModule.apiPrefix);
-    SwaggerConfig(app, AppModule.apiVersion);
     app.use(helmet());
+
+    SwaggerConfig(app, AppModule.apiVersion);
     await app.listen(AppModule.port);
     return AppModule.port;
 };

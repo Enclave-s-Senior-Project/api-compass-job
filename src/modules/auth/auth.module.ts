@@ -22,6 +22,7 @@ import { FacebookStrategy } from './facebook/facebook-oauth2.strategy';
         ConfigModule,
         PassportModule.register({
             defaultStrategy: 'jwt',
+            session: true,
         }),
         JwtModule.registerAsync({
             imports: [ConfigModule],

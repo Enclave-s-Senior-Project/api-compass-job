@@ -48,7 +48,6 @@ export class UserService {
                 .setValue(profile)
                 .build();
         } catch (error) {
-            console.error('Error creating user:', error);
             return new UserResponseDtoBuilder().setCode(400).setMessageCode('CREATE_USER_FAILED').build();
         }
     }

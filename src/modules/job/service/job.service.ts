@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { JobRepository } from '../repositories';
 import { RedisCommander } from 'ioredis';
@@ -24,36 +24,66 @@ export class JobService {
     ) {}
 
     async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
-        const { address, categoryIds, tagIds, ...jobData } = createJobDto;
+        try {
+            const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
 
-        const [enterprise, addresses, categories, tags] = await Promise.all([
-            (await this.enterpriseService.getEnterpriseByAccountId(accountId)).value,
-            this.addressService.getAddressByIds(address),
-            this.categoryService.findByIds(categoryIds),
-            this.tagService.findByIds(tagIds),
-        ]);
+            const [enterprise, addresses, categories, tags, specializations] = await Promise.all([
+                (await this.enterpriseService.getEnterpriseByAccountId(accountId)).value,
+                this.addressService.getAddressByIds(address),
+                this.categoryService.findByIds(categoryIds),
+                this.tagService.findByIds(tagIds),
+                this.categoryService.findByIds(specializationIds),
+            ]);
+            const hasInvalidSpecialization = specializations.some(
+                (spec) => !spec.isChild || !categories.some((cat) => spec.parent?.categoryId === cat.categoryId)
+            );
 
-        const newJob = this.jobRepository.create({
-            ...jobData,
-            enterprise,
-            addresses,
-            categories,
-            tags,
-        });
-        await this.jobRepository.save(newJob);
-        return new JobResponseDtoBuilder().setValue(newJob).success().build();
+            if (!hasInvalidSpecialization) {
+                return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.JOB_SPECIALIZATION).build();
+            }
+            const newJob = this.jobRepository.create({
+                ...jobData,
+                enterprise,
+                addresses,
+                categories,
+                tags,
+                specializations,
+            });
+            await this.jobRepository.save(newJob);
+            return new JobResponseDtoBuilder().setValue(newJob).success().build();
+        } catch (error) {
+            console.error('Error fetching profiles of list jobs:', error);
+            return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
+        }
     }
 
-    async getAllJobs(options: PaginationDto): Promise<JobResponseDto> {
+    async getAllJobs(temps: PaginationDto): Promise<JobResponseDto> {
         try {
+            if (temps.options) {
+                const [profiles, total] = await this.jobRepository.findAndCount({
+                    skip: (Number(temps.page) - 1) * Number(temps.take),
+                    take: Number(temps.take),
+                    relations: ['enterprise', 'addresses', 'tags'],
+                    order: {
+                        createdAt: temps.options,
+                    },
+                });
+
+                const meta = new PageMetaDto({
+                    pageOptionsDto: temps,
+                    itemCount: total,
+                });
+
+                return new JobResponseDtoBuilder().setValue(new PageDto<JobEntity>(profiles, meta)).success().build();
+            }
             const [profiles, total] = await this.jobRepository.findAndCount({
-                skip: (Number(options.page) - 1) * Number(options.take),
-                take: Number(options.take),
+                skip: (Number(temps.page) - 1) * Number(temps.take),
+                take: Number(temps.take),
                 relations: ['enterprise', 'addresses'],
             });
 
             const meta = new PageMetaDto({
-                pageOptionsDto: options,
+                pageOptionsDto: temps,
                 itemCount: total,
             });
 
@@ -170,7 +200,7 @@ export class JobService {
         try {
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
-                relations: ['tags', 'enterprise', 'addresses'],
+                relations: ['tags', 'enterprise', 'addresses', 'profiles'],
             });
             if (!job) {
                 return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();

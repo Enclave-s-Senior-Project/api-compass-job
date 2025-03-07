@@ -11,9 +11,11 @@ import { UserModule } from '@modules/user/user.module';
 import { CacheModule } from 'src/cache/cache.module';
 import { MailModule } from 'src/mail/mail.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
+import { GoogleStrategy } from './oauth2/strategies/google.strategy';
 import { FacebookModule } from './oauth2/facebook/facebook.module';
 import { FacebookStrategy } from './oauth2/strategies/facebook-oauth2.strategy';
 import { JwtRefreshStrategy, JwtStrategy } from './strategies';
+import { GoogleModule } from './oauth2/google/google.module';
 
 @Module({
     imports: [
@@ -37,6 +39,7 @@ import { JwtRefreshStrategy, JwtStrategy } from './strategies';
         CacheModule,
         MailModule,
         FacebookModule,
+        GoogleModule,
     ],
     controllers: [AuthController],
     providers: [
@@ -50,6 +53,7 @@ import { JwtRefreshStrategy, JwtStrategy } from './strategies';
             useClass: JwtAuthGuard,
         },
         AccountRepository,
+        GoogleStrategy,
     ],
     exports: [JwtStrategy, JwtRefreshStrategy, PassportModule, TokenService, AuthService],
 })

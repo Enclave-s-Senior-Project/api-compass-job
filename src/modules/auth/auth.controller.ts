@@ -29,6 +29,7 @@ import { RolesGuard } from './guards/role.guard';
 import { ForgetPasswordDto } from './dtos/forget-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
+import { GoogleOAuthGuard } from './oauth2/guards/google-oauth.guard';
 
 @ApiTags('Auth')
 @Controller({
@@ -170,5 +171,18 @@ export class AuthController {
         } catch (error) {
             return error;
         }
+    }
+    @SkipAuth()
+    @UseGuards(GoogleOAuthGuard)
+    @ApiOperation({ description: 'Google OAuth Login' })
+    @Get('/google')
+    async googleAuth(@Req() req) {}
+
+    @SkipAuth()
+    @UseGuards(GoogleOAuthGuard)
+    @ApiOperation({ description: 'Google OAuth Redirect' })
+    @Get('/google-redirect')
+    async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) res: Response) {
+        return this.authService.googleLogin(req);
     }
 }

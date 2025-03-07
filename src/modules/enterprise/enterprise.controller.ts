@@ -1,12 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ValidationPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { EnterpriseService } from './service/enterprise.service';
 import { CreateEnterpriseDto, EnterpriseResponseDto, UpdateEnterpriseDto } from './dtos';
 
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CurrentUser, TOKEN_NAME } from '@modules/auth';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
-import { JwtPayload } from '@common/dtos';
+import { JwtPayload, PaginationDto } from '@common/dtos';
 import { UpdateCompanyInfoDto } from './dtos/update-company-info.dto';
 import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
 
@@ -31,11 +31,12 @@ export class EnterpriseController {
         return this.enterpriseService.create(createEnterpriseDto, user);
     }
 
+    @SkipAuth()
     @Get()
     @ApiOperation({ summary: 'Retrieve all enterprises' })
     @ApiResponse({ status: 200, description: 'List of enterprises.' })
-    findAll() {
-        return this.enterpriseService.findAll();
+    findAll(@Query() paginationDto: PaginationDto): Promise<EnterpriseResponseDto> {
+        return this.enterpriseService.findAll(paginationDto);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

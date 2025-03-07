@@ -1,25 +1,11 @@
 // tag.controller.ts
-import {
-    Body,
-    Controller,
-    Get,
-    HttpCode,
-    Param,
-    Patch,
-    Post,
-    Delete,
-    ValidationPipe,
-    Query,
-    DefaultValuePipe,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Delete, ValidationPipe, Query } from '@nestjs/common';
 import { TagService } from './services';
 import {
-    ApiBearerAuth,
     ApiInternalServerErrorResponse,
     ApiOkResponse,
     ApiOperation,
     ApiTags,
-    ApiUnauthorizedResponse,
     ApiNotFoundResponse,
     ApiBadRequestResponse,
     ApiCreatedResponse,

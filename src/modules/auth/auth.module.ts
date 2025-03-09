@@ -3,18 +3,17 @@ import { JwtAuthGuard } from './guards';
 import { TokenService, AuthService } from './services';
 import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from './jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AccountRepository } from './repositories';
 import { UserModule } from '@modules/user/user.module';
-import { JwtRefreshStrategy } from '@modules/auth/jwt-refresh.strategy';
 import { CacheModule } from 'src/cache/cache.module';
 import { MailModule } from 'src/mail/mail.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
-import { FacebookModule } from './facebook/facebook.module';
-import { FacebookStrategy } from './facebook/facebook-oauth2.strategy';
+import { FacebookModule } from './oauth2/facebook/facebook.module';
+import { FacebookStrategy } from './oauth2/strategies/facebook-oauth2.strategy';
+import { JwtRefreshStrategy, JwtStrategy } from './strategies';
 
 @Module({
     imports: [

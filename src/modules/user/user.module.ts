@@ -4,13 +4,11 @@ import { UserController } from './user.controller';
 import { ProfileRepository } from './repositories';
 import { CacheModule } from 'src/cache/cache.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
-import { ImagekitService } from '@imagekit/imagekit.service';
-import { ImagekitModule } from '@imagekit/imagekit.module';
 
 @Module({
-    imports: [TmpModule, CacheModule, ImagekitModule],
+    imports: [TmpModule, CacheModule],
     controllers: [UserController],
-    providers: [UserService, ProfileRepository, ImagekitService],
+    providers: [UserService, ProfileRepository],
     exports: [UserService],
 })
 export class UserModule {}

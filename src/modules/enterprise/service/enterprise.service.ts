@@ -11,6 +11,7 @@ import { redisProviderName } from '@cache/cache.provider';
 import { RedisCommander } from 'ioredis';
 import { EnterpriseStatus } from '@common/enums';
 import { UpdateFoundingInfoDto } from '../dtos/update-founding-dto';
+import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
 
 @Injectable()
 export class EnterpriseService {
@@ -133,7 +134,7 @@ export class EnterpriseService {
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error creating enterprise:', error);
-            throw error;
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -163,13 +164,7 @@ export class EnterpriseService {
 
             return new EnterpriseResponseDtoBuilder().setValue(payload).build();
         } catch (error) {
-            if (error instanceof HttpException) {
-                return new EnterpriseResponseDtoBuilder()
-                    .setCode(error.getStatus())
-                    .setMessageCode(error.message)
-                    .build();
-            }
-            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -206,13 +201,7 @@ export class EnterpriseService {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
             }
         } catch (error) {
-            if (error instanceof HttpException) {
-                return new EnterpriseResponseDtoBuilder()
-                    .setCode(error.getStatus())
-                    .setMessageCode(error.message)
-                    .build();
-            }
-            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -229,13 +218,7 @@ export class EnterpriseService {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
             }
         } catch (error) {
-            if (error instanceof HttpException) {
-                return new EnterpriseResponseDtoBuilder()
-                    .setCode(error.getStatus())
-                    .setMessageCode(error.message)
-                    .build();
-            }
-            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 }

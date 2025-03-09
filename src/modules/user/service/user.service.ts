@@ -7,7 +7,6 @@ import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
 import { Like } from 'typeorm';
-import { ImagekitService } from '@imagekit/imagekit.service';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
@@ -19,7 +18,6 @@ type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 export class UserService {
     constructor(
         private readonly profileRepository: ProfileRepository,
-        private readonly imagekitService: ImagekitService,
         @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
 

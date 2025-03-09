@@ -10,7 +10,7 @@ import { AccountRepository } from '../repositories';
 import { UserService } from '@modules/user/service/user.service';
 import { RedisCommander } from 'ioredis';
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
-import { UserStatus } from '@database/entities/account.entity';
+import { AccountEntity, UserStatus } from '@database/entities/account.entity';
 import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
 import { MailSenderService } from 'src/mail/mail.service';
 import * as crypto from 'crypto';
@@ -18,50 +18,70 @@ import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
 import { AuthErrorType } from '@common/errors';
 import { Role } from '../decorators/roles.decorator';
+import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
 
 @Injectable()
 export class AuthService {
     constructor(
-        private readonly tokenService: TokenService,
-        private readonly accountRepository: AccountRepository,
-        private readonly userService: UserService,
-        private readonly mailService: MailSenderService,
-        @Inject('CACHE_INSTANCE') private readonly redisCache: RedisCommander
+        protected readonly tokenService: TokenService,
+        protected readonly accountRepository: AccountRepository,
+        protected readonly userService: UserService,
+        protected readonly mailService: MailSenderService,
+        @Inject('CACHE_INSTANCE') protected readonly redisCache: RedisCommander
     ) {}
+
+    protected async findOne(
+        email: string,
+        provider?: { name: 'google' | 'facebook'; id: string }
+    ): Promise<AccountEntity> {
+        const condition = provider ? { email: email, [`${provider.name}Id`]: provider.id } : { email: email };
+        return await this.accountRepository.findOne({
+            where: condition,
+            select: {
+                profile: {
+                    profileId: true,
+                },
+                enterprise: {
+                    enterpriseId: true,
+                },
+            },
+            relations: {
+                profile: true,
+                enterprise: true,
+            },
+        });
+    }
+
+    protected getDisabledAccountRestriction(account: AccountEntity) {
+        if (account.status === UserStatus.BLOCKED) {
+            return new DisabledUserException(ErrorType.BlockedUser);
+        }
+        if (account.status === UserStatus.PENDING) {
+            return new DisabledUserException(ErrorType.PendingUSer);
+        }
+        if (account.status === UserStatus.INACTIVE) {
+            return new DisabledUserException(ErrorType.InactiveUser);
+        }
+        return null;
+    }
 
     public async login({ username, password }: AuthCredentialsRequestDto) {
         try {
-            const account = await this.accountRepository.findOne({
-                where: { email: username },
-                select: {
-                    profile: {
-                        profileId: true,
-                    },
-                    enterprise: {
-                        enterpriseId: true,
-                    },
-                },
-                relations: {
-                    profile: true,
-                    enterprise: true,
-                },
-            });
+            const account = await this.findOne(username);
+
             if (!account) {
-                throw new NotFoundUserException(ErrorType.NotFoundUserException);
+                throw new NotFoundUserException();
             }
+
+            // restrict disabled user
+            const restriction = this.getDisabledAccountRestriction(account);
+            if (restriction) {
+                throw restriction;
+            }
+
             const passwordMatch = await HashHelper.compare(password, account.password);
             if (!passwordMatch) {
                 throw new InvalidCredentialsException();
-            }
-
-            if (account.status === UserStatus.BLOCKED) {
-                throw new DisabledUserException(ErrorType.BlockedUser);
-            }
-            if (account.status === UserStatus.PENDING) {
-                throw new DisabledUserException(ErrorType.PendingUSer);
-            }
-            if (account.status === UserStatus.INACTIVE) {
-                throw new DisabledUserException(ErrorType.InactiveUser);
             }
 
             const userPayload = omit(account, ['password', 'active']);
@@ -92,7 +112,7 @@ export class AuthService {
                 refreshTokenExpires,
             };
         } catch (error) {
-            throw new BadRequestException(AuthErrorType.AUTH_FAILED);
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -176,7 +196,7 @@ export class AuthService {
         }
     }
 
-    private async storeRefreshTokenOnCache(accountId: string, refreshToken: string, expiresInSeconds: number) {
+    protected async storeRefreshTokenOnCache(accountId: string, refreshToken: string, expiresInSeconds: number) {
         try {
             await this.redisCache.set(`refreshtoken:${accountId}:${refreshToken}`, 1, 'EX', expiresInSeconds);
         } catch (error) {
@@ -184,7 +204,7 @@ export class AuthService {
         }
     }
 
-    private async deleteRefreshTokenOnCache(accountId: string, refreshToken: string) {
+    protected async deleteRefreshTokenOnCache(accountId: string, refreshToken: string) {
         try {
             return await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
         } catch (error) {
@@ -257,17 +277,17 @@ export class AuthService {
             throw new RegisterResponseDtoBuilder().badRequest().build();
         }
     }
-    private generateVerificationCode(): number {
+    protected generateVerificationCode(): number {
         return Math.floor(100000 + Math.random() * 900000);
     }
-    private async sendVerificationEmail(username: string, email: string, code: number) {
+    protected async sendVerificationEmail(username: string, email: string, code: number) {
         try {
             await this.mailService.sendVerifyEmailMail(username, email, code);
         } catch (error) {
             throw new InternalServerErrorException('Email sending failed');
         }
     }
-    private async validateRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
+    protected async validateRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
         const exists = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
         if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
         console.log('exists', `refreshtoken:${accountId}:${refreshToken}`);

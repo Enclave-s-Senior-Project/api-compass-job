@@ -51,20 +51,16 @@ export class AuthController {
         @Body(ValidationPipe) authCredentialsDto: AuthCredentialsRequestDto,
         @Res({ passthrough: true }) res: Response
     ): Promise<LoginResponseDto> {
-        try {
-            const { builder, refreshToken, refreshTokenExpires } = await this.authService.login(authCredentialsDto);
+        const { builder, refreshToken, refreshTokenExpires } = await this.authService.login(authCredentialsDto);
 
-            res.cookie('refresh-token', refreshToken, {
-                httpOnly: true,
-                sameSite: true,
-                secure: true,
-                maxAge: refreshTokenExpires,
-            });
+        res.cookie('refresh-token', refreshToken, {
+            httpOnly: true,
+            sameSite: true,
+            secure: true,
+            maxAge: refreshTokenExpires,
+        });
 
-            return builder;
-        } catch (error) {
-            throw error;
-        }
+        return builder;
     }
     @HttpCode(200)
     @SkipAuth()

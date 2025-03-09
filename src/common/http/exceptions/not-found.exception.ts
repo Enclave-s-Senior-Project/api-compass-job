@@ -1,11 +1,11 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ErrorType } from '../../enums';
 
-export class NotFoundUserException extends UnauthorizedException {
-    constructor(errorType: ErrorType) {
+export class NotFoundUserException extends NotFoundException {
+    constructor(errorType?: ErrorType) {
+        console.log(errorType);
         super({
-            errorType,
-            message: 'User not found',
+            message: errorType ?? ErrorType.NotFoundUserException,
         });
     }
 }

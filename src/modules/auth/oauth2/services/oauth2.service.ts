@@ -2,12 +2,13 @@ import { AuthService } from '@modules/auth/services';
 import { Injectable, NotAcceptableException } from '@nestjs/common';
 import { OAuth2Login } from '../dtos';
 import { AuthErrorType, OAuth2ErrorType } from '@common/errors/auth-error-type';
-import { UserStatus } from '@database/entities/account.entity';
+import { AccountEntity, UserStatus } from '@database/entities/account.entity';
 import { HashHelper } from '@helpers';
 import { JwtPayload } from '@common/dtos';
 import { omit } from 'lodash';
 import { FacebookResponseDtoBuilder } from '../dtos/facebook-response.dto';
 import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { UserService } from '@modules/user/service';
 
 @Injectable()
 export class OAuth2Service extends AuthService {
@@ -62,19 +63,28 @@ export class OAuth2Service extends AuthService {
             throw new NotAcceptableException(AuthErrorType.EMAIL_ALREADY_EXISTS);
         }
         const randomHashedPassword = await HashHelper.encrypt(crypto.randomUUID());
-        const newAccount = this.accountRepository.create({
+
+        const oauth2Id =
+            payload.provider === 'facebook'
+                ? { facebookId: payload.providerId }
+                : payload.provider === 'google'
+                  ? { googleId: payload.providerId }
+                  : {};
+
+        const newAccount = (await this.accountRepository.save({
             email: payload.email,
             password: randomHashedPassword,
             status: UserStatus.ACTIVE,
             roles: ['USER'],
-            [`${payload.provider}Id`]: payload.providerId,
-            profile: {
-                profileUrl: payload.photo,
-                fullName: payload.name,
-            },
+            ...oauth2Id,
+        })) as AccountEntity;
+
+        await this.userService.createUser({
+            fullName: payload.name,
+            profileUrl: payload.photo,
+            account: newAccount.accountId,
         });
 
-        await this.accountRepository.save(newAccount);
         return newAccount;
     }
 }

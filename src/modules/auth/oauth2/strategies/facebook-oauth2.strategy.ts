@@ -22,23 +22,26 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
             clientSecret: configService.get<string>('OAUTH_FACEBOOK_SECRET'),
             callbackURL: configService.get<string>('OAUTH_FACEBOOK_CALLBACK_URL'),
             profileFields: ['id', 'displayName', 'photos', 'email'],
+            scope: ['email'],
             passReqToCallback: true,
         });
     }
 
     async validate(req: any, accessToken: string, refreshToken: string, profile: Profile, done: Function) {
         if (!profile) {
-            done(Error('Profile is undefined'), null);
+            return done(new Error('Profile is undefined'), null);
         }
-        const { id, emails, displayName, photos } = profile;
+
+        const { id, emails, displayName } = profile;
+        const email = emails?.[0]?.value || null;
         const payload = {
             provider: 'facebook',
             providerId: id,
             name: displayName,
-            email: emails?.[0]?.value,
-            photo: photos?.[0]?.value,
+            email,
             accessToken,
         };
+
         done(null, { payload });
     }
 }

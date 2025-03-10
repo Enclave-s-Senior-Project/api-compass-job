@@ -1,7 +1,7 @@
 import { UpdateFoundingInfoDtoErrorType } from '@common/errors/class-validator-error-type';
 import { OrganizationType } from '@database/entities/enterprise.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class UpdateFoundingInfoDto {
     @ApiPropertyOptional({
@@ -19,6 +19,14 @@ export class UpdateFoundingInfoDto {
     @IsString({ message: UpdateFoundingInfoDtoErrorType.INVALID_ENTERPRISE_BENEFITS })
     @IsOptional()
     readonly enterpriseBenefits?: string = null;
+
+    @ApiPropertyOptional({
+        description: 'The bio of the company',
+        example: 'We are a tech company focused on AI solutions.',
+    })
+    @IsString({ message: UpdateFoundingInfoDtoErrorType.INVALID_BIO })
+    @IsOptional()
+    readonly bio?: string = null;
 
     @ApiPropertyOptional({
         description: 'The vision of the company',
@@ -59,4 +67,10 @@ export class UpdateFoundingInfoDto {
     @IsString({ message: UpdateFoundingInfoDtoErrorType.INVALID_INDUSTRY_TYPE })
     @IsNotEmpty({ message: UpdateFoundingInfoDtoErrorType.INDUSTRY_TYPE_REQUIRED })
     readonly industryType: string;
+
+    @ApiProperty({ example: 'johndoe@example.com', required: false })
+    @IsOptional()
+    @IsNotEmpty()
+    @IsEmail()
+    email?: string;
 }

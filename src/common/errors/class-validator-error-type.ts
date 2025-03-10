@@ -38,6 +38,7 @@ export enum UpdateFoundingInfoDtoErrorType {
     INVALID_TEAM_SIZE = 'INVALID_TEAM_SIZE',
     INDUSTRY_TYPE_REQUIRED = 'INDUSTRY_TYPE_REQUIRED',
     INVALID_INDUSTRY_TYPE = 'INVALID_INDUSTRY_TYPE',
+    INVALID_BIO = 'INVALID_BIO',
 }
 
 export enum OAuth2LoginErrorType {

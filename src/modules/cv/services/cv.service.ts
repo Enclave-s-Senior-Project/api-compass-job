@@ -17,7 +17,6 @@ export class CvService {
     async getAllCvByIdProfile(id: string): Promise<CvResponseDto> {
         try {
             const listCvs = await this.cvRepository.find({ where: { profile: { profileId: id } } });
-            console.log(listCvs);
             return new CvResponseDtoBuilder().setValue(listCvs).success().build();
         } catch (error) {
             console.error('Error fetching profiles of list jobs:', error);

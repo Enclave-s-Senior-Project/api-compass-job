@@ -27,7 +27,6 @@ export class UserService {
      * @returns {Promise<UserResponseDto>}
      */
     public async createUser(user: CreateUserDto): Promise<UserResponseDto> {
-        console.log('Profile: ', user.profileUrl);
 
         try {
             const profile = await this.profileRepository.save({
@@ -231,7 +230,6 @@ export class UserService {
         }
     }
     private async setProfileOnRedis(accountId: string, payload: ProfileAndRoles) {
-        console.log('Cache');
         await this.redisCache.set(`user-information:${accountId}`, JSON.stringify(payload), 'EX', 432000);
     }
     private async getProfileOnRedis(accountId: string) {

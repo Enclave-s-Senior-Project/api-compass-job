@@ -13,7 +13,6 @@ import { UserService } from '@modules/user/service';
 @Injectable()
 export class OAuth2Service extends AuthService {
     public async oauth2Login(payload: OAuth2Login) {
-        console.log('Run');
         if (!payload.email) {
             throw new NotAcceptableException(OAuth2ErrorType.FACEBOOK_EMAIL_REQUIRED);
         }

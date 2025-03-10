@@ -55,7 +55,15 @@ export class EnterpriseController {
     @ApiResponse({ status: 200, description: 'Updated information.' })
     @Patch('company')
     updateCompanyInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateCompanyInfoDto) {
-        console.log('Run', body);
+        return this.enterpriseService.updatePartialInfoActive(body, user);
+    }
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Patch('founding')
+    @ApiOperation({ summary: "Update information about enterprise's founding" })
+    @ApiResponse({ status: 200, description: 'Updated information.' })
+    updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
         return this.enterpriseService.updatePartialInfoActive(body, user);
     }
 
@@ -109,18 +117,7 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
     @ApiResponse({ status: 200, description: 'User has an enterprise.' })
     checkUserEnterprise(@CurrentUser() user: JwtPayload) {
-        console.log('s', user.accountId);
         return this.enterpriseService.checkStatus(user.accountId);
-    }
-
-    @ApiBearerAuth(TOKEN_NAME)
-    @UseGuards(RolesGuard)
-    @Roles(Role.ENTERPRISE)
-    @Patch('founding')
-    @ApiOperation({ summary: "Update information about enterprise's founding" })
-    @ApiResponse({ status: 200, description: 'Updated information.' })
-    updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
-        return this.enterpriseService.updatePartialInfoActive(body, user);
     }
 
     @UseGuards(RolesGuard)

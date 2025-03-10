@@ -53,4 +53,10 @@ export class CreateUserDto {
     @IsOptional()
     @IsNotEmpty()
     account: string;
+
+    @ApiProperty({ example: 'profile image url' })
+    @IsString()
+    @IsOptional()
+    @IsNotEmpty()
+    profileUrl?: string;
 }

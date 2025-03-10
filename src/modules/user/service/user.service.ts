@@ -27,10 +27,12 @@ export class UserService {
      * @returns {Promise<UserResponseDto>}
      */
     public async createUser(user: CreateUserDto): Promise<UserResponseDto> {
+        console.log('Profile: ', user.profileUrl);
+
         try {
             const profile = await this.profileRepository.save({
                 fullName: user.fullName,
-                avatarUrl: process.env.AVATAR_IMAGE_URL || '',
+                profileUrl: user.profileUrl ?? process.env.AVATAR_IMAGE_URL ?? '',
                 pageUrl: process.env.PAGE_IMAGE_URL || '',
                 introduction: user.introduction ?? null,
                 phone: user.phone ?? null,

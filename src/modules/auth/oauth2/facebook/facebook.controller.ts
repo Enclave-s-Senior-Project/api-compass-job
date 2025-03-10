@@ -38,6 +38,7 @@ export class FacebookController {
                 accessTokenExpires: builder.value.accessTokenExpires,
             }).toString();
 
+            res.setHeader('Content-Type', 'application/json');
             res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`);
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);

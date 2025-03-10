@@ -41,14 +41,13 @@ export class ProfileEntity extends BaseEntity {
 
     @Column({
         name: 'profile_url',
-        type: 'varchar',
-        length: 255,
+        type: 'text',
         nullable: true,
         default: process.env.AVATAR_IMAGE_URL,
     })
     readonly profileUrl: string;
 
-    @Column({ name: 'page_url', type: 'varchar', length: 255, nullable: true, default: process.env.PAGE_IMAGE_URL })
+    @Column({ name: 'page_url', type: 'text', nullable: true, default: process.env.PAGE_IMAGE_URL })
     readonly pageUrl: string;
 
     @Column({ name: 'introduction', type: 'text', nullable: true })

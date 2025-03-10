@@ -15,7 +15,7 @@ export class FacebookOAuth2Guard extends AuthGuard('facebook') {
 
     handleRequest(err, user, info, context) {
         if (err || !user) {
-            throw err || new UnauthorizedException();
+            return new UnauthorizedException();
         }
         return user;
     }

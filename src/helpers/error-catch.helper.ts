@@ -1,3 +1,4 @@
+import { ErrorType } from '@common/enums';
 import { HttpException, InternalServerErrorException } from '@nestjs/common';
 
 export class ErrorCatchHelper {
@@ -5,6 +6,6 @@ export class ErrorCatchHelper {
         if (error instanceof HttpException) {
             return error;
         }
-        return new InternalServerErrorException();
+        return new InternalServerErrorException(ErrorType.InternalErrorServer);
     }
 }

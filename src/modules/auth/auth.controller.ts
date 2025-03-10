@@ -95,7 +95,6 @@ export class AuthController {
         @Res({ passthrough: true }) response: Response
     ): Promise<RefreshTokenResponseDto> {
         try {
-            console.log('refresh token');
             const refreshToken = request.cookies?.['refresh-token'];
             const {
                 refreshToken: newRefreshToken,

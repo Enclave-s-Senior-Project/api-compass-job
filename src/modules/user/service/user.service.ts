@@ -27,7 +27,6 @@ export class UserService {
      * @returns {Promise<UserResponseDto>}
      */
     public async createUser(user: CreateUserDto): Promise<UserResponseDto> {
-
         try {
             const profile = await this.profileRepository.save({
                 fullName: user.fullName,

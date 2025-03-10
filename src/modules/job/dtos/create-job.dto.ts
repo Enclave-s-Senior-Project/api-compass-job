@@ -13,7 +13,6 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { CreateAddressDto } from '@modules/address/dtos';
 
 export class CreateJobDto {
     @ApiProperty({ description: 'Job name', example: 'Software Engineer' })
@@ -22,14 +21,16 @@ export class CreateJobDto {
     @MaxLength(255)
     readonly name: string;
 
-    @ApiProperty({ description: 'Lowest wage', example: '3000.00', required: false })
+    @ApiProperty({ description: 'Lowest wage', example: 3000.0, required: false })
     @IsOptional()
-    @IsString()
+    @IsNumber()
+    @Type(() => Number)
     readonly lowestWage?: number;
 
-    @ApiProperty({ description: 'Highest wage', example: '5000.00', required: false })
+    @ApiProperty({ description: 'Highest wage', example: 5000.0, required: false })
     @IsOptional()
-    @IsString()
+    @IsNumber()
+    @Type(() => Number)
     readonly highestWage?: number;
 
     @ApiProperty({ description: 'Job description', example: 'Develop and maintain web applications.' })
@@ -37,7 +38,7 @@ export class CreateJobDto {
     @IsNotEmpty()
     readonly description: string;
 
-    @ApiProperty({ description: 'Job description', example: 'Develop and maintain web applications.' })
+    @ApiProperty({ description: 'Job responsibilities', example: 'Develop and maintain web applications.' })
     @IsString()
     @IsNotEmpty()
     readonly responsibility: string;
@@ -50,6 +51,7 @@ export class CreateJobDto {
 
     @ApiProperty({ description: 'Years of experience required', example: 2 })
     @IsNumber()
+    @Type(() => Number)
     @Min(0)
     readonly experience: number;
 
@@ -68,14 +70,15 @@ export class CreateJobDto {
     @IsBoolean()
     readonly status: boolean;
 
-    @ApiProperty({ description: 'Job Education', example: true })
-    @IsBoolean()
-    readonly education: string;
-
-    @ApiProperty({ description: 'Enterprise ID', example: 'f9a74c91-6ebf-4d92-8b57-d4d9cacf8abc' })
+    @ApiProperty({ description: 'Job education requirement', example: 'Bachelor’s degree in Computer Science' })
     @IsString()
     @IsNotEmpty()
-    readonly enterpriseId: string;
+    readonly education: string;
+
+    @ApiProperty({ description: 'Job benefits', example: 'Health insurance, Remote work options.', required: false })
+    @IsOptional()
+    @IsString()
+    readonly enterpriseBenefits?: string | null;
 
     @ApiProperty({ description: 'List of tag IDs', example: ['a1b2c3d4-5678-90ab-cdef-1234567890ab'], required: false })
     @IsOptional()
@@ -101,5 +104,5 @@ export class CreateJobDto {
     @IsOptional()
     @IsArray()
     @IsString({ each: true })
-    readonly address: string[];
+    readonly address?: string[];
 }

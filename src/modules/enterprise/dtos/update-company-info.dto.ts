@@ -4,17 +4,11 @@ import { IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, Matches, MaxLen
 
 export class UpdateCompanyInfoDto {
     @ApiProperty({ description: 'Company logo URL', maxLength: 255 })
-    @Matches(/^(https?:\/\/)([\w\-]+(\.[\w\-]+)+)(\/[\w\-\._~:/?#[\]@!$&'()*+,;=]*)?$/, {
-        message: UpdateCompanyInfoDtoErrorType.INVALID_LOGO_URL,
-    })
     @IsNotEmpty({ message: UpdateCompanyInfoDtoErrorType.LOGO_URL_REQUIRED })
     @MaxLength(255, { message: 'Logo URL must not exceed 255 characters' })
     readonly logoUrl: string;
 
     @ApiProperty({ description: 'Background image URL', maxLength: 255 })
-    @Matches(/^(https?:\/\/)([\w\-]+(\.[\w\-]+)+)(\/[\w\-\._~:/?#[\]@!$&'()*+,;=]*)?$/, {
-        message: UpdateCompanyInfoDtoErrorType.INVALID_BACKGROUND_IMAGE,
-    })
     @MaxLength(255, { message: 'Background image URL must not exceed 255 characters' })
     @IsOptional()
     readonly backgroundImageUrl?: string;

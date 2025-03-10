@@ -27,9 +27,6 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'description', type: 'text', default: process.env.ENTERPRISE_DESCRIPTION })
     readonly description: string | null;
 
-    @Column({ name: 'enterprise_benefits', type: 'text' })
-    readonly enterpriseBenefits: string | null;
-
     @Column({ name: 'company_vision', type: 'text' })
     readonly companyVision: string | null;
 

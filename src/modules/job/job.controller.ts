@@ -22,10 +22,7 @@ export class JobController {
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
-    create(
-        @Body() createJobDto: Omit<CreateJobDto, 'enterpriseId'>,
-        @CurrentUser() user: JwtPayload
-    ): Promise<JobResponseDto> {
+    create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
         return this.jobService.create(createJobDto, user.accountId, user.enterpriseId);
     }
 

@@ -12,6 +12,7 @@ import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
 import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { CategoryService } from '@modules/category/services';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -19,6 +20,7 @@ type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 export class UserService {
     constructor(
         private readonly profileRepository: ProfileRepository,
+        private readonly categoryService: CategoryService,
         @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
 
@@ -86,7 +88,7 @@ export class UserService {
 
             const profile = await this.profileRepository.findOne({
                 where: { account_id: accountId },
-                relations: { account: true },
+                relations: { account: true, industry: true, majority: true },
                 select: {
                     account: {
                         roles: true,
@@ -253,8 +255,6 @@ export class UserService {
                 experience: payload.experience,
                 phone: payload.phone,
                 fullName: payload.fullName,
-                dateOfBirth: payload.dateOfBirth || null,
-                maritalStatus: payload.maritalStatus || null,
             });
 
             const finalResult = { ...updatedProfile, roles: user.roles };
@@ -263,34 +263,52 @@ export class UserService {
 
             return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
-            throw ErrorCatchHelper.serviceCatch(error);
+            return new UserResponseDtoBuilder().internalServerError().build();
         }
     }
 
-    // public async updateCandidateProfile(payload: UpdateCandidateProfileDto, user: JwtPayload) {
-    //     try {
-    //         const profile = await this.profileRepository.findOne({
-    //             where: { profileId: user.profileId, account: { accountId: user.accountId, status: UserStatus.ACTIVE } },
-    //         });
-    //         if (!profile) {
-    //             throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
-    //         }
-    //         const updatedProfile = await this.profileRepository.save({
-    //             ...profile,
-    //             nationality: payload.nationality,
-    //             maritalStatus: payload.maritalStatus,
-    //             gender: payload.gender,
-    //             dateOfBirth: payload.dateOfBirth,
-    //             introduction: payload.introduction,
-    //         });
+    public async updateCandidateProfile(payload: UpdateCandidateProfileDto, user: JwtPayload) {
+        try {
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: user.profileId, account: { accountId: user.accountId, status: UserStatus.ACTIVE } },
+            });
+            if (!profile) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
 
-    //         const finalResult = { ...updatedProfile, roles: user.roles };
+            if (payload.majorityId && !payload.industryId) {
+                throw new BadRequestException(UserErrorType.FILL_INDUSTRY_BEFORE_MAJORITY);
+            }
 
-    //         this.setProfileOnRedis(user.accountId, finalResult);
+            if (payload.industryId && payload.majorityId) {
+                const isValidRelationship = await this.categoryService.checkFamilyCategory(
+                    payload.industryId,
+                    payload.majorityId
+                );
 
-    //         return new UserResponseDtoBuilder().setValue(finalResult).success().build();
-    //     } catch (error) {
-    //         return new UserResponseDtoBuilder().internalServerError().build();
-    //     }
-    // }
+                if (!isValidRelationship) {
+                    throw new BadRequestException(UserErrorType.MAJORITY_MUST_BE_CHILD_OF_INDUSTRY);
+                }
+            }
+
+            const updatedProfile = await this.profileRepository.save({
+                ...profile,
+                nationality: payload.nationality,
+                gender: payload.gender,
+                industry: { categoryId: payload.industryId },
+                majority: { categoryId: payload.majorityId },
+                introduction: payload.introduction,
+            });
+
+            const finalResult = { ...updatedProfile, roles: user.roles };
+
+            this.setProfileOnRedis(user.accountId, finalResult);
+
+            console.log(finalResult);
+
+            return new UserResponseDtoBuilder().setValue(finalResult).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

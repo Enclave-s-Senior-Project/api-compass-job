@@ -122,4 +122,8 @@ export class CategoryService {
     async findByIds(ids: string[]): Promise<CategoryEntity[]> {
         return this.categoryRepository.findByIds(ids);
     }
+
+    async checkFamilyCategory(parentId: string, childId: string): Promise<boolean> {
+        return this.categoryRepository.exists({ where: { parent: { categoryId: parentId }, categoryId: childId } });
+    }
 }

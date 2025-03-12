@@ -1,6 +1,7 @@
 import { UpdatePersonalProfileDtoErrorType } from '@common/errors/class-validator-error-type';
+import { MaritalStatusType } from '@database/entities/profile.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmpty, IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
 
 export class UpdatePersonalProfileDto {
     @ApiProperty({
@@ -15,16 +16,28 @@ export class UpdatePersonalProfileDto {
         default: 'https://www.flaticon.com/free-icon/user-avatar_6596121',
         description: 'User avatar profile image URL',
     })
-    @IsUrl({ allow_query_components: false }, { message: UpdatePersonalProfileDtoErrorType.INVALID_PROFILE_URL })
+    @IsString({ message: UpdatePersonalProfileDtoErrorType.INVALID_PROFILE_URL })
     @IsOptional()
     readonly profileUrl?: string;
+
+    @ApiProperty({
+        default: 'Jun 08, 2003',
+    })
+    @IsOptional()
+    readonly dateOfBirth: Date;
+
+    @ApiProperty({
+        default: 'ALONE',
+    })
+    @IsOptional()
+    readonly maritalStatus?: MaritalStatusType;
 
     @ApiProperty({
         default:
             'https://png.pngtree.com/thumb_back/fh260/background/20210702/pngtree-blue-background-facebook-cover-png-image_736343.jpg',
         description: 'User background profile image URL',
     })
-    @IsUrl({ allow_query_components: false }, { message: UpdatePersonalProfileDtoErrorType.INVALID_PAGE_URL })
+    @IsString({ message: UpdatePersonalProfileDtoErrorType.INVALID_PAGE_URL })
     @IsOptional()
     readonly pageUrl?: string;
 

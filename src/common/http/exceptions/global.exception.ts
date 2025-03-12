@@ -27,7 +27,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
             message = 'An unknown error occurred';
         }
 
-        response.status(status).json({
+        response.status(200).json({
             payload: {
                 code: status,
                 message_code: message || 'UNKNOWN_ERROR',

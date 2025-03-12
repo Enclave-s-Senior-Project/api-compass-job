@@ -11,6 +11,7 @@ import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-pro
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
+import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -252,6 +253,8 @@ export class UserService {
                 experience: payload.experience,
                 phone: payload.phone,
                 fullName: payload.fullName,
+                dateOfBirth: payload.dateOfBirth || null,
+                maritalStatus: payload.maritalStatus || null,
             });
 
             const finalResult = { ...updatedProfile, roles: user.roles };
@@ -260,34 +263,34 @@ export class UserService {
 
             return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
-            return new UserResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
-    public async updateCandidateProfile(payload: UpdateCandidateProfileDto, user: JwtPayload) {
-        try {
-            const profile = await this.profileRepository.findOne({
-                where: { profileId: user.profileId, account: { accountId: user.accountId, status: UserStatus.ACTIVE } },
-            });
-            if (!profile) {
-                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
-            }
-            const updatedProfile = await this.profileRepository.save({
-                ...profile,
-                nationality: payload.nationality,
-                maritalStatus: payload.maritalStatus,
-                gender: payload.gender,
-                dateOfBirth: payload.dateOfBirth,
-                introduction: payload.introduction,
-            });
+    // public async updateCandidateProfile(payload: UpdateCandidateProfileDto, user: JwtPayload) {
+    //     try {
+    //         const profile = await this.profileRepository.findOne({
+    //             where: { profileId: user.profileId, account: { accountId: user.accountId, status: UserStatus.ACTIVE } },
+    //         });
+    //         if (!profile) {
+    //             throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+    //         }
+    //         const updatedProfile = await this.profileRepository.save({
+    //             ...profile,
+    //             nationality: payload.nationality,
+    //             maritalStatus: payload.maritalStatus,
+    //             gender: payload.gender,
+    //             dateOfBirth: payload.dateOfBirth,
+    //             introduction: payload.introduction,
+    //         });
 
-            const finalResult = { ...updatedProfile, roles: user.roles };
+    //         const finalResult = { ...updatedProfile, roles: user.roles };
 
-            this.setProfileOnRedis(user.accountId, finalResult);
+    //         this.setProfileOnRedis(user.accountId, finalResult);
 
-            return new UserResponseDtoBuilder().setValue(finalResult).success().build();
-        } catch (error) {
-            return new UserResponseDtoBuilder().internalServerError().build();
-        }
-    }
+    //         return new UserResponseDtoBuilder().setValue(finalResult).success().build();
+    //     } catch (error) {
+    //         return new UserResponseDtoBuilder().internalServerError().build();
+    //     }
+    // }
 }

@@ -12,24 +12,11 @@ export class UpdateCandidateProfileDto {
     readonly nationality: string;
 
     @ApiProperty({
-        default: 'Jun 08, 2003',
-    })
-    // @IsDateString()
-    @IsOptional()
-    readonly dateOfBirth: Date;
-
-    @ApiProperty({
         default: 'MALE',
     })
     @IsNotEmpty({ message: UpdateCandidateProfileDtoErrorType.GENDER_REQUIRED })
     @IsOptional()
     readonly gender: GenderType;
-
-    @ApiProperty({
-        default: 'ALONE',
-    })
-    @IsOptional()
-    readonly maritalStatus?: MaritalStatusType;
 
     @ApiProperty({
         default: 'Hello',

@@ -3,6 +3,7 @@ import {
     Entity,
     JoinColumn,
     ManyToMany,
+    ManyToOne,
     OneToMany,
     OneToOne,
     PrimaryGeneratedColumn,
@@ -17,6 +18,7 @@ import {
     JobEntity,
     UserRatingEntity,
     CvEntity,
+    CategoryEntity,
 } from '@database/entities';
 import { AppliedJobEntity } from '@database/entities/applied-job.entity';
 import { AddressEntity } from '@database/entities/address.entity';
@@ -88,6 +90,16 @@ export class ProfileEntity extends BaseEntity {
 
     @Column({ name: 'experience', type: 'text', nullable: true })
     readonly experience: string | null;
+
+    @Column({ name: 'industry_id', type: 'uuid', nullable: true })
+    @JoinColumn({ name: 'industry_id' })
+    @ManyToOne(() => CategoryEntity, (category) => category.categoryId)
+    readonly industryId: string | null;
+
+    @Column({ name: 'majority_id', type: 'uuid', nullable: true })
+    @ManyToOne(() => CategoryEntity, (category) => category.categoryId)
+    @JoinColumn({ name: 'majority_id' })
+    readonly majorityId: string | null;
 
     @Column({ name: 'account_id', type: 'uuid', nullable: false, unique: true })
     account_id: string;

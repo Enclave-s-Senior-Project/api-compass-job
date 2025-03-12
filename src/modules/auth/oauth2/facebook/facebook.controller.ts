@@ -22,7 +22,7 @@ export class FacebookController {
 
     @UseGuards(FacebookOAuth2Guard)
     @Get('callback')
-    async facebookCallback(@CurrentUser() user, @Res({ passthrough: true }) res: Response) {
+    async facebookCallback(@CurrentUser() user, @Res() res: Response) {
         try {
             const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.oauth2Login(user);
             res.cookie('refresh-token', refreshToken, {
@@ -38,7 +38,7 @@ export class FacebookController {
                 accessTokenExpires: builder.value.accessTokenExpires,
             }).toString();
 
-            res.setHeader('Content-Type', 'application/json');
+            // res.setHeader('Content-Type', 'application/json');
             res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`);
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);

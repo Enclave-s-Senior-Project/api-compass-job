@@ -63,7 +63,7 @@ export class UserController {
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Patch('candidate')
     async updateCandidateProfile(@Body() body: UpdateCandidateProfileDto, @CurrentUser() user) {
-        // return this.userService.updateCandidateProfile(body, user);
+        return this.userService.updateCandidateProfile(body, user);
     }
 
     @HttpCode(200)

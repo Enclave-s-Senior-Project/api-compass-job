@@ -94,12 +94,12 @@ export class ProfileEntity extends BaseEntity {
     @Column({ name: 'industry_id', type: 'uuid', nullable: true })
     @JoinColumn({ name: 'industry_id' })
     @ManyToOne(() => CategoryEntity, (category) => category.categoryId)
-    readonly industryId: string | null;
+    readonly industry: CategoryEntity | null;
 
     @Column({ name: 'majority_id', type: 'uuid', nullable: true })
     @ManyToOne(() => CategoryEntity, (category) => category.categoryId)
     @JoinColumn({ name: 'majority_id' })
-    readonly majorityId: string | null;
+    readonly majority: CategoryEntity | null;
 
     @Column({ name: 'account_id', type: 'uuid', nullable: false, unique: true })
     account_id: string;

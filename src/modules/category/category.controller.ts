@@ -67,8 +67,8 @@ export class CategoryController {
         description: 'Retrieve all primary (industry) categories without pagination.',
     })
     @ApiOkResponse({ description: 'Primary categories retrieved successfully.', type: [CategoryResponseDto] })
-    async getPrimaryCategories(): Promise<CategoryResponseDto> {
-        return this.categoryService.findPrimaryCategories();
+    async getPrimaryCategories(@Query() pagination: PaginationDto): Promise<CategoryResponseDto> {
+        return this.categoryService.findPrimaryCategories(pagination);
     }
 
     @SkipAuth()
@@ -86,13 +86,11 @@ export class CategoryController {
     @HttpCode(200)
     @ApiOperation({ summary: 'Get child categories', description: 'Retrieve child categories of a parent category.' })
     @ApiOkResponse({ description: 'Child categories retrieved successfully.', type: [CategoryResponseDto] })
-    @ApiQuery({ name: 'name', required: false, description: 'Name of categoriess', schema: { default: '' } })
     async getChildCategories(
         @Param('parentId') parentId: string,
-        @Query() pageOptionsDto: PaginationDto,
-        @Query('name') name?: string
+        @Query() pagination: PaginationDto
     ): Promise<CategoryResponseDto> {
-        return this.categoryService.findChildren(parentId, pageOptionsDto, name);
+        return this.categoryService.findChildren(parentId, pagination);
     }
 
     @SkipAuth()

@@ -1,6 +1,7 @@
 import {
     Column,
     Entity,
+    Index,
     JoinColumn,
     JoinTable,
     ManyToMany,
@@ -16,6 +17,7 @@ export class CategoryEntity extends BaseEntity {
     readonly categoryId: string;
 
     @Column({ name: 'category_name', type: 'varchar', length: 255 })
+    @Index()
     readonly categoryName: string;
 
     //     relationships

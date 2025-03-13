@@ -77,13 +77,13 @@ export class JobController {
     //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
     // }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
     @HttpCode(200)
     @ApiOperation({ description: 'Get job by ID' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get(':id')
-    getDetailJobByJobId(@Param('id') id: string): Promise<JobResponseDto> {
-        return this.jobService.getDetailJobById(id);
+    getDetailJobByJobId(@CurrentUser() user, @Param('id') id: string): Promise<JobResponseDto> {
+        return this.jobService.getDetailJobById(id, user);
     }
 }

@@ -210,7 +210,7 @@ export class JobService {
         }
     }
 
-    async getDetailJobById(id: string): Promise<JobResponseDto> {
+    async getDetailJobById(id: string, user: JwtPayload): Promise<JobResponseDto> {
         try {
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
@@ -219,8 +219,12 @@ export class JobService {
             if (!job) {
                 return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
             }
-
-            return new JobResponseDtoBuilder().setValue(job).success().build();
+            const isFavorite = job.profiles?.some((profile) => profile.profileId === user.profileId);
+            const jobWithFavorite = {
+                ...job,
+                isFavorite,
+            };
+            return new JobResponseDtoBuilder().setValue(jobWithFavorite).success().build();
         } catch (error) {
             console.error('Error get detail job by id: ', error);
             return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();

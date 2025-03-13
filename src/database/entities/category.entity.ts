@@ -29,4 +29,7 @@ export class CategoryEntity extends BaseEntity {
     @ManyToMany(() => JobEntity, (job) => job.categories)
     @JoinTable({ name: 'job_categories', joinColumn: { name: 'category_id' }, inverseJoinColumn: { name: 'job_id' } })
     readonly jobs: JobEntity[];
+    get isChild(): boolean {
+        return this.parent !== null;
+    }
 }

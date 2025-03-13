@@ -11,9 +11,10 @@ import { ProfileRepository } from '@modules/user/repositories';
 import { AccountRepository } from '@modules/auth/repositories';
 import { TokenService } from '@modules/auth/services';
 import { OAuth2Service } from '../services/oauth2.service';
+import { CategoryModule } from '@modules/category/category.module';
 
 @Module({
-    imports: [forwardRef(() => AuthModule), TmpModule, ConfigModule, MailModule, CacheModule],
+    imports: [forwardRef(() => AuthModule), TmpModule, ConfigModule, MailModule, CacheModule, CategoryModule],
     providers: [OAuth2Service, TokenService, AccountRepository, ProfileRepository, UserService, JwtService],
     controllers: [GoogleController],
 })

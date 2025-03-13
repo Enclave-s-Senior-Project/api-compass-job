@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, IsNull, Repository } from 'typeorm';
 import {
     CategoryResponseDto,
     CategoryResponseDtoBuilder,
@@ -10,6 +10,8 @@ import {
 } from '../dtos';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { CategoryEntity } from '@database/entities';
+import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { error } from 'console';
 
 @Injectable()
 export class CategoryService {
@@ -54,17 +56,30 @@ export class CategoryService {
     }
 
     async findPrimaryCategories(pagination: PaginationDto): Promise<CategoryResponseDto> {
-        const whereCondition = pagination.options
-            ? { parent: null, categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
-            : { parent: null };
+        try {
+            const whereCondition = pagination.options
+                ? { parent: IsNull(), categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
+                : { parent: IsNull() };
 
-        const primaryCategories = await this.categoryRepository.find({
-            where: whereCondition,
-            skip: (pagination.page - 1) * pagination.take,
-            take: pagination.take,
-            order: { createdAt: pagination.order },
-        });
-        return new CategoryResponseDtoBuilder().setValue(primaryCategories).success().build();
+            const primaryCategories = await this.categoryRepository.find({
+                where: whereCondition,
+                skip: (pagination.page - 1) * pagination.take,
+                take: pagination.take,
+                order: { createdAt: pagination.order },
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: pagination,
+                itemCount: 0,
+            });
+
+            return new CategoryResponseDtoBuilder()
+                .setValue(new PageDto<CategoryEntity>(primaryCategories, meta))
+                .success()
+                .build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 
     async findOne(id: string): Promise<CategoryResponseDto> {
@@ -76,53 +91,32 @@ export class CategoryService {
     }
 
     async findChildren(parentId: string, pagination: PaginationDto): Promise<CategoryResponseDto> {
-        const whereCondition = pagination.options
-            ? { parent: { categoryId: parentId }, categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
-            : { parent: { categoryId: parentId } };
+        try {
+            const whereCondition = pagination.options
+                ? { parent: { categoryId: parentId }, categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
+                : { parent: { categoryId: parentId } };
 
-        console.log(whereCondition);
-        const children = await this.categoryRepository.find({
-            where: whereCondition,
-            skip: (pagination.page - 1) * pagination.take,
-            take: pagination.take,
-            order: { createdAt: pagination.order },
-            relations: ['parent'],
-            select: {
-                categoryId: true,
-                categoryName: true,
-                createdAt: false,
-            },
-        });
-        if (children.length == 0) {
-            throw new NotFoundException(`Parent category with ID ${parentId} not found.`);
-        }
-        let queryBuilder = this.categoryRepository
-            .createQueryBuilder('category')
-            .where('category.parent_id = :parentId', { parentId })
-            .orderBy('category.category_name', order)
-            .skip(skip)
-            .take(take);
-
-        if (searchName) {
-            queryBuilder = queryBuilder.andWhere('category.category_name ILIKE :name', {
-                name: `%${searchName}%`,
+            const children = await this.categoryRepository.find({
+                where: whereCondition,
+                skip: (pagination.page - 1) * pagination.take,
+                take: pagination.take,
+                order: { createdAt: pagination.order },
+                relations: ['parent'],
             });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: pagination,
+                itemCount: 0,
+            });
+
+            return new CategoryResponseDtoBuilder()
+                .success()
+                .setValue(new PageDto<CategoryEntity>(children, meta))
+                .build();
+        } catch (error) {
+            console.log(error);
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-
-        const [categories, total] = await queryBuilder.getManyAndCount();
-
-        const meta = new PageMetaDto({
-            pageOptionsDto: filter,
-            itemCount: total,
-        });
-
-        return new CategoryResponseDtoBuilder()
-            .success()
-            .setValue(new PageDto<CategoryEntity>(categories, meta))
-            .build();
-    }
-    catch(error) {
-        throw new InternalServerErrorException('Failed to retrieve child categories.');
     }
 
     async findParent(id: string): Promise<CategoryResponseDto> {

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import {
     CategoryResponseDto,
     CategoryResponseDtoBuilder,
@@ -19,7 +19,10 @@ export class CategoryService {
     ) {}
 
     async create(createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
-        const category = this.categoryRepository.create(createCategoryDto);
+        const category = this.categoryRepository.create({
+            categoryName: createCategoryDto.categoryName,
+            parent: { categoryId: createCategoryDto.parentId },
+        });
         await this.categoryRepository.save(category);
         return new CategoryResponseDtoBuilder().success().build();
     }
@@ -50,11 +53,17 @@ export class CategoryService {
         return new CategoryResponseDtoBuilder().setValue(categories).success().build();
     }
 
-    async findPrimaryCategories(): Promise<CategoryResponseDto> {
-        const primaryCategories = await this.categoryRepository
-            .createQueryBuilder('category')
-            .where('category.parent_id IS NULL')
-            .getMany();
+    async findPrimaryCategories(pagination: PaginationDto): Promise<CategoryResponseDto> {
+        const whereCondition = pagination.options
+            ? { parent: null, categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
+            : { parent: null };
+
+        const primaryCategories = await this.categoryRepository.find({
+            where: whereCondition,
+            skip: (pagination.page - 1) * pagination.take,
+            take: pagination.take,
+            order: { createdAt: pagination.order },
+        });
         return new CategoryResponseDtoBuilder().setValue(primaryCategories).success().build();
     }
 
@@ -66,12 +75,23 @@ export class CategoryService {
         return new CategoryResponseDtoBuilder().setValue(category).success().build();
     }
 
-    async findChildren(parentId: string, filter: PaginationDto, name?: string): Promise<CategoryResponseDto> {
-        const { order, take = 5, skip = 0 } = filter;
-        const searchName = name ? name : '';
+    async findChildren(parentId: string, pagination: PaginationDto): Promise<CategoryResponseDto> {
+        const whereCondition = pagination.options
+            ? { parent: { categoryId: parentId }, categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
+            : { parent: { categoryId: parentId } };
+
+        console.log(whereCondition);
         const children = await this.categoryRepository.find({
-            where: { parent: { categoryId: parentId } },
+            where: whereCondition,
+            skip: (pagination.page - 1) * pagination.take,
+            take: pagination.take,
+            order: { createdAt: pagination.order },
             relations: ['parent'],
+            select: {
+                categoryId: true,
+                categoryName: true,
+                createdAt: false,
+            },
         });
         if (children.length == 0) {
             throw new NotFoundException(`Parent category with ID ${parentId} not found.`);

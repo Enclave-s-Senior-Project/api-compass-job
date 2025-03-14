@@ -1,4 +1,4 @@
-import { HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { forwardRef, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
@@ -12,10 +12,13 @@ import { RedisCommander } from 'ioredis';
 import { EnterpriseStatus } from '@common/enums';
 import { UpdateFoundingInfoDto } from '../dtos/update-founding-dto';
 import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { JobResponseDtoBuilder } from '@modules/job/dtos';
+import { JobService } from '@modules/job/service/job.service';
 
 @Injectable()
 export class EnterpriseService {
     constructor(
+        @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
         private readonly enterpriseRepository: EnterpriseRepository,
         @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
@@ -132,17 +135,15 @@ export class EnterpriseService {
             relations: ['account', 'websites', 'jobs', 'addresses'],
         });
     }
-    async findJobsByEnterpriseId(enterpriseId: string) {
-        const enterprise = await this.enterpriseRepository.findOne({
-            where: { enterpriseId },
-            relations: ['jobs'],
-        });
-
-        if (!enterprise) {
-            throw new NotFoundException(`Enterprise with ID ${enterpriseId} not found.`);
+    async findJobsByEnterpriseId(enterpriseId: string, pagination: PaginationDto) {
+        try {
+            console.log(pagination);
+            const result = await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
+            console.log('result in enterprise service', result);
+            return new JobResponseDtoBuilder().setValue(result).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-
-        return enterprise.jobs;
     }
     async findAddressesByEnterpriseId(enterpriseId: string) {
         try {
@@ -241,6 +242,27 @@ export class EnterpriseService {
             } else {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
             }
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async totalJobsByEnterprise(enterpriseId: string): Promise<EnterpriseResponseDto> {
+        try {
+            const cacheKey = `enterprise-total-job:${enterpriseId}`;
+
+            // Check Redis cache first
+            const cachedTotal = await this.redisCache.get(cacheKey);
+            if (cachedTotal) {
+                new EnterpriseResponseDtoBuilder().setValue(cachedTotal).build();
+            }
+
+            // Fetch from database if not cached
+            const total = await this.jobService.totalJobsByEnterprise(enterpriseId);
+
+            // Store result in Redis with expiration time
+            await this.redisCache.set(cacheKey, JSON.stringify(total), 'EX', 432000);
+
+            return new EnterpriseResponseDtoBuilder().setValue(total).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

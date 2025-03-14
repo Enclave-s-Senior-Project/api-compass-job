@@ -27,20 +27,33 @@ export class JobService {
         try {
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
 
-            const [enterprise, addresses, categories, tags, specializations] = await Promise.all([
-                (await this.enterpriseService.getEnterpriseByAccountId(accountId)).value,
-                this.addressService.getAddressByIds(address),
-                this.categoryService.findByIds(categoryIds),
-                this.tagService.findByIds(tagIds),
-                this.categoryService.findByIds(specializationIds),
+            const addressIds = Array.isArray(address) ? address : [];
+            const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [];
+            const specializationIdsArray = Array.isArray(specializationIds) ? specializationIds : [];
+            const tagIdsArray = Array.isArray(tagIds) ? tagIds : [];
+
+            const [enterpriseResult, addresses, categories, tags, specializations] = await Promise.all([
+                this.enterpriseService.getEnterpriseByAccountId(accountId),
+                addressIds.length > 0 ? this.addressService.getAddressByIds(addressIds) : [],
+                categoryIdsArray.length > 0 ? this.categoryService.findByIds(categoryIdsArray) : [],
+                tagIdsArray.length > 0 ? this.tagService.findByIds(tagIdsArray) : [],
+                specializationIdsArray.length > 0 ? this.categoryService.findByIds(specializationIdsArray) : [],
             ]);
+
+            if (!enterpriseResult?.value) {
+                return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.INVALID_ENTERPRISE).build();
+            }
+
+            const enterprise = enterpriseResult.value;
+
             const hasInvalidSpecialization = specializations.some(
                 (spec) => !spec.isChild || !categories.some((cat) => spec.parent?.categoryId === cat.categoryId)
             );
 
-            if (!hasInvalidSpecialization) {
+            if (hasInvalidSpecialization) {
                 return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.JOB_SPECIALIZATION).build();
             }
+
             const newJob = this.jobRepository.create({
                 ...jobData,
                 enterprise,
@@ -49,10 +62,11 @@ export class JobService {
                 tags,
                 specializations,
             });
+
             await this.jobRepository.save(newJob);
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
         } catch (error) {
-            console.error('Error fetching profiles of list jobs:', error);
+            console.error('Error creating job:', error);
             return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
         }
     }
@@ -215,28 +229,51 @@ export class JobService {
 
     async getJobOfEnterprise(enterpriseId: string, pagination: PaginationDto) {
         try {
-            const [result, total] = await this.jobRepository.findAndCount({
+            const [jobs, total] = await this.jobRepository.findAndCount({
                 where: {
                     enterprise: {
                         enterpriseId: enterpriseId,
                     },
                 },
                 relations: {
-                    enterprise: true,
                     addresses: true,
+                    appliedJob: true,
+                },
+                select: {
+                    jobId: true,
+                    name: true,
+                    type: true,
+                    status: true,
+                    introImg: true,
+                    createdAt: true,
+                    updatedAt: true,
                 },
                 skip: (Number(pagination.page) - 1) * Number(pagination.take),
                 take: Number(pagination.take),
             });
 
+            const formattedResult = jobs.map((job) => ({
+                ...job,
+                applicationCount: job.appliedJob ? job.appliedJob?.length : 0,
+            }));
+
             const meta = new PageMetaDto({
                 pageOptionsDto: pagination,
                 itemCount: total,
             });
-
-            return new JobResponseDtoBuilder().setValue(new PageDto(result, meta)).build();
+            const result = new PageDto(formattedResult, meta);
+            console.log('result', result);
+            return new PageDto(formattedResult, meta);
         } catch (error) {
-            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+            return error;
+        }
+    }
+    async totalJobsByEnterprise(enterpriseId: string): Promise<number> {
+        try {
+            return this.jobRepository.count({ where: { enterprise: { enterpriseId } } });
+        } catch (error) {
+            console.error('Error get total jobs by enterprise: ', error);
+            return 0;
         }
     }
 }

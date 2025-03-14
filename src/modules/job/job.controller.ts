@@ -64,16 +64,6 @@ export class JobController {
         return this.jobService.getJobWishList(query, user);
     }
 
-    @HttpCode(200)
-    @SkipAuth()
-    @ApiOperation({ description: 'Get jobs from enterprise' })
-    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @Get('enterprise/:id')
-    getJobEnterprise(@Param('id') id: string, @Query() pagination: PaginationDto): Promise<JobResponseDto> {
-        return this.jobService.getJobOfEnterprise(id, pagination);
-    }
-
     // @SkipAuth()
     // @HttpCode(200)
     // @ApiOperation({ description: 'Get job by name, location, category, advance' })

@@ -67,7 +67,20 @@ export class EnterpriseController {
     updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
         return this.enterpriseService.updatePartialInfoActive(body, user);
     }
-
+    @SkipAuth()
+    @Get(':id/jobs')
+    @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
+    @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
+    findJobsByEnterprise(@Param('id') id: string, @Query() paginationDto: PaginationDto) {
+        return this.enterpriseService.findJobsByEnterpriseId(id, paginationDto);
+    }
+    @SkipAuth()
+    @Get(':id/total-jobs')
+    @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
+    @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
+    totalJobsByEnterprise(@Param('id') id: string): Promise<EnterpriseResponseDto> {
+        return this.enterpriseService.totalJobsByEnterprise(id);
+    }
     @Get(':id')
     @ApiOperation({ summary: 'Retrieve an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise details.' })
@@ -94,13 +107,6 @@ export class EnterpriseController {
     @ApiResponse({ status: 404, description: 'Enterprise not found.' })
     remove(@Param('id') id: string) {
         return this.enterpriseService.remove(id);
-    }
-
-    @Get(':id/jobs')
-    @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
-    @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
-    findJobsByEnterprise(@Param('id') id: string) {
-        return this.enterpriseService.findJobsByEnterpriseId(id);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

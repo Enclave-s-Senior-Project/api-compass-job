@@ -95,7 +95,7 @@ export class JobEntity extends BaseEntity {
     readonly userRatings: UserRatingEntity[];
 
     @OneToMany(() => AppliedJobEntity, (appliedJob) => appliedJob.job)
-    readonly appliedJob: AppliedJobEntity;
+    readonly appliedJob: AppliedJobEntity[];
 
     @ManyToMany(() => CategoryEntity, (category) => category.jobs)
     readonly categories: CategoryEntity[];

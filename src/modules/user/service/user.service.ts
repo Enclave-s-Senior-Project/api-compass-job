@@ -80,10 +80,12 @@ export class UserService {
      * @param accountId {string}
      * @returns {Promise<ProfileEntity | null>}
      */
-    public async getUserByAccountId(accountId: string): Promise<ProfileAndRoles> | null {
+    public async getUserByAccountId(accountId: string, useCache: boolean = true): Promise<ProfileAndRoles> | null {
         try {
-            const cachedProfile = await this.getProfileOnRedis(accountId);
-            if (cachedProfile) return cachedProfile;
+            if (useCache) {
+                const cachedProfile = await this.getProfileOnRedis(accountId);
+                if (cachedProfile) return cachedProfile;
+            }
 
             const profile = await this.profileRepository.findOne({
                 where: { account_id: accountId },
@@ -102,7 +104,6 @@ export class UserService {
             this.setProfileOnRedis(accountId, result);
             return result;
         } catch (error) {
-            console.error('Error fetching profile:', error);
             return null;
         }
     }
@@ -290,20 +291,20 @@ export class UserService {
                 }
             }
 
-            const updatedProfile = await this.profileRepository.save({
+            await this.profileRepository.update(profile.profileId, {
                 ...profile,
-                nationality: payload.nationality,
-                gender: payload.gender,
-                industry: { categoryId: payload.industryId },
-                majority: { categoryId: payload.majorityId },
-                introduction: payload.introduction,
+                nationality: payload?.nationality || null,
+                gender: payload?.gender || null,
+                industry: payload?.industryId ? { categoryId: payload?.industryId } : null,
+                majority: payload?.majorityId ? { categoryId: payload?.majorityId } : null,
+                introduction: payload?.introduction || '',
             });
+
+            const updatedProfile = await this.getUserByAccountId(user.accountId, false);
 
             const finalResult = { ...updatedProfile, roles: user.roles };
 
             this.setProfileOnRedis(user.accountId, finalResult);
-
-            console.log(finalResult);
 
             return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {

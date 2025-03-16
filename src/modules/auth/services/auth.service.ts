@@ -156,10 +156,6 @@ export class AuthService {
 
     public async refreshToken(payload: JwtPayload, refreshToken: string) {
         try {
-            if (!(await this.validateRefreshToken(payload.accountId, refreshToken))) {
-                throw new InvalidCredentialsException();
-            }
-
             const { roles } = await this.accountRepository.findOne({
                 where: { accountId: payload.accountId },
                 select: { roles: true },
@@ -198,7 +194,8 @@ export class AuthService {
 
     protected async storeRefreshTokenOnCache(accountId: string, refreshToken: string, expiresInSeconds: number) {
         try {
-            await this.redisCache.set(`refreshtoken:${accountId}:${refreshToken}`, 1, 'EX', expiresInSeconds);
+            const payload = this.tokenService.decodeToken(refreshToken);
+            await this.redisCache.set(`refreshtoken:${accountId}:${payload.jit}`, 1, 'EX', expiresInSeconds);
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -206,7 +203,8 @@ export class AuthService {
 
     protected async deleteRefreshTokenOnCache(accountId: string, refreshToken: string) {
         try {
-            return await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
+            const payload = this.tokenService.decodeToken(refreshToken);
+            return await this.redisCache.del(`refreshtoken:${accountId}:${payload.jit}`);
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -287,9 +285,10 @@ export class AuthService {
             throw new InternalServerErrorException('Email sending failed');
         }
     }
-    protected async validateRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
-        const exists = await this.redisCache.get(`refreshtoken:${accountId}:${refreshToken}`);
-        if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${refreshToken}`);
+    public async validateAndDelRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
+        const payload = this.tokenService.decodeToken(refreshToken);
+        const exists = await this.redisCache.get(`refreshtoken:${accountId}:${payload.jit}`);
+        if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${payload.jit}`);
         return Boolean(exists);
     }
     public async getMe(user: JwtPayload): Promise<RegisterResponseDto | null> {

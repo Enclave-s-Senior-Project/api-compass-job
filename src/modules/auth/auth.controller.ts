@@ -20,7 +20,7 @@ import {
     RegisterResponseDtoBuilder,
 } from './dtos';
 import { TokenService, AuthService } from './services';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 import { AccountEntity, ProfileEntity } from '@database/entities';
@@ -159,11 +159,10 @@ export class AuthController {
     @ApiOperation({ description: 'Resend email verification' })
     @ApiOkResponse({ description: 'Successfully sent verification code' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @UseGuards(JwtRefreshAuthGuard)
     @Post('/logout')
-    async logout(@CurrentUser() user, @Res({ passthrough: true }) res: Response) {
+    async logout(@Req() req: Request, @CurrentUser() user, @Res({ passthrough: true }) res: Response) {
         try {
-            const logoutBuilder = await this.authService.logout(user?.accountId, user?.refreshToken);
+            const logoutBuilder = await this.authService.logout(user?.accountId, req.cookies?.['refresh-token']);
             if (logoutBuilder.value as boolean) {
                 res.clearCookie('refresh-token');
             }

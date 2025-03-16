@@ -13,6 +13,7 @@ import { TokenError, TokenType } from '../enums';
 import { UserStatus } from '@database/entities/account.entity';
 import { TimeHelper } from '@helpers';
 import { JwtPayload } from '@common/dtos';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class TokenService {
@@ -86,7 +87,14 @@ export class TokenService {
      * @returns JWT
      */
     private async generateToken(payload: JwtPayload, expiresInSeconds: number, secretKey: string): Promise<string> {
-        const token = await this.jwtService.signAsync(payload, { expiresIn: expiresInSeconds, secret: secretKey });
+        const token = await this.jwtService.signAsync(
+            { ...payload, jit: uuidv4() },
+            { expiresIn: expiresInSeconds, secret: secretKey }
+        );
         return token;
+    }
+
+    public decodeToken(token: string) {
+        return this.jwtService.decode(token) as JwtPayload & { jit: string };
     }
 }

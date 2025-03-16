@@ -5,10 +5,14 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { InvalidCredentialsException } from '@common/http/exceptions';
 import { JwtPayload } from '@common/dtos';
+import { AuthService } from '../services';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private readonly authService: AuthService
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromExtractors([
                 (request: Request) => {
@@ -30,6 +34,13 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         if (!payload) {
             throw new InvalidCredentialsException();
         }
+
+        if (
+            !(await this.authService.validateAndDelRefreshToken(payload.accountId, request.cookies?.['refresh-token']))
+        ) {
+            throw new InvalidCredentialsException();
+        }
+
         // Return the JwtPayload with the required fields
         return {
             payload: { ...payload, refreshToken: request.cookies?.['refresh-token'] },

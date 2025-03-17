@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { AccountEntity, WebsiteEntity, BaseEntity, JobEntity } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
@@ -69,6 +69,7 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'bio', type: 'text' })
     bio: string | null;
 
+    @Index('idx_enterprise_premium')
     @Column({ name: 'is_premium', type: 'boolean', default: false, nullable: false })
     readonly isPremium: boolean;
 

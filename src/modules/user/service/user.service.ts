@@ -247,15 +247,19 @@ export class UserService {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
 
-            const updatedProfile = await this.profileRepository.save({
+            await this.profileRepository.save({
                 ...profile,
                 profileUrl: payload.profileUrl,
                 pageUrl: payload.pageUrl,
                 education: payload.education,
                 experience: payload.experience,
                 phone: payload.phone,
+                maritalStatus: payload.maritalStatus,
+                dateOfBirth: payload.dateOfBirth,
                 fullName: payload.fullName,
             });
+
+            const updatedProfile = await this.getUserByAccountId(user.accountId, false);
 
             const finalResult = { ...updatedProfile, roles: user.roles };
 

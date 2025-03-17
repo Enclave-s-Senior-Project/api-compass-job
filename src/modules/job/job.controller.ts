@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JobService } from './service/job.service';
 import {
     ApiBearerAuth,
@@ -11,9 +11,10 @@ import { JwtPayload, PaginationDto } from '@common/dtos';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { CreateJobDto, CreateJobWishListDto, JobResponseDto } from './dtos';
+import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto } from './dtos';
 import { SKIP_AUTH } from '@modules/auth/constants';
 import { JobEntity } from '@database/entities';
+import { Request } from 'express';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -76,6 +77,15 @@ export class JobController {
     // ): Promise<JobResponseDto> {
     //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
     // }
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Search job' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('search')
+    filter(@Query() query: JobFilterDto, @Req() req: Request) {
+        return this.jobService.filter(query, req.url);
+    }
 
     @ApiBearerAuth(TOKEN_NAME)
     @HttpCode(200)

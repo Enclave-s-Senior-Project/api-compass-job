@@ -11,6 +11,8 @@ import { CategoryService } from '@modules/category/services';
 import { TagService } from '@modules/tag/services';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 import { redisProviderName } from '@cache/cache.provider';
+import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ILike } from 'typeorm';
 
 @Injectable()
 export class JobService {
@@ -279,5 +281,122 @@ export class JobService {
             console.error('Error get total jobs by enterprise: ', error);
             return 0;
         }
+    }
+
+    async filter(query: JobFilterDto, urlQuery: string) {
+        try {
+            // Check cache
+            const resultCache = await this.getFilterResultOnCache(urlQuery);
+            if (resultCache) {
+                const meta = new PageMetaDto({
+                    itemCount: resultCache.length,
+                    pageOptionsDto: {
+                        skip: query.skip,
+                        options: query.options,
+                        order: query.order,
+                        page: query.page,
+                        take: query.take,
+                    },
+                });
+                return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
+            }
+
+            // Start QueryBuilder
+            const queryBuilder = this.jobRepository
+                .createQueryBuilder('jobs')
+                .leftJoinAndSelect('jobs.addresses', 'addresses')
+                .leftJoinAndSelect('jobs.categories', 'industries')
+                .leftJoinAndSelect('jobs.specializations', 'majorities')
+                .leftJoinAndSelect('jobs.enterprise', 'enterprise');
+
+            // Optimize Full-Text Search (Uses `plainto_tsquery`)
+            if (query.name) {
+                queryBuilder.andWhere("to_tsvector('english', jobs.name) @@ plainto_tsquery(:name)", {
+                    name: query.name.trim(),
+                });
+            }
+
+            // Optimize Country and City Filters
+            if (query.country) {
+                queryBuilder.andWhere('LOWER(addresses.country) LIKE LOWER(:country)', {
+                    country: `${query.country}%`,
+                });
+            }
+            if (query.city) {
+                queryBuilder.andWhere('LOWER(addresses.city) LIKE LOWER(:city)', { city: `${query.city}%` });
+            }
+
+            // Optimize Category Filters (Indexes Needed)
+            if (query.industryCategoryId) {
+                queryBuilder.andWhere('industries.category_id = :industryId', { industryId: query.industryCategoryId });
+            }
+            if (query.majorityCategoryId) {
+                queryBuilder.andWhere('majorities.category_id = :majorityId', { majorityId: query.majorityCategoryId });
+            }
+
+            // Status and Deadline Check
+            queryBuilder.andWhere('jobs.status = true AND jobs.deadline > CURRENT_DATE');
+
+            // Select only necessary fields (Avoid SELECT *)
+            queryBuilder.select([
+                'jobs.jobId',
+                'jobs.name',
+                'jobs.status',
+                'jobs.deadline',
+                'addresses.addressId',
+                'addresses.country',
+                'addresses.city',
+                'addresses.street',
+                'addresses.zipCode',
+                'industries.categoryId',
+                'industries.categoryName',
+                'majorities.categoryId',
+                'majorities.categoryName',
+                'enterprise.enterpriseId',
+                'enterprise.name',
+                'enterprise.logoUrl',
+                'enterprise.backgroundImageUrl',
+                'enterprise.foundedIn',
+                'enterprise.industryType',
+                'enterprise.isPremium',
+            ]);
+
+            // Prioritize Premium Enterprises
+            queryBuilder.orderBy('enterprise.isPremium', 'DESC');
+
+            queryBuilder.skip(query.skip).take(query.take);
+
+            // Execute Query
+            const [jobs, total] = await queryBuilder.getManyAndCount();
+
+            // Cache results
+            this.storeFilterResultOnCache(urlQuery, jobs);
+
+            // Return response
+            const meta = new PageMetaDto({
+                itemCount: total,
+                pageOptionsDto: {
+                    skip: query.skip,
+                    options: query.options,
+                    order: query.order,
+                    page: query.page,
+                    take: query.take,
+                },
+            });
+            return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
+        } catch (error) {
+            console.error('Filter Query Error:', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    protected async storeFilterResultOnCache(key: string, results: JobEntity[]) {
+        const cacheKey = `jobfilter:${key}`;
+        await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+    }
+
+    protected async getFilterResultOnCache(key: string): Promise<JobEntity[] | null> {
+        const cacheResult = await this.redisCache.get(`jobfilter:${key}`);
+        return JSON.parse(cacheResult) || null;
     }
 }

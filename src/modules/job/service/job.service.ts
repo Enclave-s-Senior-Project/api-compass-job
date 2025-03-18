@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { JobRepository } from '../repositories';
-import { RedisCommander } from 'ioredis';
+import Redis, { RedisCommander } from 'ioredis';
 import { JobEntity } from '@database/entities';
 import { JobErrorType } from '@common/errors/';
 import { ErrorType } from '@common/enums';
@@ -22,11 +22,14 @@ export class JobService {
         private readonly categoryService: CategoryService,
         private readonly enterpriseService: EnterpriseService,
         private readonly tagService: TagService,
-        @Inject(redisProviderName) private readonly redisCache: RedisCommander
+        @Inject(redisProviderName) private readonly redisCache: Redis
     ) {}
 
     async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
         try {
+            // clear all jobs filter results while creating
+            this.clearFilterJobResultOnCache();
+
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
 
             const addressIds = Array.isArray(address) ? address : [];
@@ -287,7 +290,7 @@ export class JobService {
         try {
             // Check cache
             const resultCache = await this.getFilterResultOnCache(urlQuery);
-            if (resultCache) {
+            if (resultCache && resultCache?.length > 0) {
                 const meta = new PageMetaDto({
                     itemCount: resultCache.length,
                     pageOptionsDto: {
@@ -398,5 +401,42 @@ export class JobService {
     protected async getFilterResultOnCache(key: string): Promise<JobEntity[] | null> {
         const cacheResult = await this.redisCache.get(`jobfilter:${key}`);
         return JSON.parse(cacheResult) || null;
+    }
+
+    protected async clearFilterJobResultOnCache() {
+        try {
+            let cursor = '0';
+            const batchSize = 1000;
+            const pipeline = this.redisCache.pipeline();
+
+            do {
+                const [nextCursor, keys] = await this.redisCache.scan(
+                    cursor,
+                    'MATCH',
+                    'jobfilter:*',
+                    'COUNT',
+                    batchSize
+                );
+                cursor = nextCursor;
+
+                if (keys.length > 0) {
+                    keys.forEach((key) => pipeline.del(key));
+                }
+
+                // Execute deletion in batches
+                if (pipeline.length >= batchSize) {
+                    await pipeline.exec();
+                }
+            } while (cursor !== '0');
+
+            // Execute any remaining deletions
+            if (pipeline.length > 0) {
+                await pipeline.exec();
+            }
+
+            return true;
+        } catch (error) {
+            throw error;
+        }
     }
 }

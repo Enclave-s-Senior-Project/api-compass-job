@@ -212,20 +212,27 @@ export class JobService {
         }
     }
 
-    async getDetailJobById(id: string, user: JwtPayload): Promise<JobResponseDto> {
+    async getDetailJobById(id: string, userId: string): Promise<JobResponseDto> {
         try {
+            let isFavorite = false;
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
                 relations: ['tags', 'enterprise', 'addresses', 'profiles'],
             });
+
             if (!job) {
                 return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
             }
-            const isFavorite = job.profiles?.some((profile) => profile.profileId === user.profileId);
+
+            if (userId) {
+                isFavorite = job.profiles?.some((profile) => profile.profileId === userId) ?? false;
+            }
+
             const jobWithFavorite = {
                 ...job,
                 isFavorite,
             };
+
             return new JobResponseDtoBuilder().setValue(jobWithFavorite).success().build();
         } catch (error) {
             console.error('Error get detail job by id: ', error);

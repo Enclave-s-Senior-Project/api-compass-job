@@ -15,6 +15,7 @@ import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto } from
 import { SKIP_AUTH } from '@modules/auth/constants';
 import { JobEntity } from '@database/entities';
 import { Request } from 'express';
+import { JobWishlistDto } from './dtos/job-wishlist.dto';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -87,13 +88,13 @@ export class JobController {
         return this.jobService.filter(query, req.url);
     }
 
-    @ApiBearerAuth(TOKEN_NAME)
+    @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Get job by ID' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get(':id')
-    getDetailJobByJobId(@CurrentUser() user, @Param('id') id: string): Promise<JobResponseDto> {
-        return this.jobService.getDetailJobById(id, user);
+    getDetailJobByJobId(@Query() user: JobWishlistDto, @Param('id') id: string): Promise<JobResponseDto> {
+        return this.jobService.getDetailJobById(id, user.userId);
     }
 }

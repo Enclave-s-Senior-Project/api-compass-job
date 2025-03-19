@@ -12,7 +12,6 @@ import { TagService } from '@modules/tag/services';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 import { redisProviderName } from '@cache/cache.provider';
 import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
-import { ILike } from 'typeorm';
 
 @Injectable()
 export class JobService {
@@ -247,6 +246,7 @@ export class JobService {
                 relations: {
                     addresses: true,
                     appliedJob: true,
+                    enterprise: true,
                 },
                 select: {
                     jobId: true,
@@ -256,9 +256,21 @@ export class JobService {
                     introImg: true,
                     createdAt: true,
                     updatedAt: true,
+                    deadline: true,
+                    highestWage: true,
+                    lowestWage: true,
+                    userRatings: true,
+                    enterprise: {
+                        enterpriseId: true,
+                        name: true,
+                        logoUrl: true,
+                    },
                 },
                 skip: (Number(pagination.page) - 1) * Number(pagination.take),
                 take: Number(pagination.take),
+                order: {
+                    createdAt: 'DESC',
+                },
             });
 
             const formattedResult = jobs.map((job) => ({
@@ -271,10 +283,9 @@ export class JobService {
                 itemCount: total,
             });
             const result = new PageDto(formattedResult, meta);
-            console.log('result', result);
             return new PageDto(formattedResult, meta);
         } catch (error) {
-            return error;
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
     async totalJobsByEnterprise(enterpriseId: string): Promise<number> {

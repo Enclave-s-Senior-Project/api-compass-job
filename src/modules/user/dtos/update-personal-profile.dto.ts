@@ -57,6 +57,6 @@ export class UpdatePersonalProfileDto {
         default: '+84123456789',
     })
     @IsOptional()
-    @Matches(/^\+(?:[0-9]\x20?){6,14}[0-9]$/, { message: UpdatePersonalProfileDtoErrorType.PHONE_NUMBER_INVALID })
+    @Matches(/^\+?[0-9]{7,15}$/, { message: UpdatePersonalProfileDtoErrorType.PHONE_NUMBER_INVALID })
     readonly phone?: string;
 }

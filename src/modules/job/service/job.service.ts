@@ -11,7 +11,7 @@ import { CategoryService } from '@modules/category/services';
 import { TagService } from '@modules/tag/services';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 import { redisProviderName } from '@cache/cache.provider';
-import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
 
 @Injectable()
 export class JobService {
@@ -28,7 +28,6 @@ export class JobService {
         try {
             // clear all jobs filter results while creating
             this.clearFilterJobResultOnCache();
-
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
             console.log('1', specializationIds);
             const addressIds = Array.isArray(address) ? address : [];
@@ -49,14 +48,6 @@ export class JobService {
             }
 
             const enterprise = enterpriseResult.value;
-
-            const hasInvalidSpecialization = specializations.some(
-                (spec) => !spec.isChild || !categories.some((cat) => spec.parent?.categoryId === cat.categoryId)
-            );
-            if (!hasInvalidSpecialization) {
-                return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.JOB_SPECIALIZATION).build();
-            }
-
             const newJob = this.jobRepository.create({
                 ...jobData,
                 enterprise,
@@ -70,7 +61,7 @@ export class JobService {
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
         } catch (error) {
             console.error('Error creating job:', error);
-            return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
+            throw new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
         }
     }
 
@@ -305,7 +296,7 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            // Check cache
+            console.log('Filter Query:', query);
             const resultCache = await this.getFilterResultOnCache(urlQuery);
             if (resultCache && resultCache?.length > 0) {
                 const meta = new PageMetaDto({
@@ -320,49 +311,107 @@ export class JobService {
                 });
                 return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
             }
-
-            // Start QueryBuilder
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
                 .leftJoinAndSelect('jobs.addresses', 'addresses')
                 .leftJoinAndSelect('jobs.categories', 'industries')
                 .leftJoinAndSelect('jobs.specializations', 'majorities')
-                .leftJoinAndSelect('jobs.enterprise', 'enterprise');
+                .leftJoinAndSelect('jobs.enterprise', 'enterprise')
+                .leftJoinAndSelect('jobs.tags', 'tags');
 
-            // Optimize Full-Text Search (Uses `plainto_tsquery`)
+            // Full-Text Search
             if (query.name) {
                 queryBuilder.andWhere("to_tsvector('english', jobs.name) @@ plainto_tsquery(:name)", {
                     name: query.name.trim(),
                 });
             }
 
-            // Optimize Country and City Filters
+            // Location Filters
             if (query.country) {
-                queryBuilder.andWhere('LOWER(addresses.country) LIKE LOWER(:country)', {
-                    country: `${query.country}%`,
+                queryBuilder.andWhere('unaccent(addresses.country) ILIKE unaccent(:country)', {
+                    country: `%${query.country}%`,
                 });
             }
             if (query.city) {
-                queryBuilder.andWhere('LOWER(addresses.city) LIKE LOWER(:city)', { city: `${query.city}%` });
+                queryBuilder.andWhere('unaccent(addresses.city) ILIKE unaccent(:city)', { city: `%${query.city}%` });
             }
 
-            // Optimize Category Filters (Indexes Needed)
+            // Category Filters
             if (query.industryCategoryId) {
-                queryBuilder.andWhere('industries.category_id = :industryId', { industryId: query.industryCategoryId });
+                queryBuilder.andWhere('industries.categoryId = :industryId', {
+                    industryId: query.industryCategoryId,
+                });
             }
             if (query.majorityCategoryId) {
-                queryBuilder.andWhere('majorities.category_id = :majorityId', { majorityId: query.majorityCategoryId });
+                queryBuilder.andWhere('majorities.categoryId = :majorityId', {
+                    majorityId: query.majorityCategoryId,
+                });
             }
 
-            // Status and Deadline Check
-            queryBuilder.andWhere('jobs.status = true AND jobs.deadline > CURRENT_DATE');
+            // Wage Filters
+            if (query.minWage !== undefined) {
+                queryBuilder.andWhere('jobs.lowestWage >= :minWage', {
+                    minWage: Number(query.minWage),
+                });
+            }
+            if (query.maxWage !== undefined) {
+                queryBuilder.andWhere('jobs.highestWage <= :maxWage', {
+                    maxWage: Number(query.maxWage),
+                });
+            }
 
-            // Select only necessary fields (Avoid SELECT *)
+            // Job Attributes
+            if (query.experience !== undefined) {
+                queryBuilder.andWhere('jobs.experience = :experience', {
+                    experience: Number(query.experience),
+                });
+            }
+            if (query.type) {
+                queryBuilder.andWhere('jobs.type = ANY(:type)', { type: query.type });
+            }
+            if (query.education) {
+                queryBuilder.andWhere('jobs.education = ANY(:education)', {
+                    education: query.education,
+                });
+            }
+
+            // Enterprise Filter
+            if (query.enterpriseId) {
+                queryBuilder.andWhere('enterprise.enterpriseId = :enterpriseId', {
+                    enterpriseId: query.enterpriseId,
+                });
+            }
+
+            // Tag Filter
+            if (query.tagId) {
+                queryBuilder.andWhere('tags.tagId = :tagId', { tagId: query.tagId });
+            }
+
+            // Status and Deadline (matching SQL query)
+            queryBuilder.andWhere('jobs.status = :status', { status: true });
+            queryBuilder.andWhere('jobs.deadline > CURRENT_DATE');
+
+            // Additional Filters
+            if (query.isPremium !== undefined) {
+                queryBuilder.andWhere('enterprise.isPremium = :isPremium', {
+                    isPremium: query.isPremium,
+                });
+            }
+
             queryBuilder.select([
                 'jobs.jobId',
                 'jobs.name',
-                'jobs.status',
+                'jobs.lowestWage',
+                'jobs.highestWage',
+                'jobs.description',
+                'jobs.responsibility',
+                'jobs.type',
+                'jobs.experience',
                 'jobs.deadline',
+                'jobs.introImg',
+                'jobs.status',
+                'jobs.education',
+                'jobs.enterpriseBenefits',
                 'addresses.addressId',
                 'addresses.country',
                 'addresses.city',
@@ -374,25 +423,33 @@ export class JobService {
                 'majorities.categoryName',
                 'enterprise.enterpriseId',
                 'enterprise.name',
+                'enterprise.email',
+                'enterprise.phone',
+                'enterprise.description',
                 'enterprise.logoUrl',
                 'enterprise.backgroundImageUrl',
                 'enterprise.foundedIn',
+                'enterprise.organizationType',
+                'enterprise.teamSize',
+                'enterprise.status',
                 'enterprise.industryType',
                 'enterprise.isPremium',
+                'tags.tagId',
+                'tags.name',
+                'tags.color',
+                'tags.backgroundColor',
             ]);
 
-            // Prioritize Premium Enterprises
-            queryBuilder.orderBy('enterprise.isPremium', 'DESC');
+            queryBuilder
+                .orderBy('enterprise.isPremium', 'DESC')
+                .addOrderBy('jobs.deadline', 'ASC')
+                .skip(query.skip)
+                .take(query.take);
 
-            queryBuilder.skip(query.skip).take(query.take);
-
-            // Execute Query
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
-            // Cache results
-            this.storeFilterResultOnCache(urlQuery, jobs);
+            await this.storeFilterResultOnCache(urlQuery, jobs);
 
-            // Return response
             const meta = new PageMetaDto({
                 itemCount: total,
                 pageOptionsDto: {
@@ -403,13 +460,13 @@ export class JobService {
                     take: query.take,
                 },
             });
+
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
             console.error('Filter Query Error:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
-
     protected async storeFilterResultOnCache(key: string, results: JobEntity[]) {
         const cacheKey = `jobfilter:${key}`;
         await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day

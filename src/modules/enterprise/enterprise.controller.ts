@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { EnterpriseService } from './service/enterprise.service';
-import { CreateEnterpriseDto, EnterpriseResponseDto, UpdateEnterpriseDto } from './dtos';
+import { CreateEnterpriseDto, EnterpriseResponseDto, RegisterPremiumEnterpriseDto, UpdateEnterpriseDto } from './dtos';
 
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
@@ -66,6 +66,15 @@ export class EnterpriseController {
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
         return this.enterpriseService.updatePartialInfoActive(body, user);
+    }
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Patch('premium')
+    @ApiOperation({ summary: "Update information about enterprise's founding" })
+    @ApiResponse({ status: 200, description: 'Updated information.' })
+    updateEnterprisePremium(@CurrentUser() user: JwtPayload, @Body() body: RegisterPremiumEnterpriseDto) {
+        return this.enterpriseService.updateEnterprisePremium(user, body);
     }
     @SkipAuth()
     @Get(':id/jobs')

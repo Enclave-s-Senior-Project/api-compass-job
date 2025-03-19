@@ -15,6 +15,7 @@ import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { AwsModule } from '@modules/upload/upload.module';
 import { ApplyJobModule } from '@modules/apply-job/apply-job.module';
 import { CvModule } from '@modules/cv/cv.module';
+import { BoostJobModule } from './modules/boost-job/boost-job.module';
 
 @Module({
     imports: [
@@ -36,6 +37,7 @@ import { CvModule } from '@modules/cv/cv.module';
         AwsModule,
         ApplyJobModule,
         CvModule,
+        BoostJobModule,
     ],
 })
 export class AppModule {

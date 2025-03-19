@@ -28,7 +28,7 @@ export class JobService {
     async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
         try {
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
-
+            console.log('1', specializationIds);
             const addressIds = Array.isArray(address) ? address : [];
             const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [];
             const specializationIdsArray = Array.isArray(specializationIds) ? specializationIds : [];
@@ -51,8 +51,7 @@ export class JobService {
             const hasInvalidSpecialization = specializations.some(
                 (spec) => !spec.isChild || !categories.some((cat) => spec.parent?.categoryId === cat.categoryId)
             );
-
-            if (hasInvalidSpecialization) {
+            if (!hasInvalidSpecialization) {
                 return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.JOB_SPECIALIZATION).build();
             }
 

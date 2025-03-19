@@ -6,6 +6,7 @@ import {
     ManyToMany,
     ManyToOne,
     OneToMany,
+    OneToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
 import {
@@ -19,6 +20,7 @@ import {
     CategoryEntity,
 } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
+import { BoostedJobsEntity } from './boosted-jobs.entity';
 
 @Entity('jobs')
 export class JobEntity extends BaseEntity {
@@ -37,7 +39,6 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'description', type: 'text', nullable: false })
     readonly description: string;
 
-    // responsibility
     @Column({ name: 'responsibility', type: 'text', nullable: true })
     readonly responsibility: string;
 
@@ -57,16 +58,19 @@ export class JobEntity extends BaseEntity {
     })
     readonly introImg: string | null;
 
-    @Column({ name: 'status', type: 'boolean', default: false })
+    @Column({ name: 'status', type: 'boolean', default: true })
     readonly status: boolean;
 
     @Column({ name: 'education', type: 'varchar', length: 50, nullable: true })
     readonly education: string;
 
+    @Column({ name: 'isBoost', type: 'boolean', default: false })
+    readonly isBoost: boolean;
+
     @Column({ name: 'enterprise_benefits', type: 'text', nullable: true })
     readonly enterpriseBenefits: string | null;
 
-    @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.jobs)
+    @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.jobs, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'enterprise_id' })
     readonly enterprise: EnterpriseEntity;
 
@@ -74,9 +78,7 @@ export class JobEntity extends BaseEntity {
     @JoinTable({
         name: 'job_tags',
         joinColumn: { name: 'job_id' },
-        inverseJoinColumn: {
-            name: 'tag_id',
-        },
+        inverseJoinColumn: { name: 'tag_id' },
     })
     readonly tags: TagEntity[];
 
@@ -110,4 +112,7 @@ export class JobEntity extends BaseEntity {
         inverseJoinColumn: { name: 'category_id' },
     })
     readonly specializations: CategoryEntity[];
+
+    @OneToOne(() => BoostedJobsEntity, (boostedJob) => boostedJob.job)
+    boostedJob: BoostedJobsEntity;
 }

@@ -2,7 +2,7 @@ import { forwardRef, HttpException, Inject, Injectable, NotFoundException } from
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
-import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder } from '../dtos';
+import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder, RegisterPremiumEnterpriseDto } from '../dtos';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { EnterpriseErrorType } from '@common/errors/enterprises-error-type';
 import { UpdateCompanyInfoDto } from '../dtos/update-company-info.dto';
@@ -114,19 +114,6 @@ export class EnterpriseService {
     async remove(id: string) {
         const enterprise = await this.findOne(id);
         return this.enterpriseRepository.remove(enterprise);
-    }
-
-    async findByAccountId(accountId: string) {
-        const enterprise = await this.enterpriseRepository.findOne({
-            where: { account: { accountId } },
-            relations: ['account', 'websites', 'jobs', 'addresses'],
-        });
-
-        if (!enterprise) {
-            throw new NotFoundException(`Enterprise with Account ID ${accountId} not found.`);
-        }
-
-        return enterprise;
     }
 
     async findByIndustryType(industryType: string) {
@@ -263,6 +250,26 @@ export class EnterpriseService {
             await this.redisCache.set(cacheKey, JSON.stringify(total), 'EX', 432000);
 
             return new EnterpriseResponseDtoBuilder().setValue(total).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async updateEnterprisePremium(user: JwtPayload, payload: RegisterPremiumEnterpriseDto) {
+        try {
+            console.log('payload', payload);
+            const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId: user.enterpriseId });
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            // Assign new premium type and enable premium
+            enterprise.premiumType = payload.premiumType;
+            enterprise.isPremium = true;
+
+            // Save - TypeORM will trigger `@BeforeUpdate()`
+            const updateEnterprise = await this.enterpriseRepository.save(enterprise);
+
+            return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

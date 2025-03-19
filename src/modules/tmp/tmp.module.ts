@@ -15,6 +15,7 @@ import {
     TagEntity,
     UserRatingEntity,
     WebsiteEntity,
+    BoostedJobsEntity,
 } from '@database/entities';
 
 @Module({
@@ -32,6 +33,7 @@ import {
             AppliedJobEntity,
             CategoryEntity,
             AddressEntity,
+            BoostedJobsEntity,
         ]),
     ],
     controllers: [TmpController],

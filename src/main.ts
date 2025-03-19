@@ -29,12 +29,12 @@ const bootstrap = async () => {
     app.use(compression());
     app.use(cookieParse());
     app.enableCors({
-        origin: process.env.CLIENT_URL,
+        origin: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
         credentials: true,
     });
     app.enableVersioning();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, stopAtFirstError: true }));
     app.useGlobalFilters(new CustomExceptionFilter());
     app.useGlobalInterceptors(new HttpResponseInterceptor());
     app.setGlobalPrefix(AppModule.apiPrefix);

@@ -12,6 +12,7 @@ import { TagEntity } from './tag.entity';
 import { UserRatingEntity } from './user-rating.entity';
 import { WebsiteEntity, SocialType } from './website.entity';
 import { GenderType } from './profile.entity';
+import { BoostedJobsEntity } from './boosted-jobs.entity';
 
 export {
     GenderType,
@@ -29,4 +30,5 @@ export {
     CategoryEntity,
     AddressEntity,
     SocialType,
+    BoostedJobsEntity,
 };

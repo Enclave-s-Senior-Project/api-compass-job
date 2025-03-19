@@ -12,7 +12,6 @@ import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto } from './dtos';
-import { SKIP_AUTH } from '@modules/auth/constants';
 import { JobEntity } from '@database/entities';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
@@ -26,6 +25,7 @@ export class JobController {
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
     create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
+        console.log('user', user);
         return this.jobService.create(createJobDto, user.accountId, user.enterpriseId);
     }
 
@@ -78,6 +78,7 @@ export class JobController {
     // ): Promise<JobResponseDto> {
     //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
     // }
+
     @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Search job' })
@@ -87,7 +88,6 @@ export class JobController {
     filter(@Query() query: JobFilterDto, @Req() req: Request) {
         return this.jobService.filter(query, req.url);
     }
-
     @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Get job by ID' })

@@ -12,13 +12,13 @@ import { RedisCommander } from 'ioredis';
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
 import { AccountEntity, UserStatus } from '@database/entities/account.entity';
 import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
-import { MailSenderService } from 'src/mail/mail.service';
+import { MailSenderService } from '@src/mail/mail.service';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
 import { AuthErrorType } from '@common/errors';
 import { Role } from '../decorators/roles.decorator';
-import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
 @Injectable()
 export class AuthService {

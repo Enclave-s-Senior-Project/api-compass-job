@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ObjectCannedACL } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { UploadResponseDtoBuilder } from '../dto/upload-response-builder.dto';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
 @Injectable()
 export class AwsService {
@@ -13,7 +14,7 @@ export class AwsService {
         },
     });
 
-    async generatePresignedUrl(key: string, contentType: string) {
+    async generatePresignedUrl(key: string, contentType: string, expiresIn: number) {
         try {
             const command = new PutObjectCommand({
                 Bucket: process.env.AWS_S3_BUCKET,
@@ -21,10 +22,10 @@ export class AwsService {
                 ContentType: contentType,
             });
 
-            const url = await getSignedUrl(this.s3, command, { expiresIn: 5 * 60 }); // URL valid for 5 minutes
+            const url = await getSignedUrl(this.s3, command, { expiresIn: expiresIn });
             return new UploadResponseDtoBuilder().setValue({ url, key }).success().build();
         } catch (error) {
-            return new UploadResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 }

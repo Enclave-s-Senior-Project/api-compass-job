@@ -11,7 +11,7 @@ import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-pro
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
-import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { CategoryService } from '@modules/category/services';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;

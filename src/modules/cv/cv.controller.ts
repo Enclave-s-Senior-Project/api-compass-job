@@ -1,5 +1,5 @@
 import { CvService } from './services/cv.service';
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, UseGuards, Put } from '@nestjs/common';
 import { CreateCvDto } from './dtos/create-cv.dto';
 import { UpdateCvDto } from './dtos/update-cv.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -20,5 +20,11 @@ export class CvController {
     @Get('')
     async getAllCvByIdProfile(@CurrentUser() user): Promise<CvResponseDto> {
         return this.cvService.getAllCvByIdProfile(user.profileId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @Put('')
+    async uploadCV(@CurrentUser() user, @Body() body: CreateCvDto) {
+        return this.cvService.uploadCV(body, user);
     }
 }

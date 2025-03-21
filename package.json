@@ -120,7 +120,8 @@
             "^@builder/(.*)$": "<rootDir>/builder/$1",
             "^@types/(.*)$": "<rootDir>/types/$1",
             "^@mail/(.*)$": "<rootDir>/mail/$1",
-            "^@cache/(.*)$": "<rootDir>/cache/$1"
+            "^@cache/(.*)$": "<rootDir>/cache/$1",
+            "^@src/(.*)$": "<rootDir>/$1"
         }
     }
 }

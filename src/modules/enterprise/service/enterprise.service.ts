@@ -11,7 +11,7 @@ import { redisProviderName } from '@cache/cache.provider';
 import { RedisCommander } from 'ioredis';
 import { EnterpriseStatus } from '@common/enums';
 import { UpdateFoundingInfoDto } from '../dtos/update-founding-dto';
-import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { JobResponseDtoBuilder } from '@modules/job/dtos';
 import { JobService } from '@modules/job/service/job.service';
 

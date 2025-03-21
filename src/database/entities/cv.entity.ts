@@ -13,6 +13,9 @@ export class CvEntity extends BaseEntity {
     @Column({ name: 'cv_name', type: 'varchar', length: 255 })
     readonly cvName: string;
 
+    @Column({ name: 'is_published', type: 'boolean', default: false })
+    readonly isPublished: boolean;
+
     //     relationships
     @ManyToOne(() => ProfileEntity, (profile) => profile.cvs)
     @JoinColumn({ name: 'profile_id' })

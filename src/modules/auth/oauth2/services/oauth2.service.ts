@@ -7,7 +7,7 @@ import { HashHelper } from '@helpers';
 import { JwtPayload } from '@common/dtos';
 import { omit } from 'lodash';
 import { FacebookResponseDtoBuilder } from '../dtos/facebook-response.dto';
-import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
 @Injectable()
 export class OAuth2Service extends AuthService {

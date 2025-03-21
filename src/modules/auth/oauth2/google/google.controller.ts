@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { GoogleOAuthGuard } from '../guards/google-oauth.guard';
 import { CurrentUser, SkipAuth } from '@modules/auth/decorators';
 import { Response } from 'express';
-import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
 @Controller({ path: 'auth/google', version: '1' })
 @SkipAuth()

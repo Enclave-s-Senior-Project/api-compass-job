@@ -1,6 +1,5 @@
-import { UpdateCvDto } from '../dtos/update-cv.dto';
 import { CreateCvDto } from '../dtos/create-cv.dto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CvRepository } from '../repositories/cv.repository';
 import { CvEntity } from '@database/entities';
 import { CvResponseDto, CvResponseDtoBuilder } from '../dtos/cv-response.dto';
@@ -16,13 +15,36 @@ export class CvService {
         return await this.cvRepository.findOne({ where: { cvId: id } });
     }
 
-    async getAllCvByIdProfile(id: string): Promise<CvResponseDto> {
+    async getOwnCV(id: string): Promise<CvResponseDto> {
         try {
             const listCvs = await this.cvRepository.find({ where: { profile: { profileId: id } } });
             return new CvResponseDtoBuilder().setValue(listCvs).success().build();
         } catch (error) {
-            console.error('Error fetching profiles of list jobs:', error);
-            return new CvResponseDtoBuilder().setCode(400).setMessageCode(CvErrorType.FETCH_CV_FAILED).build();
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getCvByUserId(userId: string): Promise<CvResponseDto> {
+        try {
+            const listCvs = await this.cvRepository.find({
+                where: {
+                    profile: {
+                        account: { accountId: userId },
+                    },
+                    isPublished: true,
+                },
+                relations: {
+                    profile: {
+                        account: true,
+                    },
+                },
+                select: {
+                    profile: {},
+                },
+            });
+            return new CvResponseDtoBuilder().setValue(listCvs).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -31,12 +53,62 @@ export class CvService {
             let newCV = this.cvRepository.create({
                 cvName: payload.cvName,
                 cvUrl: payload.cvUrl,
+                size: payload.size,
                 isPublished: payload.isPublished,
                 profile: { profileId: user.profileId },
             });
             newCV = await this.cvRepository.save(newCV);
             const { appliedJob, isActive, profile, ...returnValue } = newCV;
             return new CvResponseDtoBuilder().setValue(returnValue).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async updateCV(cvId: string, payload: CreateCvDto, user: JwtPayload) {
+        try {
+            const existedCV = await this.cvRepository.exists({
+                where: {
+                    cvId: cvId,
+                    profile: { profileId: user.profileId },
+                },
+            });
+
+            if (!existedCV) {
+                throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
+            }
+            const updatedCV = await this.cvRepository.save({
+                cvId: cvId,
+                cvName: payload.cvName,
+                cvUrl: payload.cvUrl,
+                isPublished: payload.isPublished,
+                profile: { profileId: user.profileId },
+            });
+            return new CvResponseDtoBuilder().setValue(updatedCV).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async deleteCV(cvId: string, user: JwtPayload): Promise<CvResponseDto> {
+        try {
+            const existedCV = await this.cvRepository.exists({
+                where: {
+                    cvId: cvId,
+                    profile: { profileId: user.profileId },
+                },
+            });
+
+            if (!existedCV) {
+                throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
+            }
+
+            const deleteResult = await this.cvRepository.delete({
+                cvId: cvId,
+                profile: { profileId: user.profileId },
+            });
+
+            return new CvResponseDtoBuilder().setValue({ deleteResult }).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

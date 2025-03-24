@@ -16,6 +16,9 @@ export class CvEntity extends BaseEntity {
     @Column({ name: 'is_published', type: 'boolean', default: false })
     readonly isPublished: boolean;
 
+    @Column({ name: 'size', type: 'float', default: 0 })
+    readonly size: number;
+
     //     relationships
     @ManyToOne(() => ProfileEntity, (profile) => profile.cvs)
     @JoinColumn({ name: 'profile_id' })

@@ -51,11 +51,30 @@ export class ApplyJobService {
 
     async listCandidatesApplyJob(id: string, pagination: PaginationDto) {
         try {
+            if (pagination.options) {
+                const [candidates, total] = await this.applyJobRepository.findAndCount({
+                    skip: (Number(pagination.page) - 1) * Number(pagination.take),
+                    take: Number(pagination.take),
+                    where: { job: { jobId: id } },
+                    relations: ['profile', 'job'],
+                    order: {
+                        createdAt: pagination.options,
+                    },
+                });
+                const meta = new PageMetaDto({
+                    pageOptionsDto: pagination,
+                    itemCount: total,
+                });
+                return new ApplyJobResponseDtoBuilder()
+                    .success()
+                    .setValue(new PageDto<AppliedJobEntity>(candidates, meta))
+                    .build();
+            }
             const [candidates, total] = await this.applyJobRepository.findAndCount({
                 skip: (Number(pagination.page) - 1) * Number(pagination.take),
                 take: Number(pagination.take),
                 where: { job: { jobId: id } },
-                relations: ['profile'],
+                relations: ['profile', 'job'],
             });
             const meta = new PageMetaDto({
                 pageOptionsDto: pagination,

@@ -22,5 +22,5 @@ export class QueryPresignedUrlDto {
     })
     @IsString({ message: QueryPresignedUrlDtoErrorType.CONTENT_TYPE_NOT_STRING })
     @IsNotEmpty({ message: QueryPresignedUrlDtoErrorType.CONTENT_TYPE_REQUIRED })
-    readonly contentType: string;
+    readonly 'content-type': string;
 }

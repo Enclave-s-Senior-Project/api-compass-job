@@ -19,7 +19,7 @@ export class AwsController {
     @Get('presigned-url/cv')
     async getPresignedUrlCV(@CurrentUser() user, @Query() query: QueryPresignedUrlDto) {
         const key = `uploads/${user.accountId}/cv_${Date.now()}-${query.filename}`;
-        return await this.awsService.generatePresignedUrl(key, query.contentType, 5 * 60);
+        return await this.awsService.generatePresignedUrl(key, query['content-type'], 5 * 60);
     }
 
     @HttpCode(200)

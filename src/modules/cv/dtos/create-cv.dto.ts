@@ -1,7 +1,7 @@
 import { CreateCvErrorType } from '@common/errors/class-validator-error-type';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateCvDto {
     @ApiProperty({
@@ -31,4 +31,13 @@ export class CreateCvDto {
     @Transform(({ value }) => value === 'true' || value === true)
     @IsNotEmpty({ message: CreateCvErrorType.IS_PUBLISHED_REQUIRED })
     readonly isPublished: boolean;
+
+    @ApiProperty({
+        example: 10,
+        description: 'The size of the CV file in MB',
+        type: Number,
+    })
+    @IsNumber({}, { message: CreateCvErrorType.SIZE_NOT_NUMBER })
+    @IsNotEmpty({ message: CreateCvErrorType.SIZE_REQUIRED })
+    readonly size: number;
 }

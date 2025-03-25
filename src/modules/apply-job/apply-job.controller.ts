@@ -27,7 +27,9 @@ export class ApplyJobController {
         return this.applyJobService.applyJob(createApplyJobDto, user);
     }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
     @ApiOperation({ summary: 'Retrieve all candidates ' })
     @ApiResponse({ status: 200, description: 'List of candidates applied job.' })
     @Get('/:id')

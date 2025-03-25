@@ -1,11 +1,13 @@
 import {
     Body,
+    ConsoleLogger,
     Controller,
     Get,
     HttpCode,
     Param,
     Patch,
     Query,
+    Req,
     UploadedFiles,
     UseInterceptors,
     ValidationPipe,
@@ -29,6 +31,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { FileStorageConfig } from 'src/config/multer.config';
 import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
+import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 
 @ApiTags('User')
 @Controller({
@@ -73,6 +76,24 @@ export class UserController {
     @Get('filter')
     async filterUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
         return this.userService.filterUsers(pageOptionsDto);
+    }
+
+    @HttpCode(200)
+    @SkipAuth()
+    @ApiOperation({ description: 'Get all candidate with pagination' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('candidate')
+    async getAllCandidate(
+        @Query() pageOptionsDto: FilterCandidatesProfileDto,
+        @Req() req: Request
+    ): Promise<UserResponseDto> {
+        pageOptionsDto.industryId = Array.isArray(pageOptionsDto.industryId)
+            ? pageOptionsDto.industryId
+            : pageOptionsDto.industryId
+              ? [pageOptionsDto.industryId]
+              : undefined;
+        return this.userService.getAllCandidate(pageOptionsDto, req.url);
     }
     // @HttpCode(200)
     // @ApiBearerAuth(TOKEN_NAME)

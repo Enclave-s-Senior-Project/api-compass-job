@@ -1,3 +1,4 @@
+import { FilterCandidatesDto } from './dtos/filter-candidate-applied-job.dto';
 import { Pagination } from './../../libs/pagination/pagination.helper';
 import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { ApplyJobService } from './services/apply-job.service';
@@ -29,11 +30,11 @@ export class ApplyJobController {
     @SkipAuth()
     @ApiOperation({ summary: 'Retrieve all candidates ' })
     @ApiResponse({ status: 200, description: 'List of candidates applied job.' })
-    @Get(':id')
+    @Get('/:id')
     async listCandidatesApplyJob(
         @Param('id') id: string,
-        @Query() pagination: PaginationDto
+        @Query() filter: PaginationDto
     ): Promise<ApplyJobResponseDto> {
-        return this.applyJobService.listCandidatesApplyJob(id, pagination);
+        return this.applyJobService.listCandidatesApplyJob(id, filter);
     }
 }

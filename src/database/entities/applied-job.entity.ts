@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity, CvEntity, JobEntity, ProfileEntity } from '@database/entities';
+import { Education, Experience } from '@common/enums/candidates.enum';
 
 @Entity({ name: 'applied_jobs' })
 export class AppliedJobEntity extends BaseEntity {

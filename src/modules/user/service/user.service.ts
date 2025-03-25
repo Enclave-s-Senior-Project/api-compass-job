@@ -6,13 +6,14 @@ import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
-import { Like } from 'typeorm';
+import { In, Like, Raw } from 'typeorm';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { CategoryService } from '@modules/category/services';
+import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -313,6 +314,63 @@ export class UserService {
             return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    protected async getFilterResultOnCache(key: string): Promise<ProfileEntity[] | null> {
+        const cacheResult = await this.redisCache.get(`candidateFilter:${key}`);
+        return JSON.parse(cacheResult) || null;
+    }
+
+    protected async storeFilterResultOnCache(key: string, results: ProfileEntity[]) {
+        const cacheKey = `candidateFilter:${key}`;
+        await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+    }
+    public async getAllCandidate(options: FilterCandidatesProfileDto, urlQuery: string): Promise<UserResponseDto> {
+        try {
+            const whereCondition: any = {
+                account: {
+                    roles: Raw(
+                        (alias) => `${alias} @> ARRAY['USER'] AND NOT ${alias} && ARRAY['ENTERPRISES', 'ADMIN']`
+                    ),
+                },
+                gender: options.gender,
+                maritalStatus: options.isMaried,
+            };
+            if (options.industryId) {
+                const categoriesArray = Array.isArray(options.industryId) ? options.industryId : [options.industryId];
+                if (categoriesArray.length > 0) {
+                    whereCondition.industry = In(categoriesArray);
+                }
+            }
+            const resultCache = await this.getFilterResultOnCache(urlQuery);
+            if (resultCache && resultCache?.length > 0) {
+                const meta = new PageMetaDto({
+                    itemCount: resultCache.length,
+                    pageOptionsDto: {
+                        skip: options.skip,
+                        options: options.options,
+                        order: options.order,
+                        page: options.page,
+                        take: options.take,
+                    },
+                });
+                return new UserResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
+            }
+            const [profiles, total] = await this.profileRepository.findAndCount({
+                skip: options.skip,
+                take: options.take,
+                where: whereCondition,
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: options,
+                itemCount: total,
+            });
+            await this.storeFilterResultOnCache(urlQuery, profiles);
+            return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
+        } catch (error) {
+            console.error('Error fetching profiles:', error);
+            return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
         }
     }
 }

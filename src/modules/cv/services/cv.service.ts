@@ -6,6 +6,7 @@ import { CvResponseDto, CvResponseDtoBuilder } from '../dtos/cv-response.dto';
 import { CvErrorType } from '@common/errors/cv-error-type';
 import { JwtPayload } from '@common/dtos';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { UpdateCvDto } from '../dtos/update-cv.dto';
 
 @Injectable()
 export class CvService {
@@ -65,7 +66,7 @@ export class CvService {
         }
     }
 
-    async updateCV(cvId: string, payload: CreateCvDto, user: JwtPayload) {
+    async updateCV(cvId: string, payload: UpdateCvDto, user: JwtPayload) {
         try {
             const existedCV = await this.cvRepository.exists({
                 where: {
@@ -77,13 +78,16 @@ export class CvService {
             if (!existedCV) {
                 throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
             }
-            const updatedCV = await this.cvRepository.save({
-                cvId: cvId,
-                cvName: payload.cvName,
-                cvUrl: payload.cvUrl,
-                isPublished: payload.isPublished,
-                profile: { profileId: user.profileId },
-            });
+            const updatedCV = await this.cvRepository.update(
+                {
+                    cvId: cvId,
+                    profile: { profileId: user.profileId },
+                },
+                {
+                    cvName: payload.cvName,
+                    isPublished: payload.isPublished,
+                }
+            );
             return new CvResponseDtoBuilder().setValue(updatedCV).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -108,7 +112,7 @@ export class CvService {
                 profile: { profileId: user.profileId },
             });
 
-            return new CvResponseDtoBuilder().setValue({ deleteResult }).success().build();
+            return new CvResponseDtoBuilder().setValue(deleteResult).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

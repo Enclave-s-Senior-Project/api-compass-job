@@ -97,3 +97,8 @@ export enum CreateCvErrorType {
     SIZE_NOT_NUMBER = 'SIZE_NOT_NUMBER',
     SIZE_REQUIRED = 'SIZE_REQUIRED',
 }
+
+export enum GetUserInfoDtoErrorType {
+    ACCOUNT_ID_REQUIRED = 'ACCOUNT_ID_REQUIRED',
+    ACCOUNT_ID_INVALID = 'ACCOUNT_ID_INVALID',
+}

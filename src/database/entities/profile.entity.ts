@@ -101,8 +101,6 @@ export class ProfileEntity extends BaseEntity {
     @JoinColumn({ name: 'majority_id' })
     readonly majority: CategoryEntity | null;
 
-    @Column({ name: 'account_id', type: 'uuid', nullable: false, unique: true })
-    account_id: string;
     //     relationships
     @OneToOne(() => AccountEntity, (account) => account.profile)
     @JoinColumn({ name: 'account_id' })

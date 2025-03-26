@@ -19,12 +19,13 @@ import {
     ApiConsumes,
     ApiInternalServerErrorResponse,
     ApiOperation,
+    ApiParam,
     ApiProperty,
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { JwtPayload, PaginationDto } from '@common/dtos';
+import { PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { CreateUserDto } from './dtos';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -110,8 +111,10 @@ export class UserController {
     // }
 
     @HttpCode(200)
+    @ApiOperation({ description: 'Get user information by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
     @Get(':id')
-    async getUserInfo(@Param('id') accountId: string) {
-        return this.userService.getUserByAccountId(accountId, true);
+    async getUserInfo(@Param('id') profileId: string) {
+        return this.userService.getUserByProfileId(profileId);
     }
 }

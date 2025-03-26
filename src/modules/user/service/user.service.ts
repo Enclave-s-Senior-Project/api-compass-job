@@ -14,6 +14,7 @@ import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto'
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { CategoryService } from '@modules/category/services';
 import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
+import { isUUID } from 'class-validator';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -63,7 +64,13 @@ export class UserService {
      */
     public async activeProfile(accountId: string): Promise<ProfileEntity | null> {
         try {
-            const profile = await this.profileRepository.findOne({ where: { account_id: accountId } });
+            const profile = await this.profileRepository.findOne({
+                where: {
+                    account: {
+                        accountId: accountId,
+                    },
+                },
+            });
             if (!profile) return null;
 
             profile.isActive = true;
@@ -89,7 +96,7 @@ export class UserService {
             }
 
             const profile = await this.profileRepository.findOne({
-                where: { account_id: accountId },
+                where: { account: { accountId: accountId } },
                 relations: { account: true, industry: true, majority: true },
                 select: {
                     account: {
@@ -200,7 +207,7 @@ export class UserService {
                 throw new NotFoundException('USER_NOT_FOUND');
             }
 
-            const isOwner = currentUser.accountId === profile.account_id;
+            const isOwner = currentUser.accountId === profile.account.accountId;
             const isAdmin = currentUser.roles.includes('ADMIN');
 
             if (!isOwner && !isAdmin) {
@@ -318,6 +325,11 @@ export class UserService {
     }
 
     public async getUserByProfileId(profileId: string) {
+        // To check the profile id is valid
+        if (!isUUID(profileId, '4')) {
+            throw new BadRequestException(UserErrorType.INVALID_PROFILE_ID);
+        }
+
         try {
             const profile = await this.profileRepository.findOne({
                 where: { profileId: profileId, account: { status: UserStatus.ACTIVE } },

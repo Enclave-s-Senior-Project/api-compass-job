@@ -8,7 +8,7 @@
         "forceConsistentCasingInFileNames": false,
         "noFallthroughCasesInSwitch": false,
         "paths": {
-            "@src*": ["src/*"],
+            "@src/*": ["src/*"],
             "@common/*": ["src/common/*"],
             "@database/*": ["src/database/*"],
             "@config": ["src/config"],

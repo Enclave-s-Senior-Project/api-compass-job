@@ -316,6 +316,26 @@ export class UserService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    public async getUserByProfileId(profileId: string) {
+        try {
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: profileId, account: { status: UserStatus.ACTIVE } },
+                relations: ['account'],
+                select: {
+                    account: {
+                        accountId: true,
+                    },
+                },
+            });
+            if (!profile.account.accountId) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
+            return await this.getUserByAccountId(profile.account.accountId, true);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
     protected async getFilterResultOnCache(key: string): Promise<ProfileEntity[] | null> {
         const cacheResult = await this.redisCache.get(`candidateFilter:${key}`);
         return JSON.parse(cacheResult) || null;

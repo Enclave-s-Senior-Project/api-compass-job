@@ -108,10 +108,4 @@ export class UserController {
     // ) {
     //     return this.userService.updateUser(user, id, newUser);
     // }
-
-    @HttpCode(200)
-    @Get(':id')
-    async getUserInfo(@Param('id') accountId: string) {
-        return this.userService.getUserByAccountId(accountId, true);
-    }
 }

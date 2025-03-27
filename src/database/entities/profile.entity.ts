@@ -2,6 +2,7 @@ import {
     Column,
     Entity,
     JoinColumn,
+    JoinTable,
     ManyToMany,
     ManyToOne,
     OneToMany,
@@ -19,6 +20,7 @@ import {
     UserRatingEntity,
     CvEntity,
     CategoryEntity,
+    EnterpriseEntity,
 } from '@database/entities';
 import { AppliedJobEntity } from '@database/entities/applied-job.entity';
 import { AddressEntity } from '@database/entities/address.entity';
@@ -126,4 +128,12 @@ export class ProfileEntity extends BaseEntity {
 
     @ManyToMany(() => AddressEntity, (address) => address.profiles)
     readonly addresses: AddressEntity[];
+
+    @ManyToMany(() => EnterpriseEntity, (enterprise) => enterprise.profiles)
+    @JoinTable({
+        name: 'candidate_favorites',
+        joinColumn: { name: 'profile_id' },
+        inverseJoinColumn: { name: 'enterprise_id' },
+    })
+    enterprises: EnterpriseEntity[];
 }

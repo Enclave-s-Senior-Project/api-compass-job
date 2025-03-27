@@ -15,6 +15,7 @@ import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto } from
 import { JobEntity } from '@database/entities';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
+import { Console } from 'console';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -25,7 +26,6 @@ export class JobController {
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Post()
     create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
-        console.log('user', user);
         return this.jobService.create(createJobDto, user.accountId, user.enterpriseId);
     }
 

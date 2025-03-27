@@ -5,9 +5,10 @@ import { EnterpriseRepository } from './repositories';
 import { TmpModule } from '@modules/tmp/tmp.module';
 import { CacheModule } from '@cache/cache.module';
 import { JobModule } from '@modules/job/job.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-    imports: [TmpModule, CacheModule, forwardRef(() => JobModule)],
+    imports: [TmpModule, CacheModule, forwardRef(() => JobModule), forwardRef(() => UserModule)],
     controllers: [EnterpriseController],
     providers: [EnterpriseService, EnterpriseRepository],
     exports: [EnterpriseService],

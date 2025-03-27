@@ -26,10 +26,10 @@ export class JobService {
 
     async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
         try {
-            // clear all jobs filter results while creating
             this.clearFilterJobResultOnCache();
+
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
-            console.log('1', specializationIds);
+
             const addressIds = Array.isArray(address) ? address : [];
             const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [];
             const specializationIdsArray = Array.isArray(specializationIds) ? specializationIds : [];
@@ -48,6 +48,8 @@ export class JobService {
             }
 
             const enterprise = enterpriseResult.value;
+            const introImg = enterprise.logoUrl;
+
             const newJob = this.jobRepository.create({
                 ...jobData,
                 enterprise,
@@ -55,6 +57,7 @@ export class JobService {
                 categories,
                 tags,
                 specializations,
+                introImg,
             });
 
             await this.jobRepository.save(newJob);
@@ -321,9 +324,14 @@ export class JobService {
 
             // Full-Text Search
             if (query.name) {
-                queryBuilder.andWhere("to_tsvector('english', jobs.name) @@ plainto_tsquery(:name)", {
-                    name: query.name.trim(),
-                });
+                console.log('Searching for name:', query.name);
+                queryBuilder.andWhere(
+                    "to_tsvector('english', jobs.name) @@ plainto_tsquery(:name) OR jobs.name ILIKE :namePattern",
+                    {
+                        name: query.name.trim(),
+                        namePattern: `%${query.name.trim()}%`,
+                    }
+                );
             }
 
             // Location Filters
@@ -449,7 +457,8 @@ export class JobService {
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
             await this.storeFilterResultOnCache(urlQuery, jobs);
-
+            console.log('Filter Result total:', total);
+            console.log('Filter Result take:', query.take);
             const meta = new PageMetaDto({
                 itemCount: total,
                 pageOptionsDto: {

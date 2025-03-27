@@ -1,14 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ValidationPipe, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req, HttpCode } from '@nestjs/common';
 import { EnterpriseService } from './service/enterprise.service';
 import { CreateEnterpriseDto, EnterpriseResponseDto, RegisterPremiumEnterpriseDto, UpdateEnterpriseDto } from './dtos';
 
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiResponse,
+    ApiBearerAuth,
+    ApiUnauthorizedResponse,
+    ApiInternalServerErrorResponse,
+} from '@nestjs/swagger';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { JwtPayload, PaginationDto } from '@common/dtos';
 import { UpdateCompanyInfoDto } from './dtos/update-company-info.dto';
 import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
+import { CreateCandidateWishListDto } from './dtos/create-candidate-wishlist.dto';
+import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -18,6 +27,22 @@ import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
 export class EnterpriseController {
     constructor(private readonly enterpriseService: EnterpriseService) {}
 
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @ApiOperation({ description: 'Get all candidate with pagination' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('candidate')
+    async getAllCandidate(@CurrentUser() user, @Query() pageOptionsDto: FilterCandidatesProfileDto) {
+        pageOptionsDto.industryId = Array.isArray(pageOptionsDto.industryId)
+            ? pageOptionsDto.industryId
+            : pageOptionsDto.industryId
+              ? [pageOptionsDto.industryId]
+              : undefined;
+        return this.enterpriseService.getAllCandidate(pageOptionsDto, user);
+    }
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
@@ -164,5 +189,32 @@ export class EnterpriseController {
     @Patch('/update-enterprise/:id')
     updateEnterprise(@Param('id') id: string, @Body() updateEnterpriseDto: UpdateEnterpriseDto) {
         return this.enterpriseService.updateRegisterEnterprise(id, updateEnterpriseDto);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @Roles(Role.USER, Role.ENTERPRISE)
+    @ApiOperation({ description: 'Add candidate into wishlist' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('wishlist')
+    createCandidatesWishlist(
+        @CurrentUser() user,
+        @Body() body: CreateCandidateWishListDto
+    ): Promise<EnterpriseResponseDto> {
+        return this.enterpriseService.createCandidateWishList(user, body);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @Roles(Role.USER, Role.ENTERPRISE)
+    @ApiOperation({ description: 'Add delete candidate into wishlist' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Delete('wishlist/:id')
+    deleteCandidatesWishlist(
+        @CurrentUser() user,
+        @Param('id') id: string,
+        @Req() req: Request
+    ): Promise<EnterpriseResponseDto> {
+        return this.enterpriseService.deleteCandidateWishList(user, id);
     }
 }

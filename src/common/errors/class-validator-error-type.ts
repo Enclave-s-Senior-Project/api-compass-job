@@ -98,6 +98,11 @@ export enum CreateCvErrorType {
     SIZE_REQUIRED = 'SIZE_REQUIRED',
 }
 
+export enum CreateCandidateWishListErrorType {
+    REQUIRED_CANDIDATE_ID = 'REQUIRED_CANDIDATE_ID',
+    STRING_CANDIDATE_ID = 'JOB_CANDIDATE_STRING',
+}
+
 export enum GetUserInfoDtoErrorType {
     ACCOUNT_ID_REQUIRED = 'ACCOUNT_ID_REQUIRED',
     ACCOUNT_ID_INVALID = 'ACCOUNT_ID_INVALID',

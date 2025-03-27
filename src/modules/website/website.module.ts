@@ -8,5 +8,6 @@ import { WebsiteRepository } from './repositories';
     imports: [TmpModule],
     controllers: [WebsiteController],
     providers: [WebsiteService, WebsiteRepository],
+    exports: [WebsiteService],
 })
 export class WebsiteModule {}

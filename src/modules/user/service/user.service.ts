@@ -340,10 +340,11 @@ export class UserService {
                     },
                 },
             });
-            if (!profile.account.accountId) {
+            if (!profile?.account?.accountId) {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
-            return await this.getUserByAccountId(profile.account.accountId, true);
+            const profileInfo = await this.getUserByAccountId(profile.account.accountId, true);
+            return new UserResponseDtoBuilder().setValue(profileInfo).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

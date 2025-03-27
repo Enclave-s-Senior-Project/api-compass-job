@@ -2,7 +2,7 @@ import { PaginationDto } from '@common/dtos';
 import { Education, Experience } from '@common/enums/candidates.enum';
 import { GenderType } from '@database/entities';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { MaritalStatusType } from '@srcdatabase/entities/profile.entity';
+import { MaritalStatusType } from '@src/database/entities/profile.entity';
 import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class FilterCandidatesProfileDto extends PaginationDto {

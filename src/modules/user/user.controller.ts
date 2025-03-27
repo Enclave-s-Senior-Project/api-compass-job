@@ -1,38 +1,21 @@
-import {
-    Body,
-    ConsoleLogger,
-    Controller,
-    Get,
-    HttpCode,
-    Param,
-    Patch,
-    Query,
-    Req,
-    UploadedFiles,
-    UseInterceptors,
-    ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Query, Req } from '@nestjs/common';
 import { UserService } from './service/user.service';
 import {
     ApiBearerAuth,
-    ApiBody,
-    ApiConsumes,
     ApiInternalServerErrorResponse,
     ApiOperation,
     ApiParam,
-    ApiProperty,
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
-import { CreateUserDto } from './dtos';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { FileStorageConfig } from 'src/config/multer.config';
 import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
 import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
+import { CvService } from '../cv/services/cv.service';
+import { WebsiteService } from '../website/services';
 
 @ApiTags('User')
 @Controller({
@@ -41,7 +24,11 @@ import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 })
 @ApiBearerAuth(TOKEN_NAME)
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+    constructor(
+        private readonly userService: UserService,
+        private readonly cvService: CvService,
+        private readonly websiteService: WebsiteService
+    ) {}
 
     @HttpCode(200)
     @ApiOperation({ description: 'Get all users with pagination' })
@@ -96,25 +83,31 @@ export class UserController {
               : undefined;
         return this.userService.getAllCandidate(pageOptionsDto, req.url);
     }
-    // @HttpCode(200)
-    // @ApiBearerAuth(TOKEN_NAME)
-    // @ApiOperation({ description: 'Update user' })
-    // @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    // @ApiInternalServerErrorResponse({ description: 'Server error' })
-    // @Patch(':id')
-    // async updateUser(
-    //     @CurrentUser() user: JwtPayload,
-    //     @Param('id') id: string,
-    //     @Body(ValidationPipe) newUser: CreateUserDto
-    // ) {
-    //     return this.userService.updateUser(user, id, newUser);
-    // }
 
+    @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Get user information by ID profile' })
     @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
     @Get(':id')
     async getUserInfo(@Param('id') profileId: string) {
         return this.userService.getUserByProfileId(profileId);
+    }
+
+    @SkipAuth()
+    @HttpCode(200)
+    @Get(':id/resume')
+    @ApiOperation({ description: 'Get resume by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    async getUserResume(@Param('id') profileId: string) {
+        return this.cvService.getCvByUserId(profileId);
+    }
+
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get social links by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    @Get(':id/social-link')
+    async getSocialLinks(@Param('id') profileId: string) {
+        return this.websiteService.findByProfileId(profileId);
     }
 }

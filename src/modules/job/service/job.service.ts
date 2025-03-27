@@ -11,7 +11,7 @@ import { CategoryService } from '@modules/category/services';
 import { TagService } from '@modules/tag/services';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 import { redisProviderName } from '@cache/cache.provider';
-import { ErrorCatchHelper } from 'src/helpers/error-catch.helper';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
 @Injectable()
 export class JobService {

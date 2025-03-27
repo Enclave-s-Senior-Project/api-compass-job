@@ -50,7 +50,7 @@ describe('UserController', () => {
 
             const pageOptions: PaginationDto = { skip: 0, take: 10 };
             const query = { fullName: 'John' };
-            const result = await userController.filterUsers(pageOptions, query);
+            const result = await userController.filterUsers(pageOptions);
 
             expect(result).toBe(mockResponse);
             expect(userService.filterUsers).toHaveBeenCalledWith(pageOptions, query);

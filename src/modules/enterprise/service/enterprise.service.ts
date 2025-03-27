@@ -1,4 +1,4 @@
-import { forwardRef, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
@@ -14,11 +14,16 @@ import { UpdateFoundingInfoDto } from '../dtos/update-founding-dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { JobResponseDtoBuilder } from '@modules/job/dtos';
 import { JobService } from '@modules/job/service/job.service';
+import { CreateCandidateWishListDto } from '../dtos/create-candidate-wishlist.dto';
+import { UserService } from '@src/modules/user/service';
+import { ProfileErrorType } from '@src/common/errors/profile-error-type';
+import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
 
 @Injectable()
 export class EnterpriseService {
     constructor(
         @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
+        private readonly profileService: UserService,
         private readonly enterpriseRepository: EnterpriseRepository,
         @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
@@ -273,5 +278,72 @@ export class EnterpriseService {
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
+    }
+
+    async createCandidateWishList(user: JwtPayload, payload: CreateCandidateWishListDto) {
+        try {
+            const candidate = await this.profileService.checkProfile(payload.profileId);
+            if (!candidate) {
+                throw new NotFoundException(ProfileErrorType.PROFILE_NOT_FOUND);
+            }
+
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: user.enterpriseId },
+                relations: ['profiles'],
+            });
+
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            const isAlreadyInWishlist = enterprise.profiles.some((p) => p.profileId === payload.profileId);
+            if (isAlreadyInWishlist) {
+                throw new BadRequestException(EnterpriseErrorType.CANDIDATE_ADDED_WISHLIST);
+            }
+
+            enterprise.profiles.push(candidate);
+            await this.enterpriseRepository.save(enterprise);
+
+            return new EnterpriseResponseDtoBuilder().success().build();
+        } catch (error) {
+            console.log('error', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async deleteCandidateWishList(user: JwtPayload, candidateId: string) {
+        try {
+            const candidate = await this.profileService.checkProfile(candidateId);
+            if (!candidate) {
+                console.log('Profile not found');
+                throw new NotFoundException(ProfileErrorType.PROFILE_NOT_FOUND);
+            }
+
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: user.enterpriseId },
+                relations: ['profiles'],
+            });
+
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            const profileIndex = enterprise.profiles.findIndex((p) => p.profileId === candidateId);
+            if (profileIndex === -1) {
+                throw new BadRequestException(EnterpriseErrorType.CANDIDATE_NOT_IN_WISHLIST);
+            }
+
+            enterprise.profiles.splice(profileIndex, 1);
+            await this.enterpriseRepository.save(enterprise);
+
+            return new EnterpriseResponseDtoBuilder().success().build();
+        } catch (error) {
+            console.log('error', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload) {
+        return this.profileService.getAllCandidate(options, user);
     }
 }

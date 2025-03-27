@@ -3,6 +3,7 @@ import { CreateAddressDto, UpdateAddressDto, AddressResponseDto, AddressResponse
 import { AddressRepository } from '../repositories/address.repository';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { AddressEntity } from '@database/entities';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
 @Injectable()
 export class AddressService {
@@ -14,7 +15,7 @@ export class AddressService {
             const savedAddress = await this.addressRepository.save(newAddress);
             return new AddressResponseDtoBuilder().setCode(201).build();
         } catch (error) {
-            throw new BadRequestException('Failed to create address. Please check the provided data.');
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

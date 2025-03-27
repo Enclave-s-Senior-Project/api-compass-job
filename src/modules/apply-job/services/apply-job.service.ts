@@ -1,5 +1,5 @@
 import { JobService } from './../../job/service/job.service';
-import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateApplyJobDto } from '../dtos/create-apply-job.dto';
 import { ApplyJobRepository } from '../repositories/apply-job.repository';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
@@ -11,9 +11,9 @@ import { UserService } from '@modules/user/service';
 import { AppliedJobEntity } from '@database/entities';
 import { AppliedJobErrorType } from '@common/errors/applied-job-error-type';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
-import { isUUID } from 'class-validator';
 import { GlobalErrorType } from '@src/common/errors/global-error';
 import { ValidationHelper } from '@src/helpers/validation.helper';
+import { ApplyJobStatus } from '@src/database/entities/applied-job.entity';
 
 @Injectable()
 export class ApplyJobService {
@@ -26,30 +26,45 @@ export class ApplyJobService {
     async applyJob(createApplyJobDto: CreateApplyJobDto, user: JwtPayload) {
         try {
             const { cvId, coverLetter, jobId } = createApplyJobDto;
-            const [job, cv, profile] = await Promise.all([
+
+            const [job, cv, profile, existingApply] = await Promise.all([
                 this.jobService.getJobById(jobId),
                 this.cvService.getCvByID(cvId),
                 this.userService.getUserByAccountId(user.accountId),
+                this.applyJobRepository.findOne({
+                    where: {
+                        job: { jobId },
+                        profile: { profileId: user.profileId },
+                    },
+                }),
             ]);
+
             if (!job) {
-                return new ApplyJobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
+                throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
             }
             if (!cv) {
-                return new ApplyJobResponseDtoBuilder().badRequestContent(CvErrorType.CV_NOT_FOUND).build();
+                throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
             }
             if (!profile) {
-                return new ApplyJobResponseDtoBuilder().badRequestContent(UserErrorType.USER_NOT_FOUND).build();
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
+
+            if (existingApply) {
+                throw new NotFoundException(AppliedJobErrorType.ALREADY_APPLIED);
+            }
+
             const applyJob = this.applyJobRepository.create({
-                cv,
+                cv: { cvId: cv.cvId },
                 coverLetter,
-                job,
-                profile,
+                job: { jobId: job.jobId },
+                profile: { profileId: profile.profileId },
+                status: ApplyJobStatus.PENDING,
             });
+
             await this.applyJobRepository.save(applyJob);
             return new ApplyJobResponseDtoBuilder().success().build();
         } catch (error) {
-            throw new BadRequestException('Failed to do apply job. Please check the provided data.');
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

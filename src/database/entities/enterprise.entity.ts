@@ -5,12 +5,13 @@ import {
     Entity,
     Index,
     JoinColumn,
+    JoinTable,
     ManyToMany,
     OneToMany,
     OneToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { AccountEntity, WebsiteEntity, BaseEntity, JobEntity } from '@database/entities';
+import { AccountEntity, WebsiteEntity, BaseEntity, JobEntity, ProfileEntity } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
 
@@ -110,6 +111,8 @@ export class EnterpriseEntity extends BaseEntity {
     @ManyToMany(() => AddressEntity, (address) => address.enterprises)
     readonly addresses: AddressEntity[];
 
+    @ManyToMany(() => ProfileEntity, (profile) => profile.enterprises)
+    profiles: ProfileEntity[];
     @BeforeInsert()
     @BeforeUpdate()
     setPremiumExpiration() {

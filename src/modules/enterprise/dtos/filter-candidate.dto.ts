@@ -1,9 +1,8 @@
 import { PaginationDto } from '@common/dtos';
-import { Education, Experience } from '@common/enums/candidates.enum';
 import { GenderType } from '@database/entities';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { MaritalStatusType } from '@src/database/entities/profile.entity';
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { MaritalStatusType } from '@src//database/entities/profile.entity';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class FilterCandidatesProfileDto extends PaginationDto {
     @ApiProperty({ enum: GenderType, required: false })
@@ -20,8 +19,4 @@ export class FilterCandidatesProfileDto extends PaginationDto {
     @IsString({ each: true })
     @IsOptional()
     industryId?: string[] | string;
-
-    @ApiPropertyOptional({ description: 'Check filter', required: false })
-    @IsOptional()
-    readonly check?: boolean;
 }

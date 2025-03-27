@@ -13,19 +13,19 @@ import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
-import { In, Like, Raw } from 'typeorm';
+import { Like } from 'typeorm';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { CategoryService } from '@modules/category/services';
-import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
 import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
 import { WebsiteService } from '@src/modules/website/services';
 import { CvService } from '@src/modules/cv/services/cv.service';
 import { ApplyJobService } from '@src/modules/apply-job/services/apply-job.service';
+import { FilterCandidatesProfileDto } from '@src/modules/enterprise/dtos/filter-candidate.dto';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -339,6 +339,10 @@ export class UserService {
         }
     }
 
+    public async checkProfile(id: string): Promise<ProfileEntity> {
+        return this.profileRepository.findOne({ where: { profileId: id } });
+    }
+
     public async getUserByProfileId(profileId: string) {
         // To check the profile id is valid
         if (ValidationHelper.isValidateUUIDv4(profileId)) {
@@ -373,52 +377,55 @@ export class UserService {
         const cacheKey = `candidateFilter:${key}`;
         await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
     }
-    public async getAllCandidate(options: FilterCandidatesProfileDto, urlQuery: string): Promise<UserResponseDto> {
+
+    public async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload): Promise<UserResponseDto> {
         try {
-            const whereCondition: any = {
-                account: {
-                    roles: Raw(
-                        (alias) => `${alias} @> ARRAY['USER'] AND NOT ${alias} && ARRAY['ENTERPRISES', 'ADMIN']`
-                    ),
-                },
-                gender: options.gender,
-                maritalStatus: options.isMaried,
-            };
+            const queryBuilder = this.profileRepository
+                .createQueryBuilder('profile')
+                .leftJoinAndSelect('profile.account', 'account')
+                .leftJoin(
+                    'candidate_favorites',
+                    'cf',
+                    'cf.profile_id = profile.profile_id AND cf.enterprise_id = :enterpriseId',
+                    { enterpriseId: user.enterpriseId }
+                )
+                .addSelect('CASE WHEN cf.profile_id IS NOT NULL THEN true ELSE false END', 'is_favorite');
+
+            if (options.gender) {
+                queryBuilder.andWhere('profile.gender = :gender', { gender: options.gender });
+            }
+            if (options.isMaried) {
+                queryBuilder.andWhere('profile.marital_status = :maritalStatus', {
+                    maritalStatus: options.isMaried,
+                });
+            }
             if (options.industryId) {
                 const categoriesArray = Array.isArray(options.industryId) ? options.industryId : [options.industryId];
-                if (categoriesArray.length > 0) {
-                    whereCondition.industry = In(categoriesArray);
-                }
+                queryBuilder.andWhere('profile.industry_id IN (:...categoriesArray)', { categoriesArray });
             }
-            const resultCache = await this.getFilterResultOnCache(urlQuery);
-            if (resultCache && resultCache?.length > 0) {
-                const meta = new PageMetaDto({
-                    itemCount: resultCache.length,
-                    pageOptionsDto: {
-                        skip: options.skip,
-                        options: options.options,
-                        order: options.order,
-                        page: options.page,
-                        take: options.take,
-                    },
-                });
-                return new UserResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
-            }
-            const [profiles, total] = await this.profileRepository.findAndCount({
-                skip: options.skip,
-                take: options.take,
-                where: whereCondition,
+
+            queryBuilder.skip(options.skip).take(options.take);
+
+            const { entities, raw } = await queryBuilder.getRawAndEntities();
+            const total = entities.length;
+
+            const profilesWithFavorite = entities.map((profile, index) => {
+                return {
+                    ...profile,
+                    is_favorite: raw[index].is_favorite || false,
+                };
             });
 
             const meta = new PageMetaDto({
                 pageOptionsDto: options,
                 itemCount: total,
             });
-            await this.storeFilterResultOnCache(urlQuery, profiles);
-            return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
+            return new UserResponseDtoBuilder()
+                .setValue(new PageDto<ProfileEntity>(profilesWithFavorite, meta))
+                .success()
+                .build();
         } catch (error) {
-            console.error('Error fetching profiles:', error);
-            return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

@@ -13,10 +13,6 @@ import { PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
-import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
-import { CvService } from '../cv/services/cv.service';
-import { WebsiteService } from '../website/services';
-import { ApplyJobService } from '../apply-job/services/apply-job.service';
 
 @ApiTags('User')
 @Controller({
@@ -61,24 +57,6 @@ export class UserController {
     @Get('filter')
     async filterUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
         return this.userService.filterUsers(pageOptionsDto);
-    }
-
-    @HttpCode(200)
-    @SkipAuth()
-    @ApiOperation({ description: 'Get all candidate with pagination' })
-    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    @ApiInternalServerErrorResponse({ description: 'Server error' })
-    @Get('candidate')
-    async getAllCandidate(
-        @Query() pageOptionsDto: FilterCandidatesProfileDto,
-        @Req() req: Request
-    ): Promise<UserResponseDto> {
-        pageOptionsDto.industryId = Array.isArray(pageOptionsDto.industryId)
-            ? pageOptionsDto.industryId
-            : pageOptionsDto.industryId
-              ? [pageOptionsDto.industryId]
-              : undefined;
-        return this.userService.getAllCandidate(pageOptionsDto, req.url);
     }
 
     @SkipAuth()

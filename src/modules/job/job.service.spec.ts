@@ -6,7 +6,6 @@ import { CategoryService } from '@modules/category/services';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 import { TagService } from '@modules/tag/services';
 import { redisProviderName } from '@cache/cache.provider';
-import { JobResponseDto } from './dtos';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 
 describe('JobService', () => {
@@ -75,58 +74,60 @@ describe('JobService', () => {
             { id: '2', title: 'Test Job2' },
         ];
 
-        it('should return jobs successfully with pagination', async () => {
+        it('should return paginated jobs successfully', async () => {
             const total = 2;
             mockJobRepository.findAndCount.mockResolvedValue([mockJobs, total]);
 
             const result = await service.getJobOfEnterprise(enterpriseId, paginationDto);
 
-            expect(result).toBeInstanceOf(JobResponseDto);
-            expect(result.value).toBeInstanceOf(PageDto);
-            expect(result.value).toEqual({
-                data: mockJobs,
-                meta: { hasNextPage: false, hasPreviousPage: false, itemCount: total, page: 1, pageCount: 1, take: 10 },
-            });
-            expect(result.value.meta).toBeInstanceOf(PageMetaDto);
-            expect(result.value.meta.itemCount).toEqual(total);
+            expect(result).toBeInstanceOf(PageDto);
+            expect(result.data).toEqual(mockJobs);
+            expect(result.meta).toBeInstanceOf(PageMetaDto);
+            expect(result.meta.itemCount).toEqual(total);
+            expect(result.meta.page).toEqual(1);
+            expect(result.meta.pageCount).toEqual(1);
+            expect(result.meta.hasNextPage).toBe(false);
+            expect(result.meta.hasPreviousPage).toBe(false);
         });
 
-        // it('should handle pagination correctly with different page and take values', async () => {
-        //     const customPagination: PaginationDto = {
-        //         page: 2,
-        //         take: 1,
-        //         skip: 1, // (2-1) * 5
-        //     };
-        //     const total = 1;
-        //     mockJobRepository.findAndCount.mockResolvedValue([mockJobs, total]);
+        it('should handle pagination with custom page and take values', async () => {
+            const customPagination: PaginationDto = {
+                page: 2,
+                take: 1,
+                skip: 1,
+            };
+            const total = 2;
+            mockJobRepository.findAndCount.mockResolvedValue([[mockJobs[1]], total]);
 
-        //     const result = await service.getJobOfEnterprise(enterpriseId, customPagination);
+            const result = await service.getJobOfEnterprise(enterpriseId, customPagination);
 
-        //     expect(result.value).toEqual({"data": mockJobs.slice(1), "meta": {"hasNextPage": false, "hasPreviousPage": true, "itemCount": 1, "page": 2, "pageCount": 2, "take": 1}});
-        //     expect(result.value.meta.itemCount).toEqual(total);
-        // });
+            expect(result).toBeInstanceOf(PageDto);
+            expect(result.data).toEqual([mockJobs[1]]);
+            expect(result.meta.page).toEqual(2);
+            expect(result.meta.pageCount).toEqual(2);
+            expect(result.meta.hasNextPage).toBe(false);
+            expect(result.meta.hasPreviousPage).toBe(true);
+        });
 
-        // it('should return error response when repository throws an error', async () => {
-        //     const error = new Error('Database error');
-        //     mockJobRepository.findAndCount.mockRejectedValue(error);
+        it('should throw an error when repository fails', async () => {
+            const error = new Error('Database error');
+            mockJobRepository.findAndCount.mockRejectedValue(error);
 
-        //     const result = await service.getJobOfEnterprise(enterpriseId, paginationDto);
+            await expect(service.getJobOfEnterprise(enterpriseId, paginationDto)).rejects.toThrow('Database error');
+        });
 
-        //     expect(result).toBeInstanceOf(JobResponseDtoBuilder);
-        //     expect(result.code).toEqual(500);
-        //     expect(result.messageCode).toEqual(ErrorType.InternalErrorServer);
-        //     expect(result.data).toBeUndefined();
-        // });
+        it('should return empty result set when no jobs are found', async () => {
+            mockJobRepository.findAndCount.mockResolvedValue([[], 0]);
 
-        // it('should handle empty result set', async () => {
-        //     mockJobRepository.findAndCount.mockResolvedValue([[], 0]);
+            const result = await service.getJobOfEnterprise(enterpriseId, paginationDto);
 
-        //     const result = await service.getJobOfEnterprise(enterpriseId, paginationDto);
-
-        //     expect(result).toBeInstanceOf(JobResponseDtoBuilder);
-        //     expect(result.data.data).toEqual([]);
-        //     expect(result.data.meta.itemCount).toEqual(0);
-        //     expect(result.code).toBeUndefined();
-        // });
+            expect(result).toBeInstanceOf(PageDto);
+            expect(result.data).toEqual([]);
+            expect(result.meta.itemCount).toEqual(0);
+            expect(result.meta.page).toEqual(1);
+            expect(result.meta.pageCount).toEqual(0);
+            expect(result.meta.hasNextPage).toBe(false);
+            expect(result.meta.hasPreviousPage).toBe(false);
+        });
     });
 });

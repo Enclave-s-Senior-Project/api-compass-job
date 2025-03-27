@@ -44,7 +44,9 @@ export class UserService {
                 education: user.education ?? null,
                 experience: user.experience ?? null,
                 isActive: false,
-                account_id: user.account,
+                account: {
+                    accountId: user.account,
+                },
             });
 
             return new UserResponseDtoBuilder()

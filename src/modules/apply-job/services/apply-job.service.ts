@@ -51,16 +51,12 @@ export class ApplyJobService {
 
     async listCandidatesApplyJob(id: string, pagination: PaginationDto) {
         try {
+            // Fetch candidates with pagination
             const [candidates, total] = await this.applyJobRepository.findAndCount({
                 skip: (Number(pagination.page) - 1) * Number(pagination.take),
                 take: Number(pagination.take),
                 where: { job: { jobId: id } },
                 relations: ['profile', 'job'],
-            });
-
-            const meta = new PageMetaDto({
-                pageOptionsDto: pagination,
-                itemCount: total,
             });
 
             if (!candidates || candidates.length === 0) {
@@ -69,10 +65,64 @@ export class ApplyJobService {
                     .build();
             }
 
-            return new ApplyJobResponseDtoBuilder()
-                .success()
-                .setValue(new PageDto<AppliedJobEntity>(candidates, meta))
-                .build();
+            // Group candidates by status
+            const groupedByStatus = candidates.reduce((acc, candidate) => {
+                const statusKey = candidate.status.toLowerCase();
+                if (!acc[statusKey]) {
+                    acc[statusKey] = [];
+                }
+                acc[statusKey].push(candidate);
+                return acc;
+            }, {});
+
+            // Define column titles based on status
+            const columns: any[] = [
+                {
+                    id: 'pending',
+                    title: 'Pending',
+                    count: groupedByStatus['pending']?.length || 0,
+                    applicants: (groupedByStatus['pending'] || []).map((candidate) => ({
+                        id: candidate.appliedJobId,
+                        name: candidate.profile.fullName,
+                        position: candidate.job.name,
+                        experience: candidate.job.experience ? `${candidate.job.experience} Years Experience` : 'N/A',
+                        education: candidate.job.education || 'N/A',
+                        applied: new Date(candidate.createdAt).toLocaleDateString(),
+                        avatar: candidate.profile.profileUrl || '/placeholder.svg?height=40&width=40',
+                    })),
+                },
+                {
+                    id: 'approved',
+                    title: 'Review', // Or "Approved" if that fits your use case better
+                    count: groupedByStatus['approved']?.length || 0,
+                    applicants: (groupedByStatus['approved'] || []).map((candidate) => ({
+                        id: candidate.appliedJobId,
+                        name: candidate.profile.fullName,
+                        position: candidate.job.name,
+                        experience: candidate.job.experience ? `${candidate.job.experience} Years Experience` : 'N/A',
+                        education: candidate.job.education || 'N/A',
+                        applied: new Date(candidate.createdAt).toLocaleDateString(),
+                        avatar: candidate.profile.profileUrl || '/placeholder.svg?height=40&width=40',
+                    })),
+                },
+                {
+                    id: 'denied',
+                    title: 'Denied',
+                    count: groupedByStatus['denied']?.length || 0,
+                    applicants: (groupedByStatus['denied'] || []).map((candidate) => ({
+                        id: candidate.appliedJobId,
+                        name: candidate.profile.fullName,
+                        position: candidate.job.name,
+                        experience: candidate.job.experience ? `${candidate.job.experience} Years Experience` : 'N/A',
+                        education: candidate.job.education || 'N/A',
+                        applied: new Date(candidate.createdAt).toLocaleDateString(),
+                        avatar: candidate.profile.profileUrl || '/placeholder.svg?height=40&width=40',
+                    })),
+                },
+            ];
+
+            // Build the response
+            return new ApplyJobResponseDtoBuilder().success().setValue(columns).build();
         } catch (error) {
             console.log(error);
             throw new BadRequestException('Failed to list candidates. Please check the provided data.');

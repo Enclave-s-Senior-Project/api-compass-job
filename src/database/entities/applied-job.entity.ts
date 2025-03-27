@@ -2,6 +2,11 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 't
 import { BaseEntity, CvEntity, JobEntity, ProfileEntity } from '@database/entities';
 import { Education, Experience } from '@common/enums/candidates.enum';
 
+export enum ApplyJobStatus {
+    PENDING = 'PENDING',
+    APPROVED = 'APPROVED',
+    DENIED = 'DENIED',
+}
 @Entity({ name: 'applied_jobs' })
 export class AppliedJobEntity extends BaseEntity {
     @PrimaryGeneratedColumn('uuid', { name: 'applied_job_id' })
@@ -10,11 +15,8 @@ export class AppliedJobEntity extends BaseEntity {
     @Column({ name: 'cover_letter', type: 'text', nullable: false })
     readonly coverLetter: string;
 
-    @Column({ name: 'status', type: 'boolean', nullable: true, default: false })
-    readonly status: boolean;
-
-    @Column({ name: 'is_denied', type: 'boolean', nullable: true, default: false })
-    readonly isDenied: boolean;
+    @Column({ name: 'status', type: 'enum', enum: ApplyJobStatus, default: ApplyJobStatus.PENDING })
+    status: ApplyJobStatus;
 
     //     relationships
     @ManyToOne(() => ProfileEntity, (profile) => profile.appliedJob)

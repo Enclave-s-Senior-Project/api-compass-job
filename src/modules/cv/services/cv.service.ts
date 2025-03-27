@@ -25,12 +25,12 @@ export class CvService {
         }
     }
 
-    async getCvByUserId(userId: string): Promise<CvResponseDto> {
+    async getCvByUserId(profileId: string): Promise<CvResponseDto> {
         try {
             const listCvs = await this.cvRepository.find({
                 where: {
                     profile: {
-                        account: { accountId: userId },
+                        profileId: profileId,
                     },
                     isPublished: true,
                 },

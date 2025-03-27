@@ -6,9 +6,11 @@ import { CacheModule } from 'src/cache/cache.module';
 import { TmpModule } from '@modules/tmp/tmp.module';
 import { CategoryModule } from '@modules/category/category.module';
 import { CategoryService } from '@modules/category/services';
+import { CvModule } from '../cv/cv.module';
+import { WebsiteModule } from '../website/website.module';
 
 @Module({
-    imports: [TmpModule, CacheModule, CategoryModule],
+    imports: [TmpModule, CacheModule, CategoryModule, CvModule, WebsiteModule],
     controllers: [UserController],
     providers: [UserService, ProfileRepository, CategoryService],
     exports: [UserService],

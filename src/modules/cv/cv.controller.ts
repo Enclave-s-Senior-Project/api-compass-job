@@ -22,12 +22,6 @@ export class CvController {
         return this.cvService.getOwnCV(user.profileId);
     }
 
-    @SkipAuth()
-    @Get(':id')
-    async getCandidateCV(@Query('id') accountId: string): Promise<CvResponseDto> {
-        return this.cvService.getCvByUserId(accountId);
-    }
-
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.USER)

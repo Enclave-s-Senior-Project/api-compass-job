@@ -5,7 +5,6 @@ import { FacebookOAuth2Guard } from '../guards/facebook-oauth2.guard';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
-
 @Controller({ path: 'auth/facebook', version: '1' })
 @SkipAuth()
 export class FacebookController {

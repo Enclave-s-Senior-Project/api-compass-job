@@ -99,6 +99,7 @@
             "json",
             "ts"
         ],
+        "coverageReporters": ["json", "html"],
         "rootDir": "src",
         "testRegex": ".*\\.spec\\.ts$",
         "transform": {

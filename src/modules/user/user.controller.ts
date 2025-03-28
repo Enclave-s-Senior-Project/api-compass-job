@@ -16,6 +16,7 @@ import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
 import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 import { CvService } from '../cv/services/cv.service';
 import { WebsiteService } from '../website/services';
+import { ApplyJobService } from '../apply-job/services/apply-job.service';
 
 @ApiTags('User')
 @Controller({
@@ -24,11 +25,7 @@ import { WebsiteService } from '../website/services';
 })
 @ApiBearerAuth(TOKEN_NAME)
 export class UserController {
-    constructor(
-        private readonly userService: UserService,
-        private readonly cvService: CvService,
-        private readonly websiteService: WebsiteService
-    ) {}
+    constructor(private readonly userService: UserService) {}
 
     @HttpCode(200)
     @ApiOperation({ description: 'Get all users with pagination' })
@@ -99,7 +96,7 @@ export class UserController {
     @ApiOperation({ description: 'Get resume by ID profile' })
     @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
     async getUserResume(@Param('id') profileId: string) {
-        return this.cvService.getCvByUserId(profileId);
+        return this.userService.getCvByUserId(profileId);
     }
 
     @SkipAuth()
@@ -108,6 +105,6 @@ export class UserController {
     @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
     @Get(':id/social-link')
     async getSocialLinks(@Param('id') profileId: string) {
-        return this.websiteService.findByProfileId(profileId);
+        return this.userService.findByProfileId(profileId);
     }
 }

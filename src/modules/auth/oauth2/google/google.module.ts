@@ -12,10 +12,19 @@ import { AccountRepository } from '@modules/auth/repositories';
 import { TokenService } from '@modules/auth/services';
 import { OAuth2Service } from '../services/oauth2.service';
 import { CategoryModule } from '@modules/category/category.module';
+import { UserModule } from '@src/modules/user/user.module';
 
 @Module({
-    imports: [forwardRef(() => AuthModule), TmpModule, ConfigModule, MailModule, CacheModule, CategoryModule],
-    providers: [OAuth2Service, TokenService, AccountRepository, ProfileRepository, UserService, JwtService],
+    imports: [
+        forwardRef(() => AuthModule),
+        TmpModule,
+        ConfigModule,
+        MailModule,
+        CacheModule,
+        CategoryModule,
+        UserModule,
+    ],
+    providers: [OAuth2Service, TokenService, JwtService, AccountRepository],
     controllers: [GoogleController],
 })
 export class GoogleModule {}

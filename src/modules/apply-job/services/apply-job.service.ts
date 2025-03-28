@@ -1,5 +1,5 @@
 import { JobService } from './../../job/service/job.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CreateApplyJobDto } from '../dtos/create-apply-job.dto';
 import { ApplyJobRepository } from '../repositories/apply-job.repository';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
@@ -10,6 +10,10 @@ import { CvErrorType } from '@common/errors/cv-error-type';
 import { UserService } from '@modules/user/service';
 import { AppliedJobEntity } from '@database/entities';
 import { AppliedJobErrorType } from '@common/errors/applied-job-error-type';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { isUUID } from 'class-validator';
+import { GlobalErrorType } from '@src/common/errors/global-error';
+import { ValidationHelper } from '@src/helpers/validation.helper';
 
 @Injectable()
 export class ApplyJobService {
@@ -76,6 +80,33 @@ export class ApplyJobService {
         } catch (error) {
             console.log(error);
             throw new BadRequestException('Failed to list candidates. Please check the provided data.');
+        }
+    }
+
+    async getAppliedJobByProfileId(profileId: string, pagination: PaginationDto) {
+        try {
+            if (!ValidationHelper.isValidateUUIDv4(profileId)) {
+                throw new BadRequestException(GlobalErrorType.INVALID_ID);
+            }
+
+            const [appliedJobs, total] = await this.applyJobRepository.findAndCount({
+                skip: Number(pagination.skip),
+                take: Number(pagination.take),
+                where: { profile: { profileId } },
+                relations: ['job', 'job.addresses'],
+                order: {
+                    createdAt: pagination.order,
+                },
+            });
+
+            const meta = new PageMetaDto({
+                itemCount: total,
+                pageOptionsDto: pagination,
+            });
+
+            return new ApplyJobResponseDtoBuilder().setValue(new PageDto<AppliedJobEntity>(appliedJobs, meta)).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 }

@@ -27,6 +27,14 @@ export class ApplyJobController {
         return this.applyJobService.applyJob(createApplyJobDto, user);
     }
 
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Get social links by ID profile' })
+    @Get('/own')
+    async getOwnAppliedJob(@CurrentUser() user, @Query() pagination: PaginationDto) {
+        return this.applyJobService.getAppliedJobByProfileId(user?.profileId, pagination);
+    }
+
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)

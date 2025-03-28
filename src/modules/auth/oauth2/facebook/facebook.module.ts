@@ -10,20 +10,19 @@ import { MailModule } from '@mail/mail.module';
 import { CacheModule } from '@cache/cache.module';
 import { UserService } from '@modules/user/service';
 import { JwtService } from '@nestjs/jwt';
-import { ProfileRepository } from '@modules/user/repositories';
 import { CategoryModule } from '@modules/category/category.module';
-import { CategoryService } from '@modules/category/services';
+import { UserModule } from '@src/modules/user/user.module';
 @Module({
-    imports: [forwardRef(() => AuthModule), TmpModule, ConfigModule, MailModule, CacheModule, CategoryModule],
-    providers: [
-        OAuth2Service,
-        TokenService,
-        AccountRepository,
-        ProfileRepository,
-        UserService,
-        JwtService,
-        CategoryService,
+    imports: [
+        forwardRef(() => AuthModule),
+        TmpModule,
+        ConfigModule,
+        MailModule,
+        CacheModule,
+        CategoryModule,
+        UserModule,
     ],
+    providers: [OAuth2Service, TokenService, JwtService, AccountRepository],
     controllers: [FacebookController],
 })
 export class FacebookModule {}

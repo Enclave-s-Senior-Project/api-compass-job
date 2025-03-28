@@ -1,4 +1,11 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    ForbiddenException,
+    forwardRef,
+    Inject,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { ProfileRepository } from '../repositories';
 import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { AccountEntity, GenderType, ProfileEntity } from '@database/entities';
@@ -14,7 +21,11 @@ import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto'
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { CategoryService } from '@modules/category/services';
 import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
-import { isUUID } from 'class-validator';
+import { ValidationHelper } from '@src/helpers/validation.helper';
+import { GlobalErrorType } from '@src/common/errors/global-error';
+import { WebsiteService } from '@src/modules/website/services';
+import { CvService } from '@src/modules/cv/services/cv.service';
+import { ApplyJobService } from '@src/modules/apply-job/services/apply-job.service';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -23,6 +34,8 @@ export class UserService {
     constructor(
         private readonly profileRepository: ProfileRepository,
         private readonly categoryService: CategoryService,
+        private readonly websiteService: WebsiteService,
+        private readonly cvService: CvService,
         @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
 
@@ -328,8 +341,8 @@ export class UserService {
 
     public async getUserByProfileId(profileId: string) {
         // To check the profile id is valid
-        if (!isUUID(profileId, '4')) {
-            throw new BadRequestException(UserErrorType.INVALID_PROFILE_ID);
+        if (ValidationHelper.isValidateUUIDv4(profileId)) {
+            throw new BadRequestException(GlobalErrorType.INVALID_ID);
         }
 
         try {
@@ -407,5 +420,13 @@ export class UserService {
             console.error('Error fetching profiles:', error);
             return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
         }
+    }
+
+    public async findByProfileId(profileId: string) {
+        return this.websiteService.findByProfileId(profileId);
+    }
+
+    public async getCvByUserId(profileId: string) {
+        return this.cvService.getCvByUserId(profileId);
     }
 }

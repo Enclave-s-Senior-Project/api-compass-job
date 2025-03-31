@@ -101,6 +101,17 @@ export class EnterpriseController {
     updateEnterprisePremium(@CurrentUser() user: JwtPayload, @Body() body: RegisterPremiumEnterpriseDto) {
         return this.enterpriseService.updateEnterprisePremium(user, body);
     }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
+    @Get('jobs')
+    @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
+    getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: PaginationDto) {
+        return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);
+    }
+
     @SkipAuth()
     @Get(':id/jobs')
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
@@ -108,6 +119,7 @@ export class EnterpriseController {
     findJobsByEnterprise(@Param('id') id: string, @Query() paginationDto: PaginationDto) {
         return this.enterpriseService.findJobsByEnterpriseId(id, paginationDto);
     }
+
     @SkipAuth()
     @Get(':id/total-jobs')
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })

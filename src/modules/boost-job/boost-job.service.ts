@@ -6,12 +6,14 @@ import { CreateBoostJobDto } from './dto';
 import { EnterpriseService } from '@modules/enterprise/service/enterprise.service';
 import { BoostJobRepository } from './repositories/boost-job.repository';
 import { PREMIUM_TYPE } from '@database/entities/enterprise.entity';
+import { CacheService } from '@src/cache/cache.service';
 @Injectable()
 export class BoostJobService {
     constructor(
         private readonly jobService: JobService,
         private readonly enterpriseService: EnterpriseService,
-        private readonly boostedJobRepo: BoostJobRepository
+        private readonly boostedJobRepo: BoostJobRepository,
+        private readonly cacheService: CacheService
     ) {}
 
     async boostJob(boostJob: CreateBoostJobDto, enterpriseId: string) {
@@ -43,9 +45,9 @@ export class BoostJobService {
         const boostedJob = this.boostedJobRepo.create({ job, boostedAt: new Date(), expiresAt });
 
         // Save boosted job
-        await this.boostedJobRepo.save(boostedJob);
-
-        return boostedJob;
+        this.boostedJobRepo.save(boostedJob);
+        this.cacheService.deleteCache();
+        return;
     }
 
     private getBoostDuration(premiumType: PREMIUM_TYPE): number {

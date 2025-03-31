@@ -28,7 +28,6 @@ import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, Updat
 import { JobEntity } from '@database/entities';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
-import { Console } from 'console';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })

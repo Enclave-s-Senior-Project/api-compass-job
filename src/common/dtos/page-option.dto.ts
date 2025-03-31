@@ -9,7 +9,7 @@ export enum Order {
 }
 
 export class PaginationDto {
-    @ApiPropertyOptional({ enum: Order, default: Order.ASC })
+    @ApiPropertyOptional({ enum: Order })
     @IsEnum(Order)
     @IsOptional()
     readonly order?: Order = Order.ASC;

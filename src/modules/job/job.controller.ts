@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    Param,
+    Patch,
+    Post,
+    Put,
+    Query,
+    Req,
+    UseGuards,
+} from '@nestjs/common';
 import { JobService } from './service/job.service';
 import {
     ApiBearerAuth,
@@ -11,7 +24,7 @@ import { JwtPayload, PaginationDto } from '@common/dtos';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto } from './dtos';
+import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, UpdateJobDto } from './dtos';
 import { JobEntity } from '@database/entities';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
@@ -96,5 +109,17 @@ export class JobController {
     @Get(':id')
     getDetailJobByJobId(@Query() user: JobWishlistDto, @Param('id') id: string): Promise<JobResponseDto> {
         return this.jobService.getDetailJobById(id, user.userId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Put(':id')
+    update(
+        @Param('id') id: string,
+        @Body() body: UpdateJobDto,
+        @CurrentUser() user: JwtPayload
+    ): Promise<JobResponseDto> {
+        return this.jobService.updateJob(id, body, user);
     }
 }

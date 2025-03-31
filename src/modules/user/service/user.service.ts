@@ -345,7 +345,7 @@ export class UserService {
 
     public async getUserByProfileId(profileId: string) {
         // To check the profile id is valid
-        if (ValidationHelper.isValidateUUIDv4(profileId)) {
+        if (!ValidationHelper.isValidateUUIDv4(profileId)) {
             throw new BadRequestException(GlobalErrorType.INVALID_ID);
         }
 

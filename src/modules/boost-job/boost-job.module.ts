@@ -5,9 +5,10 @@ import { JobModule } from '@modules/job/job.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { BoostJobRepository } from './repositories/boost-job.repository';
 import { TmpModule } from '@modules/tmp/tmp.module';
+import { CacheModule } from '@src/cache/cache.module';
 
 @Module({
-    imports: [JobModule, EnterpriseModule, TmpModule],
+    imports: [JobModule, EnterpriseModule, TmpModule, CacheModule],
     controllers: [BoostJobController],
     providers: [BoostJobService, BoostJobRepository],
 })

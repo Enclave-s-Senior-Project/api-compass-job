@@ -11,7 +11,6 @@ import {
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { CategoryEntity } from '@database/entities';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
-import { error } from 'console';
 
 @Injectable()
 export class CategoryService {

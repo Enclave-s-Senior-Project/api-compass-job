@@ -1,6 +1,7 @@
 import { UpdatePersonalProfileDtoErrorType } from '@common/errors/class-validator-error-type';
 import { MaritalStatusType } from '@database/entities/profile.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString, IsUrl, Matches } from 'class-validator';
 
 export class UpdatePersonalProfileDto {
@@ -23,8 +24,9 @@ export class UpdatePersonalProfileDto {
     @ApiProperty({
         default: 'Jun 08, 2003',
     })
+    @Transform(({ value }) => (value ? new Date(value) : null))
     @IsOptional()
-    readonly dateOfBirth: Date;
+    readonly dateOfBirth?: Date;
 
     @ApiProperty({
         default: 'ALONE',

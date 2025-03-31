@@ -79,19 +79,6 @@ export class JobController {
         return this.jobService.getJobWishList(query, user);
     }
 
-    // @SkipAuth()
-    // @HttpCode(200)
-    // @ApiOperation({ description: 'Get job by name, location, category, advance' })
-    // @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-    // @ApiInternalServerErrorResponse({ description: 'Server error' })
-    // @Get()
-    // async findMany(
-    //     @Query() jobFilterDto: JobFilterDto,
-    //     @Query() PaginationDto: PaginationDto
-    // ): Promise<JobResponseDto> {
-    //     return this.jobService.getFilterJobs(jobFilterDto, PaginationDto);
-    // }
-
     @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Search job' })
@@ -121,5 +108,21 @@ export class JobController {
         @CurrentUser() user: JwtPayload
     ): Promise<JobResponseDto> {
         return this.jobService.updateJob(id, body, user);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Delete(':id')
+    delete(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
+        return this.jobService.deleteJob(id, user);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Patch(':id/close')
+    closeJobOrMakeExpired(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
+        return this.jobService.closeJobOrMakeExpired(id, user);
     }
 }

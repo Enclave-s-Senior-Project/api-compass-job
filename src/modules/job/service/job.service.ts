@@ -541,11 +541,7 @@ export class JobService {
             }
 
             // check that job has any applications
-            const hasApplications = await this.jobRepository
-                .createQueryBuilder('jobs')
-                .innerJoin('jobs.appliedJob', 'appliedJobs')
-                .where('jobs.job_id = :jobId', { jobId })
-                .getOne();
+            const hasApplications = await this.checkJobHasApplication(jobId);
             if (hasApplications) {
                 throw new BadRequestException(JobErrorType.JOB_HAS_APPLICATION);
             }
@@ -565,18 +561,20 @@ export class JobService {
             }
 
             // check specializationIds is valid with categoryId
-            if (updatePayload.categoryIds.length > 1 || updatePayload.categoryIds.length === 0) {
+            if (updatePayload.categoryIds?.length > 1 || updatePayload.categoryIds?.length === 0) {
                 throw new BadRequestException(JobErrorType.JOB_CATEGORY_JUST_ONE);
             }
 
-            const isFamilyCategory = await Promise.all(
-                updatePayload.specializationIds.map((specializationId) =>
-                    this.categoryService.checkFamilyCategory(updatePayload.categoryIds?.[0], specializationId)
-                )
-            ).then((results) => results.every((result) => result));
+            if (updatePayload.specializationIds?.length > 0) {
+                const isFamilyCategory = await Promise.all(
+                    updatePayload.specializationIds?.map((specializationId) =>
+                        this.categoryService.checkFamilyCategory(updatePayload.categoryIds?.[0], specializationId)
+                    )
+                ).then((results) => results.every((result) => result));
 
-            if (!isFamilyCategory) {
-                throw new BadRequestException(GlobalErrorType.MAJORITY_MUST_BE_CHILD_OF_INDUSTRY);
+                if (!isFamilyCategory) {
+                    throw new BadRequestException(GlobalErrorType.MAJORITY_MUST_BE_CHILD_OF_INDUSTRY);
+                }
             }
 
             const relationIds = {
@@ -618,34 +616,105 @@ export class JobService {
         }
     }
 
+    public async deleteJob(jobId: string, user: JwtPayload) {
+        try {
+            // Validate UUID
+            if (!ValidationHelper.isValidateUUIDv4(jobId)) {
+                throw new BadRequestException(GlobalErrorType.INVALID_ID);
+            }
+
+            const existingJob = await this.jobRepository.exists({
+                where: { jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } },
+            });
+            if (!existingJob) {
+                throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
+            }
+
+            const hasApplications = await this.checkJobHasApplication(jobId);
+            if (hasApplications) {
+                throw new BadRequestException(JobErrorType.JOB_HAS_APPLICATION);
+            }
+
+            // remove job relations
+            await this.removeJobRelates(jobId);
+
+            // delete job
+            await this.jobRepository.delete({ jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } });
+
+            // clear filter search cache
+            await this.clearFilterJobResultOnCache();
+            return new JobResponseDtoBuilder().setValue(null).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async checkJobHasApplication(jobId: string): Promise<boolean> {
+        // check that job has any applications
+        const hasApplications = await this.jobRepository
+            .createQueryBuilder('jobs')
+            .innerJoin('jobs.appliedJob', 'appliedJobs')
+            .where('jobs.job_id = :jobId', { jobId })
+            .getOne();
+        return !!hasApplications;
+    }
+
+    public async closeJobOrMakeExpired(jobId: string, user: JwtPayload) {
+        try {
+            // Validate UUID
+            if (!ValidationHelper.isValidateUUIDv4(jobId)) {
+                throw new BadRequestException(GlobalErrorType.INVALID_ID);
+            }
+
+            const existingJob = await this.jobRepository.exists({
+                where: { jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } },
+            });
+            if (!existingJob) {
+                throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
+            }
+
+            await this.jobRepository.update({ jobId }, { status: false, deadline: new Date() });
+            // clear filter search cache
+            await this.clearFilterJobResultOnCache();
+
+            return new JobResponseDtoBuilder().setValue(null).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
     public async removeJobRelates(jobId: string) {
-        await this.jobRepository.manager.transaction(async (transactionalEntityManager) => {
-            await Promise.all([
-                transactionalEntityManager
-                    .createQueryBuilder()
-                    .delete()
-                    .from('job_categories')
-                    .where('job_id = :jobId', { jobId })
-                    .execute(),
-                transactionalEntityManager
-                    .createQueryBuilder()
-                    .delete()
-                    .from('job_tags')
-                    .where('job_id = :jobId', { jobId })
-                    .execute(),
-                transactionalEntityManager
-                    .createQueryBuilder()
-                    .delete()
-                    .from('job_addresses')
-                    .where('job_id = :jobId', { jobId })
-                    .execute(),
-                transactionalEntityManager
-                    .createQueryBuilder()
-                    .delete()
-                    .from('job_specializations')
-                    .where('job_id = :jobId', { jobId })
-                    .execute(),
-            ]);
-        });
+        try {
+            await this.jobRepository.manager.transaction(async (transactionalEntityManager) => {
+                await Promise.all([
+                    transactionalEntityManager
+                        .createQueryBuilder()
+                        .delete()
+                        .from('job_categories')
+                        .where('job_id = :jobId', { jobId })
+                        .execute(),
+                    transactionalEntityManager
+                        .createQueryBuilder()
+                        .delete()
+                        .from('job_tags')
+                        .where('job_id = :jobId', { jobId })
+                        .execute(),
+                    transactionalEntityManager
+                        .createQueryBuilder()
+                        .delete()
+                        .from('job_addresses')
+                        .where('job_id = :jobId', { jobId })
+                        .execute(),
+                    transactionalEntityManager
+                        .createQueryBuilder()
+                        .delete()
+                        .from('job_specializations')
+                        .where('job_id = :jobId', { jobId })
+                        .execute(),
+                ]);
+            });
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 }

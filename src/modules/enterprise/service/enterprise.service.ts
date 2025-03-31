@@ -129,9 +129,7 @@ export class EnterpriseService {
     }
     async findJobsByEnterpriseId(enterpriseId: string, pagination: PaginationDto) {
         try {
-            console.log(pagination);
             const result = await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
-            console.log('result in enterprise service', result);
             return new JobResponseDtoBuilder().setValue(result).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

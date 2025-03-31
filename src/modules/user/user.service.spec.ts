@@ -10,6 +10,9 @@ import { GenderType, ProfileEntity } from '@src/database/entities';
 import { MaritalStatusType } from '@src/database/entities/profile.entity';
 import { redisProviderName } from '@src/cache/cache.provider';
 import { CategoryService } from '../category/services';
+import { WebsiteService } from '../website/services';
+import { CvService } from '../cv/services/cv.service';
+import { GlobalErrorType } from '@src/common/errors/global-error';
 
 const mockProfileRepository = () => ({
     save: jest.fn(),
@@ -17,6 +20,10 @@ const mockProfileRepository = () => ({
 });
 
 const mockCategoryService = () => ({});
+
+const mockWebsiteService = () => ({});
+
+const mockCVService = () => ({});
 
 const mockCacheManager = () => ({});
 
@@ -30,6 +37,8 @@ describe('UserService', () => {
                 UserService,
                 { provide: ProfileRepository, useFactory: mockProfileRepository },
                 { provide: CategoryService, useFactory: mockCategoryService },
+                { provide: WebsiteService, useFactory: mockWebsiteService },
+                { provide: CvService, useFactory: mockCVService },
                 { provide: redisProviderName, useFactory: mockCacheManager },
             ],
         }).compile();
@@ -69,13 +78,11 @@ describe('UserService', () => {
             const invalidProfileId = 'invalid-uuid';
 
             await expect(service.getUserByProfileId(invalidProfileId)).rejects.toThrow(BadRequestException);
-            await expect(service.getUserByProfileId(invalidProfileId)).rejects.toThrow(
-                UserErrorType.INVALID_PROFILE_ID
-            );
+            await expect(service.getUserByProfileId(invalidProfileId)).rejects.toThrow(GlobalErrorType.INVALID_ID);
         });
 
         it('should throw NotFoundException if profile is not found', async () => {
-            const validProfileId = '550e8400-e29b-41d4-a716-446655440000';
+            const validProfileId = '966aae06-d537-4554-9de9-d2c7b0a079d8';
 
             profileRepository.findOne.mockResolvedValue(null);
 
@@ -84,7 +91,7 @@ describe('UserService', () => {
         });
 
         it('should return user profile if profile is found', async () => {
-            const validProfileId = '550e8400-e29b-41d4-a716-446655440000';
+            const validProfileId = '966aae06-d537-4554-9de9-d2c7b0a079d8';
             const mockProfile: ProfileEntity = {
                 // Base entity fields
                 createdAt: new Date(),
@@ -92,7 +99,7 @@ describe('UserService', () => {
                 isActive: true,
 
                 // Profile required fields
-                profileId: '550e8400-e29b-41d4-a716-446655440000',
+                profileId: '966aae06-d537-4554-9de9-d2c7b0a079d8',
                 fullName: 'John Doe',
 
                 // Profile fields with defaults
@@ -116,7 +123,7 @@ describe('UserService', () => {
                 industry: null,
                 majority: null,
                 account: {
-                    accountId: 'acc-550e8400-e29b-41d4-a716-446655440000',
+                    accountId: 'acc-966aae06-d537-4554-9de9-d2c7b0a079d8',
                     status: UserStatus.ACTIVE,
                 },
 

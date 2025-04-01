@@ -468,7 +468,6 @@ export class JobService {
 
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
-            
             const meta = new PageMetaDto({
                 itemCount: total,
                 pageOptionsDto: {

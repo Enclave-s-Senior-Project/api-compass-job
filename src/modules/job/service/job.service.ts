@@ -312,21 +312,11 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            // console.log('Filter Query:', query);
-            // const resultCache = await this.getFilterResultOnCache(urlQuery);
-            // if (resultCache && resultCache?.length > 0) {
-            //     const meta = new PageMetaDto({
-            //         itemCount: resultCache.length,
-            //         pageOptionsDto: {
-            //             skip: query.skip,
-            //             options: query.options,
-            //             order: query.order,
-            //             page: query.page,
-            //             take: query.take,
-            //         },
-            //     });
-            //     return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
-            // }
+            console.log('Filter Query:', query);
+            const resultCache = await this.getFilterResultOnCache(urlQuery);
+            if (resultCache && resultCache?.length > 0) {
+                return new JobResponseDtoBuilder().setValue(JSON.parse(resultCache)).build();
+            }
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
                 .leftJoinAndSelect('jobs.addresses', 'addresses')
@@ -478,7 +468,7 @@ export class JobService {
                     take: query.take,
                 },
             });
-            await this.storeFilterResultOnCache(urlQuery, new PageDto(jobs, meta));
+            this.storeFilterResultOnCache(urlQuery, new PageDto(jobs, meta));
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
             console.error('Filter Query Error:', error);
@@ -490,7 +480,7 @@ export class JobService {
         await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
     }
 
-    protected async getFilterResultOnCache(key: string): Promise<JobEntity[] | null> {
+    protected async getFilterResultOnCache(key: string) {
         const cacheResult = await this.redisCache.get(`jobfilter:${key}`);
         return JSON.parse(cacheResult) || null;
     }

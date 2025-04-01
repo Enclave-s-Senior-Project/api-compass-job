@@ -1,4 +1,12 @@
-import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+    BadRequestException,
+    HttpException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    NotAcceptableException,
+    NotFoundException,
+} from '@nestjs/common';
 import { ErrorType } from '@common/enums';
 import { InvalidCredentialsException, DisabledUserException, NotFoundUserException } from '@common/http/exceptions';
 import { omit } from 'lodash';
@@ -16,7 +24,7 @@ import { MailSenderService } from '@src/mail/mail.service';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtPayload } from '@common/dtos';
-import { AuthErrorType } from '@common/errors';
+import { AuthErrorType, UserErrorType } from '@common/errors';
 import { Role } from '../decorators/roles.decorator';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 
@@ -314,8 +322,13 @@ export class AuthService {
                 .getOne();
 
             if (!user) {
-                return new RegisterResponseDtoBuilder().badRequestContent('EMAIL_NOT_EXIST').build();
+                throw new NotFoundException(AuthErrorType.EMAIL_NOT_EXISTS);
             }
+
+            if (user?.status !== UserStatus.ACTIVE) {
+                throw new NotAcceptableException(AuthErrorType.USER_NOT_ACTIVE);
+            }
+
             const expiredInMilliseconds = TimeHelper.shorthandToMs(process.env.RESET_PASSWORD_TOKEN_EXPIRES);
             const token = crypto.randomBytes(32).toString('hex');
             const expired = new Date(Date.now() + expiredInMilliseconds);
@@ -329,7 +342,7 @@ export class AuthService {
 
             return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
-            throw new InternalServerErrorException();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

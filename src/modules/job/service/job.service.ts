@@ -312,8 +312,9 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
+            console.log('Filter Query:', query);
             const resultCache = await this.getFilterResultOnCache(urlQuery);
-            if (resultCache && resultCache.length > 0) {
+            if (resultCache && resultCache?.length > 0) {
                 const meta = new PageMetaDto({
                     itemCount: resultCache.length,
                     pageOptionsDto: {
@@ -327,41 +328,38 @@ export class JobService {
                 return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
             }
 
-            const queryBuilder = this.jobRepository.createQueryBuilder('jobs');
+            const queryBuilder = this.jobRepository
+                .createQueryBuilder('jobs')
+                .leftJoinAndSelect('jobs.addresses', 'addresses')
+                .leftJoinAndSelect('jobs.categories', 'industries')
+                .leftJoinAndSelect('jobs.specializations', 'majorities')
+                .leftJoinAndSelect('jobs.enterprise', 'enterprise')
+                .leftJoinAndSelect('jobs.tags', 'tags')
+                .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs'); // Add join for boosted_jobs
 
-            // Conditional joins based on query parameters
-            if (query.country || query.city) {
-                queryBuilder.leftJoinAndSelect('jobs.addresses', 'addresses');
-            }
-            if (query.industryCategoryId) {
-                queryBuilder.leftJoinAndSelect('jobs.categories', 'industries');
-            }
-            if (query.majorityCategoryId) {
-                queryBuilder.leftJoinAndSelect('jobs.specializations', 'majorities');
-            }
-            queryBuilder.leftJoinAndSelect('jobs.enterprise', 'enterprise'); // Always needed for company mixing
-            if (query.tagId) {
-                queryBuilder.leftJoinAndSelect('jobs.tags', 'tags');
-            }
-            queryBuilder.leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs'); // Always needed for sorting
-
-            // Filters
+            // Full-Text Search
             if (query.name) {
+                console.log('Searching for name:', query.name);
                 queryBuilder.andWhere(
                     "to_tsvector('english', jobs.name) @@ plainto_tsquery(:name) OR jobs.name ILIKE :namePattern",
-                    { name: query.name.trim(), namePattern: `%${query.name.trim()}%` }
+                    {
+                        name: query.name.trim(),
+                        namePattern: `%${query.name.trim()}%`,
+                    }
                 );
             }
+
+            // Location Filters
             if (query.country) {
                 queryBuilder.andWhere('unaccent(addresses.country) ILIKE unaccent(:country)', {
                     country: `%${query.country}%`,
                 });
             }
             if (query.city) {
-                queryBuilder.andWhere('unaccent(addresses.city) ILIKE unaccent(:city)', {
-                    city: `%${query.city}%`,
-                });
+                queryBuilder.andWhere('unaccent(addresses.city) ILIKE unaccent(:city)', { city: `%${query.city}%` });
             }
+
+            // Category Filters
             if (query.industryCategoryId) {
                 queryBuilder.andWhere('industries.categoryId = :industryId', {
                     industryId: query.industryCategoryId,
@@ -372,34 +370,51 @@ export class JobService {
                     majorityId: query.majorityCategoryId,
                 });
             }
+
+            // Wage Filters
             if (query.minWage !== undefined) {
-                queryBuilder.andWhere('jobs.lowestWage >= :minWage', { minWage: Number(query.minWage) });
+                queryBuilder.andWhere('jobs.lowestWage >= :minWage', {
+                    minWage: Number(query.minWage),
+                });
             }
             if (query.maxWage !== undefined) {
-                queryBuilder.andWhere('jobs.highestWage <= :maxWage', { maxWage: Number(query.maxWage) });
+                queryBuilder.andWhere('jobs.highestWage <= :maxWage', {
+                    maxWage: Number(query.maxWage),
+                });
             }
+
+            // Job Attributes
             if (query.experience !== undefined) {
-                queryBuilder.andWhere('jobs.experience = :experience', { experience: Number(query.experience) });
+                queryBuilder.andWhere('jobs.experience = :experience', {
+                    experience: Number(query.experience),
+                });
             }
             if (query.type) {
                 queryBuilder.andWhere('jobs.type = ANY(:type)', { type: query.type });
             }
             if (query.education) {
-                queryBuilder.andWhere('jobs.education = ANY(:education)', { education: query.education });
+                queryBuilder.andWhere('jobs.education = ANY(:education)', {
+                    education: query.education,
+                });
             }
+
+            // Enterprise Filter
             if (query.enterpriseId) {
                 queryBuilder.andWhere('enterprise.enterpriseId = :enterpriseId', {
                     enterpriseId: query.enterpriseId,
                 });
             }
+
+            // Tag Filter
             if (query.tagId) {
                 queryBuilder.andWhere('tags.tagId = :tagId', { tagId: query.tagId });
             }
 
-            // Core filters (always applied)
-            queryBuilder.andWhere('jobs.status = :status', { status: true }).andWhere('jobs.deadline > CURRENT_DATE');
+            // Status and Deadline
+            queryBuilder.andWhere('jobs.status = :status', { status: true });
+            queryBuilder.andWhere('jobs.deadline > CURRENT_DATE');
 
-            // Select only necessary fields (adjust based on your DTO requirements)
+            // Select fields
             queryBuilder.select([
                 'jobs.jobId',
                 'jobs.name',
@@ -414,18 +429,15 @@ export class JobService {
                 'jobs.status',
                 'jobs.education',
                 'jobs.enterpriseBenefits',
-                'jobs.updatedAt',
-                ...(query.country || query.city
-                    ? [
-                          'addresses.addressId',
-                          'addresses.country',
-                          'addresses.city',
-                          'addresses.street',
-                          'addresses.zipCode',
-                      ]
-                    : []),
-                ...(query.industryCategoryId ? ['industries.categoryId', 'industries.categoryName'] : []),
-                ...(query.majorityCategoryId ? ['majorities.categoryId', 'majorities.categoryName'] : []),
+                'addresses.addressId',
+                'addresses.country',
+                'addresses.city',
+                'addresses.street',
+                'addresses.zipCode',
+                'industries.categoryId',
+                'industries.categoryName',
+                'majorities.categoryId',
+                'majorities.categoryName',
                 'enterprise.enterpriseId',
                 'enterprise.name',
                 'enterprise.email',
@@ -439,22 +451,28 @@ export class JobService {
                 'enterprise.status',
                 'enterprise.industryType',
                 'enterprise.isPremium',
-                ...(query.tagId ? ['tags.tagId', 'tags.name', 'tags.color', 'tags.backgroundColor'] : []),
-                'boosted_jobs.id',
+                'tags.tagId',
+                'tags.name',
+                'tags.color',
+                'tags.backgroundColor',
+                'boosted_jobs.id', // Add boosted_jobs fields
                 'boosted_jobs.boostedAt',
                 'boosted_jobs.expiresAt',
             ]);
 
-            // Sorting: Boosted jobs first, then non-boosted by updatedAt with a deterministic tiebreaker
+            // Sorting: Boosted jobs first (descending), then premium, then deadline
             queryBuilder
-                .orderBy('boosted_jobs.boostedAt', 'DESC', 'NULLS LAST') // Boosted jobs first
-                .addOrderBy('jobs.updatedAt', 'DESC') // Non-boosted by recency
-                .addOrderBy('jobs.jobId', 'ASC') // Deterministic tiebreaker for mixing
+                .orderBy('boosted_jobs.boostedAt', 'DESC', 'NULLS LAST') // Sort boosted jobs descending, non-boosted last
+                .addOrderBy('enterprise.isPremium', 'DESC')
+                .addOrderBy('jobs.deadline', 'ASC')
                 .skip(query.skip)
                 .take(query.take);
 
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
+            await this.storeFilterResultOnCache(urlQuery, jobs);
+            console.log('Filter Result total:', total);
+            console.log('Filter Result take:', query.take);
             const meta = new PageMetaDto({
                 itemCount: total,
                 pageOptionsDto: {
@@ -465,9 +483,10 @@ export class JobService {
                     take: query.take,
                 },
             });
-            this.storeFilterResultOnCache(urlQuery, new PageDto(jobs, meta));
+
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
+            console.error('Filter Query Error:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

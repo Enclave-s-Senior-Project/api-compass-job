@@ -344,8 +344,8 @@ export class UserService {
     }
 
     public async getUserByProfileId(profileId: string) {
-        // To check the profile id is valid
-        if (!ValidationHelper.isValidateUUIDv4(profileId)) {
+        
+        if (ValidationHelper.isValidateUUIDv4(profileId)) {
             throw new BadRequestException(GlobalErrorType.INVALID_ID);
         }
 
@@ -375,7 +375,7 @@ export class UserService {
 
     protected async storeFilterResultOnCache(key: string, results: ProfileEntity[]) {
         const cacheKey = `candidateFilter:${key}`;
-        await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+        await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24);
     }
 
     public async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload): Promise<UserResponseDto> {
@@ -404,10 +404,11 @@ export class UserService {
                 queryBuilder.andWhere('profile.industry_id IN (:...categoriesArray)', { categoriesArray });
             }
 
+            const total = await queryBuilder.getCount();
+
             queryBuilder.skip(options.skip).take(options.take);
 
             const { entities, raw } = await queryBuilder.getRawAndEntities();
-            const total = entities.length;
 
             const profilesWithFavorite = entities.map((profile, index) => {
                 return {
@@ -420,6 +421,7 @@ export class UserService {
                 pageOptionsDto: options,
                 itemCount: total,
             });
+
             return new UserResponseDtoBuilder()
                 .setValue(new PageDto<ProfileEntity>(profilesWithFavorite, meta))
                 .success()

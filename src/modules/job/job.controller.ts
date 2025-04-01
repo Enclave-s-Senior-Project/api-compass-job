@@ -25,7 +25,6 @@ import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, UpdateJobDto } from './dtos';
-import { JobEntity } from '@database/entities';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
 

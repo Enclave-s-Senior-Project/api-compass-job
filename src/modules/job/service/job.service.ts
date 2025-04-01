@@ -312,21 +312,21 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            const resultCache = await this.getFilterResultOnCache(urlQuery);
-            if (resultCache && resultCache?.length > 0) {
-                const meta = new PageMetaDto({
-                    itemCount: resultCache.length,
-                    pageOptionsDto: {
-                        skip: query.skip,
-                        options: query.options,
-                        order: query.order,
-                        page: query.page,
-                        take: query.take,
-                    },
-                });
-                return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
-            }
-
+            // console.log('Filter Query:', query);
+            // const resultCache = await this.getFilterResultOnCache(urlQuery);
+            // if (resultCache && resultCache?.length > 0) {
+            //     const meta = new PageMetaDto({
+            //         itemCount: resultCache.length,
+            //         pageOptionsDto: {
+            //             skip: query.skip,
+            //             options: query.options,
+            //             order: query.order,
+            //             page: query.page,
+            //             take: query.take,
+            //         },
+            //     });
+            //     return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
+            // }
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
                 .leftJoinAndSelect('jobs.addresses', 'addresses')

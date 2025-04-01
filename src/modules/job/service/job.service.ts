@@ -468,7 +468,7 @@ export class JobService {
 
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
-            await this.storeFilterResultOnCache(urlQuery, jobs);
+            
             const meta = new PageMetaDto({
                 itemCount: total,
                 pageOptionsDto: {
@@ -479,7 +479,7 @@ export class JobService {
                     take: query.take,
                 },
             });
-
+            await this.storeFilterResultOnCache(urlQuery, new PageDto(jobs, meta));
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
             console.error('Filter Query Error:', error);

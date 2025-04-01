@@ -1,4 +1,3 @@
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { forwardRef, Module } from '@nestjs/common';
 import { JobService } from './service/job.service';
 import { JobController } from './job.controller';

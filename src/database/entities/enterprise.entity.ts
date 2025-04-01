@@ -136,11 +136,11 @@ export class EnterpriseEntity extends BaseEntity {
     private getExpirationDays(premiumType: PREMIUM_TYPE): number {
         switch (premiumType) {
             case PREMIUM_TYPE.BASIC:
-                return 5; // 1 month
+                return 30; // 1 month
             case PREMIUM_TYPE.STANDARD:
-                return 15; // 3 months
+                return 90; // 3 months
             case PREMIUM_TYPE.PREMIUM:
-                return 50; // 1 year
+                return 360; // 1 year
             default:
                 return 0;
         }

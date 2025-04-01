@@ -311,10 +311,19 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            console.log('Filter Query:', query);
             const resultCache = await this.getFilterResultOnCache(urlQuery);
-            if (resultCache && resultCache?.length > 0) {
-                return new JobResponseDtoBuilder().setValue(JSON.parse(resultCache)).build();
+            if (resultCache || resultCache?.length > 0) {
+                const meta = new PageMetaDto({
+                    itemCount: resultCache.length,
+                    pageOptionsDto: {
+                        skip: query.skip,
+                        options: query.options,
+                        order: query.order,
+                        page: query.page,
+                        take: query.take,
+                    },
+                });
+                return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
             }
 
             const queryBuilder = this.jobRepository
@@ -449,11 +458,10 @@ export class JobService {
                 'boosted_jobs.expiresAt',
             ]);
 
-            // Sorting: Boosted jobs first (descending), then premium, then deadline
             queryBuilder
                 .orderBy('boosted_jobs.boostedAt', 'DESC', 'NULLS LAST') // Sort boosted jobs descending, non-boosted last
-                .addOrderBy('enterprise.isPremium', 'DESC')
-                .addOrderBy('jobs.deadline', 'ASC')
+                .addOrderBy('jobs.deadline', 'ASC') // Sort by deadline ascending
+                .addOrderBy('jobs.updatedAt', 'DESC') // Sort by updatedAt descending (newest first)
                 .skip(query.skip)
                 .take(query.take);
 
@@ -476,6 +484,7 @@ export class JobService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
     protected async storeFilterResultOnCache(key: string, results: any) {
         const cacheKey = `jobfilter:${key}`;
         await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day

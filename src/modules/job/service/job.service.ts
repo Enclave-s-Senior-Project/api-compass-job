@@ -38,8 +38,6 @@ export class JobService {
 
     async create(createJobDto: Omit<CreateJobDto, 'enterpriseId'>, accountId: string, enterpriseId: string) {
         try {
-            this.clearFilterJobResultOnCache();
-
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
 
             const addressIds = Array.isArray(address) ? address : [];
@@ -71,7 +69,7 @@ export class JobService {
                 specializations,
                 introImg,
             });
-
+            this.cacheService.deleteCache();
             await this.jobRepository.save(newJob);
             this.cacheService.deleteCache();
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
@@ -317,6 +315,7 @@ export class JobService {
             if (resultCache && resultCache?.length > 0) {
                 return new JobResponseDtoBuilder().setValue(JSON.parse(resultCache)).build();
             }
+
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
                 .leftJoinAndSelect('jobs.addresses', 'addresses')
@@ -324,7 +323,7 @@ export class JobService {
                 .leftJoinAndSelect('jobs.specializations', 'majorities')
                 .leftJoinAndSelect('jobs.enterprise', 'enterprise')
                 .leftJoinAndSelect('jobs.tags', 'tags')
-                .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs'); // Add join for boosted_jobs
+                .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs');
 
             // Full-Text Search
             if (query.name) {
@@ -417,6 +416,7 @@ export class JobService {
                 'jobs.status',
                 'jobs.education',
                 'jobs.enterpriseBenefits',
+                'jobs.updatedAt',
                 'addresses.addressId',
                 'addresses.country',
                 'addresses.city',
@@ -443,7 +443,7 @@ export class JobService {
                 'tags.name',
                 'tags.color',
                 'tags.backgroundColor',
-                'boosted_jobs.id', // Add boosted_jobs fields
+                'boosted_jobs.id',
                 'boosted_jobs.boostedAt',
                 'boosted_jobs.expiresAt',
             ]);

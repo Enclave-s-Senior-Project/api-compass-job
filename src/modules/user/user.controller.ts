@@ -65,6 +65,7 @@ export class UserController {
     @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
     @Get(':id')
     async getUserInfo(@Param('id') profileId: string) {
+        console.log('profileId', profileId);
         return this.userService.getUserByProfileId(profileId);
     }
 

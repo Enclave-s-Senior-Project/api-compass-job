@@ -34,19 +34,18 @@ export class EnterpriseService {
                 where: { account: { accountId: user.accountId } },
             });
             if (isEnterprises) {
-                return new EnterpriseResponseDtoBuilder()
-                    .badRequestContent(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS)
-                    .build();
+                throw new BadRequestException(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS);
             }
             const enterprise = await this.enterpriseRepository.create({
                 ...createEnterpriseDto,
                 account: { accountId: user.accountId },
             });
             await this.enterpriseRepository.save(enterprise);
+            this.delCache();
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error creating enterprise:', error);
-            throw error;
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -111,13 +110,16 @@ export class EnterpriseService {
     ): Promise<EnterpriseEntity> {
         if (typeof arg1 === 'string') {
             const enterprise = await this.findOne(arg1);
+            this.delCache();
             return this.enterpriseRepository.save({ ...enterprise, ...payload });
         }
+        this.delCache();
         return this.enterpriseRepository.save({ ...arg1, ...payload });
     }
 
     async remove(id: string) {
         const enterprise = await this.findOne(id);
+        this.delCache();
         return this.enterpriseRepository.remove(enterprise);
     }
 
@@ -176,7 +178,7 @@ export class EnterpriseService {
             await this.update(enterprise, payload);
 
             // this.storeEnterpriseOnRedis(updatedEnterprise.enterpriseId, updatedEnterprise);
-
+            this.delCache();
             return new EnterpriseResponseDtoBuilder().setValue(payload).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -194,7 +196,7 @@ export class EnterpriseService {
         if (!enterprise) {
             throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
         }
-
+        this.delCache();
         return enterprise;
     }
 
@@ -228,6 +230,7 @@ export class EnterpriseService {
             }
             if (temp.status === 'PENDING') {
                 const updateEnterprise = await this.enterpriseRepository.save({ ...temp, ...enterprise });
+                this.delCache();
                 return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
             } else {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
@@ -270,7 +273,7 @@ export class EnterpriseService {
 
             // Save - TypeORM will trigger `@BeforeUpdate()`
             const updateEnterprise = await this.enterpriseRepository.save(enterprise);
-
+            this.delCache();
             return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -341,5 +344,16 @@ export class EnterpriseService {
 
     async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload) {
         return this.profileService.getAllCandidate(options, user);
+    }
+    async delCache() {
+        const keys = await this.redisCache.keys('*');
+        const nonRefreshTokenKeys = keys.filter((key) => !key.includes('refreshtoken'));
+
+        if (nonRefreshTokenKeys.length > 0) {
+            await this.redisCache.del(...nonRefreshTokenKeys);
+            console.log(`Deleted ${nonRefreshTokenKeys.length} keys.`);
+        } else {
+            console.log('No keys to delete.');
+        }
     }
 }

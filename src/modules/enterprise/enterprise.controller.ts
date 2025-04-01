@@ -45,7 +45,7 @@ export class EnterpriseController {
     }
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
-    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Roles(Role.USER)
     @Post()
     @ApiOperation({ summary: 'Create a new enterprise' })
     @ApiResponse({ status: 201, description: 'Enterprise created successfully.' })
@@ -92,6 +92,7 @@ export class EnterpriseController {
     updateFoundingInfo(@CurrentUser() user: JwtPayload, @Body() body: UpdateFoundingInfoDto) {
         return this.enterpriseService.updatePartialInfoActive(body, user);
     }
+
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
@@ -99,6 +100,8 @@ export class EnterpriseController {
     @ApiOperation({ summary: "Update information about enterprise's founding" })
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateEnterprisePremium(@CurrentUser() user: JwtPayload, @Body() body: RegisterPremiumEnterpriseDto) {
+        console.log('body', body);
+        console.log('user', user);
         return this.enterpriseService.updateEnterprisePremium(user, body);
     }
 

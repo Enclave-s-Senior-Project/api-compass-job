@@ -1,5 +1,5 @@
 import { CreateCvDto } from '../dtos/create-cv.dto';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { CvRepository } from '../repositories/cv.repository';
 import { CvEntity } from '@database/entities';
 import { CvResponseDto, CvResponseDtoBuilder } from '../dtos/cv-response.dto';
@@ -105,6 +105,17 @@ export class CvService {
 
             if (!existedCV) {
                 throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
+            }
+
+            // Check if the CV is in use
+            const cvInUse = await this.cvRepository.exists({
+                where: {
+                    appliedJob: { cv: { cvId: cvId } },
+                },
+            });
+
+            if (cvInUse) {
+                throw new NotAcceptableException(CvErrorType.CV_IN_USE);
             }
 
             const deleteResult = await this.cvRepository.delete({

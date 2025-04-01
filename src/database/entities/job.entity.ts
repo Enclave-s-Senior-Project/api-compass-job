@@ -86,11 +86,6 @@ export class JobEntity extends BaseEntity {
     readonly jobsRecently: JobRecentlyEntity[];
 
     @ManyToMany(() => ProfileEntity, (profile) => profile.jobs)
-    @JoinTable({
-        name: 'jobs_favorite',
-        joinColumns: [{ name: 'job_id' }],
-        inverseJoinColumns: [{ name: 'profile_id' }],
-    })
     readonly profiles: ProfileEntity[];
 
     @OneToMany(() => UserRatingEntity, (userRating) => userRating.job)

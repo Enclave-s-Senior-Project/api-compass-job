@@ -143,16 +143,19 @@ export class JobService {
         try {
             const isExistedJob = await this.jobRepository.existsBy({ jobId: payload.jobId });
             if (!isExistedJob) {
-                return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
+                throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
             }
 
-            const isExistedWishList =
-                (await this.jobRepository
-                    .createQueryBuilder()
-                    .innerJoin('jobs_favorite', 'jf', 'jf.job_id=:jobId', { jobId: payload.jobId })
-                    .getCount()) > 0;
+            const isExistedWishList = await this.jobRepository.exists({
+                where: {
+                    jobId: payload.jobId,
+                    profiles: { profileId: user.profileId },
+                },
+                relations: ['profiles'],
+            });
+
             if (isExistedWishList) {
-                return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_ADDED_WISHLIST).build();
+                throw new BadRequestException(JobErrorType.JOB_ADDED_WISHLIST);
             }
 
             await this.jobRepository
@@ -162,10 +165,10 @@ export class JobService {
                 .values([{ job_id: payload.jobId, profile_id: user.profileId }])
                 .execute();
 
-            return new JobResponseDtoBuilder().success().build();
+            return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
-            console.error('Error create job wish list');
-            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+            console.error(error);
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -175,13 +178,11 @@ export class JobService {
                 .createQueryBuilder()
                 .delete()
                 .from('jobs_favorite')
-                .where('job_id = :jobId', { jobId: id })
-                .andWhere('profile_id = :profileId', { profileId: user.profileId })
+                .where('job_id = :jobId and profile_id = :profileId', { jobId: id, profileId: user.profileId })
                 .execute();
-            return new JobResponseDtoBuilder().success().build();
+            return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
-            console.error('Error delete job wish list');
-            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

@@ -317,7 +317,7 @@ export class AuthService {
             const user = await this.accountRepository
                 .createQueryBuilder('account')
                 .leftJoin('account.profile', 'profile')
-                .select(['account.email', 'profile.fullName']) // Chỉ lấy email và fullName
+                .select(['account.email', 'profile.fullName', 'account.status']) // Chỉ lấy email và fullName
                 .where('account.email = :email', { email })
                 .getOne();
 
@@ -325,6 +325,7 @@ export class AuthService {
                 throw new NotFoundException(AuthErrorType.EMAIL_NOT_EXISTS);
             }
 
+            console.log(user)
             if (user?.status !== UserStatus.ACTIVE) {
                 throw new NotAcceptableException(AuthErrorType.USER_NOT_ACTIVE);
             }

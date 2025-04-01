@@ -57,31 +57,57 @@ export class OAuth2Service extends AuthService {
     }
 
     private async createOAuth2Account(payload: OAuth2Login) {
-        if (await this.accountRepository.exists({ where: { email: payload.email } })) {
-            throw new NotAcceptableException(AuthErrorType.EMAIL_ALREADY_EXISTS);
+        try {
+            const accountExists = await this.accountRepository.findOne({
+                where: {
+                    email: payload.email,
+                },
+            });
+
+            const oauth2Id =
+                payload.provider === 'facebook'
+                    ? { facebookId: payload.providerId }
+                    : payload.provider === 'google'
+                      ? { googleId: payload.providerId }
+                      : {};
+
+            if (!accountExists) {
+                const randomHashedPassword = await HashHelper.encrypt(crypto.randomUUID());
+
+                const newAccount = (await this.accountRepository.save({
+                    email: payload.email,
+                    password: randomHashedPassword,
+                    status: UserStatus.ACTIVE,
+                    roles: ['USER'],
+                    ...oauth2Id,
+                })) as AccountEntity;
+
+                await this.userService.createUser({
+                    fullName: payload.name,
+                    profileUrl: payload.photo,
+                    account: newAccount.accountId,
+                });
+
+                return newAccount;
+            } else {
+                if (
+                    (payload.provider === 'facebook' &&
+                        accountExists.facebookId !== payload.providerId &&
+                        accountExists.facebookId !== null) ||
+                    (payload.provider === 'google' &&
+                        accountExists.googleId !== payload.providerId &&
+                        accountExists.googleId !== null)
+                ) {
+                    throw new NotAcceptableException(AuthErrorType.EMAIL_ALREADY_EXISTS);
+                } else {
+                    return await this.accountRepository.save({
+                        ...accountExists,
+                        ...oauth2Id,
+                    });
+                }
+            }
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-        const randomHashedPassword = await HashHelper.encrypt(crypto.randomUUID());
-        const oauth2Id =
-            payload.provider === 'facebook'
-                ? { facebookId: payload.providerId }
-                : payload.provider === 'google'
-                  ? { googleId: payload.providerId }
-                  : {};
-
-        const newAccount = (await this.accountRepository.save({
-            email: payload.email,
-            password: randomHashedPassword,
-            status: UserStatus.ACTIVE,
-            roles: ['USER'],
-            ...oauth2Id,
-        })) as AccountEntity;
-
-        await this.userService.createUser({
-            fullName: payload.name,
-            profileUrl: payload.photo,
-            account: newAccount.accountId,
-        });
-
-        return newAccount;
     }
 }

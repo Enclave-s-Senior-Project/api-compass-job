@@ -12,6 +12,7 @@ export enum AuthErrorType {
     EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
     EMAIL_NOT_EXISTS = 'EMAIL_NOT_EXISTS',
     USER_NOT_ACTIVE = 'USER_NOT_ACTIVE',
+    NOT_ALLOW_RESET_PW = 'NOT_ALLOW_RESET_PW',
 }
 
 export enum OAuth2ErrorType {

@@ -349,39 +349,33 @@ export class AuthService {
     public async resetPassword({ newPassword, token, email, iv }: ResetPasswordDto) {
         try {
             // decode reset token
-            let decodedToken;
-            try {
-                decodedToken = HashHelper.decode(token, iv);
-            } catch (error) {
-                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
-            }
+            let decodedToken = HashHelper.decode(token, iv);
 
             if (!decodedToken) {
-                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+                throw new NotAcceptableException(AuthErrorType.NOT_ALLOW_RESET_PW);
             }
 
             const [baseToken, expires] = decodedToken.split(',');
             // check token still lives
             if (isNaN(new Date(expires).getTime()) || new Date(expires).getTime() <= Date.now()) {
-                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+                throw new NotAcceptableException(AuthErrorType.TOKEN_EXPIRED);
             }
 
             // check token is valid on cache
             const storedToken = await this.redisCache.get(`forget-password:${email}`);
             if (!storedToken || storedToken !== baseToken) {
-                return new RegisterResponseDtoBuilder().badRequestContent('NOT_ALLOW').build();
+                throw new NotAcceptableException(AuthErrorType.NOT_ALLOW_RESET_PW);
             }
 
             // delete cache after comparing
-            await this.redisCache.del(`forget-password:${email}`);
+            this.redisCache.del(`forget-password:${email}`);
 
             const hashedPassword = await HashHelper.encrypt(newPassword);
             await this.accountRepository.update({ email: email }, { password: hashedPassword });
 
             return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
-            console.error(error);
-            throw new InternalServerErrorException();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

@@ -259,7 +259,6 @@ export class EnterpriseService {
     }
     async updateEnterprisePremium(user: JwtPayload, payload: RegisterPremiumEnterpriseDto) {
         try {
-            console.log('payload', payload);
             const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId: user.enterpriseId });
             if (!enterprise) {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
@@ -313,7 +312,6 @@ export class EnterpriseService {
         try {
             const candidate = await this.profileService.checkProfile(candidateId);
             if (!candidate) {
-                console.log('Profile not found');
                 throw new NotFoundException(ProfileErrorType.PROFILE_NOT_FOUND);
             }
 

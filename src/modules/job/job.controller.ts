@@ -56,6 +56,7 @@ export class JobController {
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Post('wishlist')
     createJobWishlist(@CurrentUser() user, @Body() body: CreateJobWishListDto): Promise<JobResponseDto> {
+        console.log({ user });
         return this.jobService.createJobWishList(body, user);
     }
 

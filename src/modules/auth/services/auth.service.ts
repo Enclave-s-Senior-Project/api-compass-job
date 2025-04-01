@@ -325,7 +325,6 @@ export class AuthService {
                 throw new NotFoundException(AuthErrorType.EMAIL_NOT_EXISTS);
             }
 
-            console.log(user)
             if (user?.status !== UserStatus.ACTIVE) {
                 throw new NotAcceptableException(AuthErrorType.USER_NOT_ACTIVE);
             }

@@ -23,7 +23,7 @@ import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
 import { IsNull } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
-
+import * as _ from 'lodash';
 @Injectable()
 export class JobService {
     constructor(
@@ -312,9 +312,11 @@ export class JobService {
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
             const resultCache = await this.getFilterResultOnCache(urlQuery);
-            if (resultCache || resultCache?.length > 0) {
+
+            // Check if cache exists and has valid data using Lodash
+            if (resultCache && _.isArray(resultCache.data) && !_.isEmpty(resultCache.data)) {
                 const meta = new PageMetaDto({
-                    itemCount: resultCache.length,
+                    itemCount: resultCache.data.length,
                     pageOptionsDto: {
                         skip: query.skip,
                         options: query.options,
@@ -323,7 +325,7 @@ export class JobService {
                         take: query.take,
                     },
                 });
-                return new JobResponseDtoBuilder().setValue(new PageDto(resultCache, meta)).build();
+                return new JobResponseDtoBuilder().setValue(new PageDto(resultCache.data, meta)).build();
             }
 
             const queryBuilder = this.jobRepository

@@ -312,7 +312,6 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            console.log('Filter Query:', query);
             const resultCache = await this.getFilterResultOnCache(urlQuery);
             if (resultCache && resultCache?.length > 0) {
                 const meta = new PageMetaDto({
@@ -339,7 +338,6 @@ export class JobService {
 
             // Full-Text Search
             if (query.name) {
-                console.log('Searching for name:', query.name);
                 queryBuilder.andWhere(
                     "to_tsvector('english', jobs.name) @@ plainto_tsquery(:name) OR jobs.name ILIKE :namePattern",
                     {
@@ -471,8 +469,6 @@ export class JobService {
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
             await this.storeFilterResultOnCache(urlQuery, jobs);
-            console.log('Filter Result total:', total);
-            console.log('Filter Result take:', query.take);
             const meta = new PageMetaDto({
                 itemCount: total,
                 pageOptionsDto: {

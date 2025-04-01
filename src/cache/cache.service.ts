@@ -20,11 +20,9 @@ export class CacheService {
 
                 if (keysToDelete.length > 0) {
                     await this.redisClient.del(...keysToDelete);
-                    console.log(`Deleted ${keysToDelete.length} keys.`);
                 }
             } while (cursor !== '0');
         } catch (error) {
-            console.error('Error while deleting cache:', error);
             throw error;
         }
     }

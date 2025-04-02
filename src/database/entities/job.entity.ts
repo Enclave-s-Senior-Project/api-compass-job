@@ -21,6 +21,7 @@ import {
 } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
 import { BoostedJobsEntity } from './boosted-jobs.entity';
+import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
 
 @Entity('jobs')
 export class JobEntity extends BaseEntity {
@@ -42,8 +43,8 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'responsibility', type: 'text', nullable: true })
     readonly responsibility: string;
 
-    @Column({ name: 'type', type: 'varchar', length: 50 })
-    readonly type: string | null;
+    @Column({ name: 'type', type: 'enum', enum: JobTypeEnum, nullable: false, default: JobTypeEnum.CONTRACT })
+    readonly type: JobTypeEnum;
 
     @Column({ name: 'experience', type: 'int', default: 0 })
     readonly experience: number;
@@ -58,8 +59,8 @@ export class JobEntity extends BaseEntity {
     })
     readonly introImg: string | null;
 
-    @Column({ name: 'status', type: 'boolean', default: true })
-    readonly status: boolean;
+    @Column({ name: 'status', type: 'enum', enum: JobStatusEnum, default: JobStatusEnum.OPEN })
+    readonly status: JobStatusEnum;
 
     @Column({ name: 'education', type: 'varchar', length: 50, nullable: true })
     readonly education: string;

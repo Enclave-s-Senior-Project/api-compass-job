@@ -122,6 +122,6 @@ export class JobController {
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Patch(':id/close')
     closeJobOrMakeExpired(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
-        return this.jobService.closeJobOrMakeExpired(id, user);
+        return this.jobService.closeJob(id, user);
     }
 }

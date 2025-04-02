@@ -1,6 +1,7 @@
 import { PaginationDto } from '@common/dtos';
 import { JobFilterErrorType } from '@common/errors/class-validator-error-type';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { JobTypeEnum } from '@src/common/enums/job.enum';
 import { IsOptional, IsString, IsInt, Min, IsBoolean, IsArray, ArrayNotEmpty, isInt } from 'class-validator';
 
 export class JobFilterDto extends PaginationDto {
@@ -50,7 +51,7 @@ export class JobFilterDto extends PaginationDto {
     @ArrayNotEmpty({ message: JobFilterErrorType.TYPE_NOT_ARRAY_OF_STRINGS })
     @IsString({ each: true, message: JobFilterErrorType.TYPE_NOT_ARRAY_OF_STRINGS })
     @IsOptional()
-    readonly type?: string[];
+    readonly type?: JobTypeEnum[];
 
     @ApiPropertyOptional({ description: 'Filter by education level' })
     @IsArray({ message: JobFilterErrorType.EDUCATION_NOT_ARRAY_OF_STRINGS })

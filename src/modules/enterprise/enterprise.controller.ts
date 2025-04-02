@@ -109,7 +109,7 @@ export class EnterpriseController {
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
-    @Get('jobs')
+    @Get('me/jobs')
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
     getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: PaginationDto) {
         return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);

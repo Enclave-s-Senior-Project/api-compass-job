@@ -24,6 +24,7 @@ import { GlobalErrorType } from '@src/common/errors/global-error';
 import { IsNull } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
+import { JobStatusEnum } from '@src/common/enums/job.enum';
 @Injectable()
 export class JobService {
     constructor(
@@ -249,6 +250,10 @@ export class JobService {
 
     async getJobOfEnterprise(enterpriseId: string, pagination: PaginationDto) {
         try {
+            // const cache = await this.cacheService.getCache(`test:${JSON.stringify(pagination)}`);
+            // if (cache) {
+            //     return cache;
+            // }
             const [jobs, total] = await this.jobRepository.findAndCount({
                 where: {
                     enterprise: {
@@ -259,6 +264,8 @@ export class JobService {
                     addresses: true,
                     appliedJob: true,
                     enterprise: true,
+                    tags: true,
+                    categories: true,
                 },
                 select: {
                     jobId: true,
@@ -271,14 +278,18 @@ export class JobService {
                     deadline: true,
                     highestWage: true,
                     lowestWage: true,
+                    tags: true,
+                    experience: true,
                     userRatings: true,
+                    categories: true,
+                    isBoost: true,
                     enterprise: {
                         enterpriseId: true,
                         name: true,
                         logoUrl: true,
                     },
                 },
-                skip: (Number(pagination.page) - 1) * Number(pagination.take),
+                skip: pagination.skip,
                 take: Number(pagination.take),
                 order: {
                     createdAt: 'DESC',
@@ -294,8 +305,12 @@ export class JobService {
                 pageOptionsDto: pagination,
                 itemCount: total,
             });
-            const result = new PageDto(formattedResult, meta);
-            return new PageDto(formattedResult, meta);
+
+            // this.cacheService.storeCache(`test:${JSON.stringify(pagination)}`, result, 10000);
+            return new JobResponseDtoBuilder()
+                .setValue(new PageDto<JobEntity>(formattedResult, meta))
+                .success()
+                .build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -311,7 +326,7 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            const resultCache = await this.cacheService.getCache(urlQuery);
+            const resultCache = await this.cacheService.getCacheJobFilter(urlQuery);
 
             if (resultCache) {
                 return new JobResponseDtoBuilder().setValue(resultCache).build();
@@ -399,7 +414,7 @@ export class JobService {
             }
 
             // Status and Deadline
-            queryBuilder.andWhere('jobs.status = :status', { status: true });
+            queryBuilder.andWhere('jobs.status = :status', { status: JobStatusEnum.OPEN });
             queryBuilder.andWhere('jobs.deadline > CURRENT_DATE');
 
             // Select fields
@@ -468,7 +483,7 @@ export class JobService {
                     take: query.take,
                 },
             });
-            this.cacheService.storeCache(urlQuery, new PageDto(jobs, meta), 60 * 60 * 24);
+            this.cacheService.cacheJobFilterData(urlQuery, new PageDto(jobs, meta));
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
             console.error('Filter Query Error:', error);
@@ -484,43 +499,6 @@ export class JobService {
     protected async getFilterResultOnCache(key: string) {
         const cacheResult = await this.redisCache.get(`jobfilter:${key}`);
         return JSON.parse(cacheResult) || null;
-    }
-
-    public async clearFilterJobResultOnCache() {
-        try {
-            let cursor = '0';
-            const batchSize = 1000;
-            const pipeline = this.redisCache.pipeline();
-
-            do {
-                const [nextCursor, keys] = await this.redisCache.scan(
-                    cursor,
-                    'MATCH',
-                    'jobfilter:*',
-                    'COUNT',
-                    batchSize
-                );
-                cursor = nextCursor;
-
-                if (keys.length > 0) {
-                    keys.forEach((key) => pipeline.del(key));
-                }
-
-                // Execute deletion in batches
-                if (pipeline.length >= batchSize) {
-                    await pipeline.exec();
-                }
-            } while (cursor !== '0');
-
-            // Execute any remaining deletions
-            if (pipeline.length > 0) {
-                await pipeline.exec();
-            }
-
-            return true;
-        } catch (error) {
-            throw error;
-        }
     }
 
     public async updateJob(jobId: string, updatePayload: UpdateJobDto, user: JwtPayload): Promise<JobResponseDto> {
@@ -541,7 +519,6 @@ export class JobService {
                 where: {
                     jobId,
                     enterprise: { enterpriseId: user.enterpriseId },
-                    status: true,
                 },
                 relations: ['enterprise'],
             });
@@ -591,14 +568,13 @@ export class JobService {
                 experience: updatePayload.experience,
                 deadline: updatePayload.deadline,
                 introImg: updatePayload.introImg,
-                status: updatePayload.status,
                 education: updatePayload.education,
                 enterpriseBenefits: updatePayload.enterpriseBenefits,
                 ...relationIds,
             });
 
             // Clear cache filter search
-            await this.clearFilterJobResultOnCache();
+            await this.cacheService.removeSearchJobsCache();
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
@@ -632,7 +608,7 @@ export class JobService {
             await this.jobRepository.delete({ jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } });
 
             // clear filter search cache
-            await this.clearFilterJobResultOnCache();
+            await this.cacheService.removeSearchJobsCache();
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -649,7 +625,7 @@ export class JobService {
         return !!hasApplications;
     }
 
-    public async closeJobOrMakeExpired(jobId: string, user: JwtPayload) {
+    public async closeJob(jobId: string, user: JwtPayload) {
         try {
             // Validate UUID
             if (!ValidationHelper.isValidateUUIDv4(jobId)) {
@@ -663,9 +639,9 @@ export class JobService {
                 throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
             }
 
-            await this.jobRepository.update({ jobId }, { status: false, deadline: new Date() });
+            await this.jobRepository.update({ jobId }, { status: JobStatusEnum.CLOSED, deadline: new Date() });
             // clear filter search cache
-            await this.clearFilterJobResultOnCache();
+            await this.cacheService.removeSearchJobsCache();
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {

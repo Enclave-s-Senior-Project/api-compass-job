@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { JobTypeEnum } from '@src/common/enums/job.enum';
 
 export class CreateJobDto {
     @ApiProperty({ description: 'Job name', example: 'Software Engineer' })
@@ -43,11 +44,11 @@ export class CreateJobDto {
     @IsNotEmpty()
     readonly responsibility: string;
 
-    @ApiProperty({ description: 'Job type', example: 'Full-time', required: false })
+    @ApiProperty({ description: 'Job type', example: 'Full time', required: true })
     @IsOptional()
     @IsString()
     @Length(0, 50)
-    readonly type?: string;
+    readonly type: JobTypeEnum;
 
     @ApiProperty({ description: 'Years of experience required', example: 2 })
     @IsNumber()
@@ -65,10 +66,6 @@ export class CreateJobDto {
     @IsString()
     @MaxLength(255)
     readonly introImg?: string;
-
-    @ApiProperty({ description: 'Job status (active/inactive)', example: true })
-    @IsBoolean()
-    readonly status: boolean;
 
     @ApiProperty({ description: 'Job education requirement', example: 'Bachelor’s degree in Computer Science' })
     @IsString()

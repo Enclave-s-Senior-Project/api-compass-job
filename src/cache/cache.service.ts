@@ -4,7 +4,12 @@ import { redisProviderName } from './cache.provider';
 
 @Injectable()
 export class CacheService {
-    constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {}
+    private filterJobKey: string;
+
+    constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {
+        this.filterJobKey = 'jobfilter:';
+    }
+
     async deleteCache(extraExcludePatterns: string[] = []) {
         try {
             let cursor = '0';
@@ -40,5 +45,57 @@ export class CacheService {
         } catch (error) {
             throw error;
         }
+    }
+
+    public async removeMultipleCacheWithPrefix(prefix: string) {
+        try {
+            let cursor = '0';
+            const batchSize = 1000;
+            const pipeline = this.redisClient.pipeline();
+
+            do {
+                const [nextCursor, keys] = await this.redisClient.scan(
+                    cursor,
+                    'MATCH',
+                    `${prefix}*`,
+                    'COUNT',
+                    batchSize
+                );
+                cursor = nextCursor;
+
+                if (keys.length > 0) {
+                    keys.forEach((key) => pipeline.del(key));
+                }
+
+                // Execute deletion in batches
+                if (pipeline.length >= batchSize) {
+                    await pipeline.exec();
+                }
+            } while (cursor !== '0');
+
+            // Execute any remaining deletions
+            if (pipeline.length > 0) {
+                await pipeline.exec();
+            }
+
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeSearchJobsCache() {
+        return await this.removeMultipleCacheWithPrefix(this.filterJobKey);
+    }
+
+    public async cacheJobFilterData(key: string, results: any) {
+        const cacheKey = this.filterJobKey + key;
+        await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+    }
+
+    public async getCacheJobFilter(key: string) {
+        const cacheKey = this.filterJobKey + key;
+        const cacheResult = await this.redisClient.get(cacheKey);
+        return JSON.parse(cacheResult) || null;
     }
 }

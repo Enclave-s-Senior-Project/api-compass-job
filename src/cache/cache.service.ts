@@ -26,4 +26,19 @@ export class CacheService {
             throw error;
         }
     }
+    async storeCache(key: string, value: any, expireTime: number) {
+        try {
+            await this.redisClient.set(key, JSON.stringify(value), 'EX', expireTime);
+        } catch (error) {
+            throw error;
+        }
+    }
+    async getCache(key: string) {
+        try {
+            const value = await this.redisClient.get(key);
+            return value ? JSON.parse(value) : null;
+        } catch (error) {
+            throw error;
+        }
+    }
 }

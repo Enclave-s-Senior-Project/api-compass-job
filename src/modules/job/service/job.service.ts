@@ -311,21 +311,10 @@ export class JobService {
 
     async filter(query: JobFilterDto, urlQuery: string) {
         try {
-            const resultCache = await this.getFilterResultOnCache(urlQuery);
+            const resultCache = await this.cacheService.getCache(urlQuery);
 
-            // Check if cache exists and has valid data using Lodash
-            if (resultCache && _.isArray(resultCache.data) && !_.isEmpty(resultCache.data)) {
-                const meta = new PageMetaDto({
-                    itemCount: resultCache.data.length,
-                    pageOptionsDto: {
-                        skip: query.skip,
-                        options: query.options,
-                        order: query.order,
-                        page: query.page,
-                        take: query.take,
-                    },
-                });
-                return new JobResponseDtoBuilder().setValue(new PageDto(resultCache.data, meta)).build();
+            if (resultCache) {
+                return new JobResponseDtoBuilder().setValue(resultCache).build();
             }
 
             const queryBuilder = this.jobRepository
@@ -479,7 +468,7 @@ export class JobService {
                     take: query.take,
                 },
             });
-            this.storeFilterResultOnCache(urlQuery, new PageDto(jobs, meta));
+            this.cacheService.storeCache(urlQuery, new PageDto(jobs, meta), 60 * 60 * 24);
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
             console.error('Filter Query Error:', error);

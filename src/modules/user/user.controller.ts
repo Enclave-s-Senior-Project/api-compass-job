@@ -86,4 +86,14 @@ export class UserController {
     async getSocialLinks(@Param('id') profileId: string) {
         return this.userService.findByProfileId(profileId);
     }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Get user information by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    @Get('/candidate/:id')
+    async getUserInfoAndFavorite(@Param('id') profileId: string, @CurrentUser() user) {
+        console.log('profileId', profileId);
+        return this.userService.getUserByProfileIdAndFavorite(profileId, user.enterpriseId);
+    }
 }

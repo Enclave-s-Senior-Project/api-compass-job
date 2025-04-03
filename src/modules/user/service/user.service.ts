@@ -105,10 +105,10 @@ export class UserService {
      */
     public async getUserByAccountId(accountId: string, useCache: boolean = true): Promise<ProfileAndRoles> | null {
         try {
-            if (useCache) {
-                const cachedProfile = await this.getProfileOnRedis(accountId);
-                if (cachedProfile) return cachedProfile;
-            }
+            // if (useCache) {
+            //     const cachedProfile = await this.getProfileOnRedis(accountId);
+            //     if (cachedProfile) return cachedProfile;
+            // }
 
             const profile = await this.profileRepository.findOne({
                 where: { account: { accountId: accountId } },
@@ -436,5 +436,57 @@ export class UserService {
 
     public async getCvByUserId(profileId: string) {
         return this.cvService.getCvByUserId(profileId);
+    }
+
+    public async getUserByProfileIdAndFavorite(profileId: string, enterpriseId: string) {
+        if (!ValidationHelper.isValidateUUIDv4(profileId)) {
+            throw new BadRequestException(GlobalErrorType.INVALID_ID);
+        }
+
+        try {
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: profileId, account: { status: UserStatus.ACTIVE } },
+                relations: ['account'],
+                select: {
+                    account: {
+                        accountId: true,
+                    },
+                },
+            });
+
+            if (!profile?.account?.accountId) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
+            const profileInfo = await this.getUserByAccountId(profile.account.accountId, true);
+            const profileWithAppliedJob = await this.profileRepository
+                .createQueryBuilder('profile')
+                .leftJoin('profile.appliedJob', 'appliedJob')
+                .leftJoin('appliedJob.job', 'job')
+                .leftJoin('job.enterprise', 'enterprise')
+                .where('profile.profileId = :profileId', { profileId })
+                .andWhere('enterprise.enterpriseId = :enterpriseId', { enterpriseId })
+                .select(['profile.profileId', 'appliedJob.coverLetter'])
+                .getOne();
+            const isFavorite =
+                (await this.profileRepository
+                    .createQueryBuilder('profile')
+                    .innerJoin('profile.enterprises', 'enterprise')
+                    .where('profile.profileId = :profileId', { profileId })
+                    .andWhere('enterprise.enterpriseId = :enterpriseId', { enterpriseId })
+                    .getCount()) > 0;
+            const coverLetter =
+                profileWithAppliedJob?.appliedJob?.length > 0 ? profileWithAppliedJob.appliedJob[0].coverLetter : null;
+
+            return new UserResponseDtoBuilder()
+                .setValue({
+                    ...profileInfo,
+                    isFavorite,
+                    coverLetter,
+                })
+                .success()
+                .build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 }

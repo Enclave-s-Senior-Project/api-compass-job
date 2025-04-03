@@ -18,6 +18,7 @@ import { CreateCandidateWishListDto } from '../dtos/create-candidate-wishlist.dt
 import { UserService } from '@src/modules/user/service';
 import { ProfileErrorType } from '@src/common/errors/profile-error-type';
 import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
+import { FindJobsByEnterpriseDto } from '../dtos/find-job-by-enterprise.dto';
 
 @Injectable()
 export class EnterpriseService {
@@ -129,7 +130,7 @@ export class EnterpriseService {
             relations: ['account', 'websites', 'jobs', 'addresses'],
         });
     }
-    async findJobsByEnterpriseId(enterpriseId: string, pagination: PaginationDto) {
+    async findJobsByEnterpriseId(enterpriseId: string, pagination: FindJobsByEnterpriseDto) {
         try {
             return await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
         } catch (error) {
@@ -243,16 +244,13 @@ export class EnterpriseService {
         try {
             const cacheKey = `enterprise-total-job:${enterpriseId}`;
 
-            // Check Redis cache first
             const cachedTotal = await this.redisCache.get(cacheKey);
             if (cachedTotal) {
                 new EnterpriseResponseDtoBuilder().setValue(cachedTotal).build();
             }
 
-            // Fetch from database if not cached
             const total = await this.jobService.totalJobsByEnterprise(enterpriseId);
 
-            // Store result in Redis with expiration time
             await this.redisCache.set(cacheKey, JSON.stringify(total), 'EX', 432000);
 
             return new EnterpriseResponseDtoBuilder().setValue(total).build();
@@ -267,11 +265,9 @@ export class EnterpriseService {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
             }
 
-            // Assign new premium type and enable premium
             enterprise.premiumType = payload.premiumType;
             enterprise.isPremium = true;
 
-            // Save - TypeORM will trigger `@BeforeUpdate()`
             const updateEnterprise = await this.enterpriseRepository.save(enterprise);
             this.delCache();
             return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
@@ -351,7 +347,6 @@ export class EnterpriseService {
 
         if (nonRefreshTokenKeys.length > 0) {
             await this.redisCache.del(...nonRefreshTokenKeys);
-            console.log(`Deleted ${nonRefreshTokenKeys.length} keys.`);
         } else {
             console.log('No keys to delete.');
         }

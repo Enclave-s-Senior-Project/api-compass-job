@@ -18,6 +18,7 @@ import { UpdateCompanyInfoDto } from './dtos/update-company-info.dto';
 import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
 import { CreateCandidateWishListDto } from './dtos/create-candidate-wishlist.dto';
 import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
+import { FindJobsByEnterpriseDto } from './dtos/find-job-by-enterprise.dto';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -100,8 +101,6 @@ export class EnterpriseController {
     @ApiOperation({ summary: "Update information about enterprise's founding" })
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateEnterprisePremium(@CurrentUser() user: JwtPayload, @Body() body: RegisterPremiumEnterpriseDto) {
-        console.log('body', body);
-        console.log('user', user);
         return this.enterpriseService.updateEnterprisePremium(user, body);
     }
 
@@ -111,7 +110,7 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
     @Get('me/jobs')
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
-    getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: PaginationDto) {
+    getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: FindJobsByEnterpriseDto) {
         return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);
     }
 
@@ -119,7 +118,7 @@ export class EnterpriseController {
     @Get(':id/jobs')
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
-    findJobsByEnterprise(@Param('id') id: string, @Query() paginationDto: PaginationDto) {
+    findJobsByEnterprise(@Param('id') id: string, @Query() paginationDto: FindJobsByEnterpriseDto) {
         return this.enterpriseService.findJobsByEnterpriseId(id, paginationDto);
     }
 

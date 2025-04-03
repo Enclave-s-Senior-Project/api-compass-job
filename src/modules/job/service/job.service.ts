@@ -24,7 +24,8 @@ import { GlobalErrorType } from '@src/common/errors/global-error';
 import { IsNull } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
-import { JobStatusEnum } from '@src/common/enums/job.enum';
+import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
+import { FindJobsByEnterpriseDto } from '@src/modules/enterprise/dtos/find-job-by-enterprise.dto';
 @Injectable()
 export class JobService {
     constructor(
@@ -248,57 +249,101 @@ export class JobService {
         }
     }
 
-    async getJobOfEnterprise(enterpriseId: string, pagination: PaginationDto) {
+    async getJobOfEnterprise(enterpriseId: string, pagination: FindJobsByEnterpriseDto) {
         try {
-            // const cache = await this.cacheService.getCache(`test:${JSON.stringify(pagination)}`);
+            // const cacheKey = `jobs:enterprise:${enterpriseId}:${JSON.stringify(pagination)}`;
+            // const cache = await this.cacheService.getCache(cacheKey);
             // if (cache) {
             //     return cache;
             // }
-            const [jobs, total] = await this.jobRepository.findAndCount({
-                where: {
-                    enterprise: {
-                        enterpriseId: enterpriseId,
-                    },
-                },
-                relations: {
-                    addresses: true,
-                    appliedJob: true,
-                    enterprise: true,
-                    tags: true,
-                    categories: true,
-                },
-                select: {
-                    jobId: true,
-                    name: true,
-                    type: true,
-                    status: true,
-                    introImg: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    deadline: true,
-                    highestWage: true,
-                    lowestWage: true,
-                    tags: true,
-                    experience: true,
-                    userRatings: true,
-                    categories: true,
-                    isBoost: true,
-                    enterprise: {
-                        enterpriseId: true,
-                        name: true,
-                        logoUrl: true,
-                    },
-                },
-                skip: pagination.skip,
-                take: Number(pagination.take),
-                order: {
-                    createdAt: 'DESC',
-                },
-            });
+            const queryBuilder = this.jobRepository
+                .createQueryBuilder('jobs')
+                .leftJoinAndSelect('jobs.addresses', 'addresses')
+                .leftJoinAndSelect('jobs.appliedJob', 'appliedJob')
+                .leftJoinAndSelect('jobs.enterprise', 'enterprise')
+                .leftJoinAndSelect('jobs.tags', 'tags')
+                .leftJoinAndSelect('jobs.categories', 'categories')
+                .where('enterprise.enterpriseId = :enterpriseId', { enterpriseId });
 
+            // Search filter
+            if (pagination.search) {
+                queryBuilder.andWhere(
+                    "to_tsvector('english', jobs.name) @@ plainto_tsquery(:search) OR jobs.name ILIKE :searchPattern",
+                    {
+                        search: pagination.search.trim(),
+                        searchPattern: `%${pagination.search.trim()}%`,
+                    }
+                );
+            }
+
+            // Job type filter
+            if (pagination.jobType) {
+                queryBuilder.andWhere('jobs.type = :jobType', {
+                    jobType: pagination.jobType,
+                });
+            }
+
+            // Job status filter
+            if (pagination.jobStatus) {
+                queryBuilder.andWhere('jobs.status = :jobStatus', {
+                    jobStatus: pagination.jobStatus,
+                });
+            }
+
+            // Location filter
+            if (pagination.jobLocation) {
+                queryBuilder.andWhere(
+                    'unaccent(addresses.city) ILIKE unaccent(:jobLocation) OR unaccent(addresses.country) ILIKE unaccent(:jobLocation)',
+                    {
+                        jobLocation: `%${pagination.jobLocation}%`,
+                    }
+                );
+            }
+
+            // Experience filter
+            if (pagination.jobExperience !== undefined) {
+                queryBuilder.andWhere('jobs.experience = :experience', {
+                    experience: Number(pagination.jobExperience),
+                });
+            }
+
+            // Boost status filter
+            if (pagination.jobBoost !== undefined) {
+                queryBuilder
+                    .leftJoinAndSelect('jobs.boostedJob', 'boostedJob')
+                    .andWhere(pagination.jobBoost ? 'boostedJob.id IS NOT NULL' : 'boostedJob.id IS NULL');
+            }
+
+            // Select fields
+            queryBuilder.select([
+                'jobs.jobId',
+                'jobs.name',
+                'jobs.type',
+                'jobs.status',
+                'jobs.introImg',
+                'jobs.createdAt',
+                'jobs.updatedAt',
+                'jobs.deadline',
+                'jobs.highestWage',
+                'jobs.lowestWage',
+                'jobs.experience',
+                'jobs.isBoost',
+                'addresses',
+                'appliedJob',
+                'enterprise.enterpriseId',
+                'enterprise.name',
+                'enterprise.logoUrl',
+                'tags',
+                'categories',
+            ]);
+
+            // Pagination and ordering
+            queryBuilder.orderBy('jobs.createdAt', 'DESC').skip(pagination.skip).take(Number(pagination.take));
+
+            const [jobs, total] = await queryBuilder.getManyAndCount();
             const formattedResult = jobs.map((job) => ({
                 ...job,
-                applicationCount: job.appliedJob ? job.appliedJob?.length : 0,
+                applicationCount: job.appliedJob ? job.appliedJob.length : 0,
             }));
 
             const meta = new PageMetaDto({
@@ -306,11 +351,13 @@ export class JobService {
                 itemCount: total,
             });
 
-            // this.cacheService.storeCache(`test:${JSON.stringify(pagination)}`, result, 10000);
-            return new JobResponseDtoBuilder()
+            const result = new JobResponseDtoBuilder()
                 .setValue(new PageDto<JobEntity>(formattedResult, meta))
                 .success()
                 .build();
+
+            // await this.cacheService.storeCache(cacheKey, result, 10000);
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

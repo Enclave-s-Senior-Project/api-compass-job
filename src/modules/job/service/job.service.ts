@@ -226,7 +226,7 @@ export class JobService {
             let isFavorite = false;
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
-                relations: ['tags', 'enterprise', 'addresses', 'profiles'],
+                relations: ['tags', 'enterprise', 'addresses', 'profiles', 'categories', 'specializations'],
             });
 
             if (!job) {

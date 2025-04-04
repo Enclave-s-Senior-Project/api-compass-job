@@ -21,11 +21,11 @@ import { redisProviderName } from '@cache/cache.provider';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
-import { IsNull } from 'typeorm';
+import { Brackets, IsNull } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
-import { FindJobsByEnterpriseDto } from '@src/modules/enterprise/dtos/find-job-by-enterprise.dto';
+import { FindJobsByEnterpriseDto, SortByEnum } from '@src/modules/enterprise/dtos/find-job-by-enterprise.dto';
 @Injectable()
 export class JobService {
     constructor(
@@ -249,13 +249,20 @@ export class JobService {
         }
     }
 
-    async getJobOfEnterprise(enterpriseId: string, pagination: FindJobsByEnterpriseDto) {
+    async getJobOfEnterprise(enterpriseId: string, pagination: FindJobsByEnterpriseDto): Promise<JobResponseDto> {
         try {
-            // const cacheKey = `jobs:enterprise:${enterpriseId}:${JSON.stringify(pagination)}`;
-            // const cache = await this.cacheService.getCache(cacheKey);
-            // if (cache) {
-            //     return cache;
-            // }
+            // Validate input
+            if (!ValidationHelper.isValidateUUIDv4(enterpriseId)) {
+                throw new BadRequestException(GlobalErrorType.INVALID_ID);
+            }
+
+            const cacheKey = `${enterpriseId}:${JSON.stringify(pagination)}`;
+            const cachedResult = await this.cacheService.getCacheEnterpriseJobFilter(cacheKey);
+            if (cachedResult) {
+                return new JobResponseDtoBuilder().setValue(cachedResult).build();
+            }
+
+            // Build base query with all needed relations
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
                 .leftJoinAndSelect('jobs.addresses', 'addresses')
@@ -263,58 +270,48 @@ export class JobService {
                 .leftJoinAndSelect('jobs.enterprise', 'enterprise')
                 .leftJoinAndSelect('jobs.tags', 'tags')
                 .leftJoinAndSelect('jobs.categories', 'categories')
+                .leftJoinAndSelect('jobs.boostedJob', 'boostedJob')
                 .where('enterprise.enterpriseId = :enterpriseId', { enterpriseId });
 
-            // Search filter
-            if (pagination.search) {
-                queryBuilder.andWhere(
-                    "to_tsvector('english', jobs.name) @@ plainto_tsquery(:search) OR jobs.name ILIKE :searchPattern",
-                    {
-                        search: pagination.search.trim(),
-                        searchPattern: `%${pagination.search.trim()}%`,
-                    }
-                );
-            }
+            // Search filter - search in job name and tags (fixed join issue)
+            if (pagination.search?.trim()) {
+                const search = pagination.search.trim();
+                const searchPattern = `${search}%`;
 
-            // Job type filter
-            if (pagination.jobType) {
-                queryBuilder.andWhere('jobs.type = :jobType', {
-                    jobType: pagination.jobType,
-                });
-            }
-
-            // Job status filter
-            if (pagination.jobStatus) {
-                queryBuilder.andWhere('jobs.status = :jobStatus', {
-                    jobStatus: pagination.jobStatus,
-                });
-            }
-
-            // Location filter
-            if (pagination.jobLocation) {
-                queryBuilder.andWhere(
-                    'unaccent(addresses.city) ILIKE unaccent(:jobLocation) OR unaccent(addresses.country) ILIKE unaccent(:jobLocation)',
-                    {
-                        jobLocation: `%${pagination.jobLocation}%`,
-                    }
-                );
-            }
-
-            // Experience filter
-            if (pagination.jobExperience !== undefined) {
-                queryBuilder.andWhere('jobs.experience = :experience', {
-                    experience: Number(pagination.jobExperience),
-                });
-            }
-
-            // Boost status filter
-            if (pagination.jobBoost !== undefined) {
                 queryBuilder
-                    .leftJoinAndSelect('jobs.boostedJob', 'boostedJob')
-                    .andWhere(pagination.jobBoost ? 'boostedJob.id IS NOT NULL' : 'boostedJob.id IS NULL');
+                    .leftJoin('jobs.tags', 'tag') // join the tags relation
+                    .andWhere(
+                        new Brackets((qb) => {
+                            qb.where("to_tsvector('english', jobs.name) @@ plainto_tsquery(:search)", { search })
+                                .orWhere('jobs.name ILIKE :searchPattern', { searchPattern })
+                                .orWhere('tag.name ILIKE :searchPattern', { searchPattern });
+                        })
+                    );
             }
 
-            // Select fields
+            // Apply all filters
+            if (pagination.jobType) {
+                queryBuilder.andWhere('jobs.type = :jobType', { jobType: pagination.jobType });
+            }
+
+            if (pagination.jobStatus) {
+                queryBuilder.andWhere('jobs.status = :jobStatus', { jobStatus: pagination.jobStatus });
+            }
+
+            if (pagination.jobLocation) {
+                queryBuilder.andWhere('addresses.addressId = :jobLocation', { jobLocation: pagination.jobLocation });
+            }
+
+            if (pagination.jobExperience) {
+                const [min, max] = pagination.jobExperience.split('-').map(Number);
+                queryBuilder.andWhere('jobs.experience BETWEEN :min AND :max', { min, max });
+            }
+
+            if (pagination.jobBoost !== undefined) {
+                queryBuilder.andWhere(pagination.jobBoost ? 'boostedJob.id IS NOT NULL' : 'boostedJob.id IS NULL');
+            }
+
+            // Select only needed fields
             queryBuilder.select([
                 'jobs.jobId',
                 'jobs.name',
@@ -335,33 +332,60 @@ export class JobService {
                 'enterprise.logoUrl',
                 'tags',
                 'categories',
+                'boostedJob',
             ]);
 
-            // Pagination and ordering
-            queryBuilder.orderBy('jobs.createdAt', 'DESC').skip(pagination.skip).take(Number(pagination.take));
+            // Apply sorting with consistent parameters
+            switch (pagination.sort) {
+                case SortByEnum.ASC:
+                    queryBuilder.orderBy('jobs.name', 'ASC');
+                    break;
+                case SortByEnum.DESC:
+                    queryBuilder.orderBy('jobs.name', 'DESC');
+                    break;
+                case SortByEnum.LATEST:
+                    queryBuilder.orderBy('jobs.updatedAt', 'ASC');
+                    break;
+                case SortByEnum.NEWEST:
+                    queryBuilder.orderBy('jobs.updatedAt', 'DESC');
+                    break;
+                case SortByEnum.DEADLINE:
+                    queryBuilder.orderBy('jobs.deadline', 'ASC');
+                    break;
+                default:
+                    queryBuilder.orderBy('jobs.updatedAt', 'DESC');
+                    break;
+            }
 
+            // Apply pagination
+            queryBuilder.skip(pagination.skip).take(Number(pagination.take));
+
+            // Execute query
             const [jobs, total] = await queryBuilder.getManyAndCount();
+
+            // Format results
             const formattedResult = jobs.map((job) => ({
                 ...job,
-                applicationCount: job.appliedJob ? job.appliedJob.length : 0,
+                applicationCount: job.appliedJob?.length || 0,
             }));
 
+            // Create metadata
             const meta = new PageMetaDto({
                 pageOptionsDto: pagination,
                 itemCount: total,
             });
 
-            const result = new JobResponseDtoBuilder()
-                .setValue(new PageDto<JobEntity>(formattedResult, meta))
-                .success()
-                .build();
+            const result = new PageDto(formattedResult, meta);
 
-            // await this.cacheService.storeCache(cacheKey, result, 10000);
-            return result;
+            this.cacheService.cacheEnterpriseJobFilterData(cacheKey, result);
+
+            return new JobResponseDtoBuilder().setValue(result).success().build();
         } catch (error) {
+            console.error('Error fetching jobs of enterprise:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
     async totalJobsByEnterprise(enterpriseId: string): Promise<number> {
         try {
             return this.jobRepository.count({ where: { enterprise: { enterpriseId } } });
@@ -621,7 +645,8 @@ export class JobService {
             });
 
             // Clear cache filter search
-            await this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
@@ -655,7 +680,8 @@ export class JobService {
             await this.jobRepository.delete({ jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } });
 
             // clear filter search cache
-            await this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -688,7 +714,8 @@ export class JobService {
 
             await this.jobRepository.update({ jobId }, { status: JobStatusEnum.CLOSED, deadline: new Date() });
             // clear filter search cache
-            await this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {

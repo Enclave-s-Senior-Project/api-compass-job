@@ -111,6 +111,7 @@ export class EnterpriseController {
     @Get('me/jobs')
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
     getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: FindJobsByEnterpriseDto) {
+        console.log({ user });
         return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);
     }
 

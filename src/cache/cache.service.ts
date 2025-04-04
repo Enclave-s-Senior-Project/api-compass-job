@@ -5,9 +5,11 @@ import { redisProviderName } from './cache.provider';
 @Injectable()
 export class CacheService {
     private filterJobKey: string;
+    private enterpriseFilterJobKey: string;
 
     constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {
         this.filterJobKey = 'jobfilter:';
+        this.enterpriseFilterJobKey = 'jobfilter:enterprise:';
     }
 
     async deleteCache(extraExcludePatterns: string[] = []) {
@@ -88,13 +90,28 @@ export class CacheService {
         return await this.removeMultipleCacheWithPrefix(this.filterJobKey);
     }
 
+    public async removeEnterpriseSearchJobsCache() {
+        return await this.removeMultipleCacheWithPrefix(this.enterpriseFilterJobKey);
+    }
+
     public async cacheJobFilterData(key: string, results: any) {
         const cacheKey = this.filterJobKey + key;
         await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
     }
 
+    public async cacheEnterpriseJobFilterData(key: string, results: any) {
+        const cacheKey = this.enterpriseFilterJobKey + key;
+        await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+    }
+
     public async getCacheJobFilter(key: string) {
         const cacheKey = this.filterJobKey + key;
+        const cacheResult = await this.redisClient.get(cacheKey);
+        return JSON.parse(cacheResult) || null;
+    }
+
+    public async getCacheEnterpriseJobFilter(key: string) {
+        const cacheKey = this.enterpriseFilterJobKey + key;
         const cacheResult = await this.redisClient.get(cacheKey);
         return JSON.parse(cacheResult) || null;
     }

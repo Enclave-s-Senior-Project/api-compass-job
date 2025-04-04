@@ -2,7 +2,15 @@ import { PaginationDto } from '@common/dtos';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
+
+export enum SortByEnum {
+    ASC = 'ASC',
+    DESC = 'DESC',
+    DEADLINE = 'DEADLINE',
+    NEWEST = 'NEWEST',
+    LATEST = 'LATEST',
+}
 
 export class FindJobsByEnterpriseDto extends PaginationDto {
     @ApiPropertyOptional({
@@ -33,8 +41,9 @@ export class FindJobsByEnterpriseDto extends PaginationDto {
 
         default: 1,
     })
+    @Matches(/\d{1,2}-\d{1,3}/)
     @IsOptional()
-    jobExperience?: Number;
+    jobExperience?: string;
 
     @ApiPropertyOptional({
         description: 'Filter by job boost status',
@@ -51,4 +60,13 @@ export class FindJobsByEnterpriseDto extends PaginationDto {
     @IsString()
     @Transform(({ value }) => value?.trim())
     search?: string;
+
+    @ApiPropertyOptional({
+        description: 'Sort by field',
+        enum: SortByEnum,
+        default: SortByEnum.NEWEST,
+    })
+    @IsOptional()
+    @IsEnum(SortByEnum)
+    sort?: SortByEnum;
 }

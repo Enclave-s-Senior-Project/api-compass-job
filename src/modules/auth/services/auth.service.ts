@@ -166,7 +166,7 @@ export class AuthService {
         try {
             const { roles } = await this.accountRepository.findOne({
                 where: { accountId: payload.accountId },
-                select: { roles: true },
+                select: { roles: true, enterprise: { enterpriseId: true }, profile: { profileId: true } },
             });
             const {
                 accessToken,
@@ -177,7 +177,8 @@ export class AuthService {
             } = await this.tokenService.generateAuthToken({
                 accountId: payload.accountId,
                 roles: roles,
-                profileId: payload.profileId,
+                profileId: payload.accountId,
+                enterpriseId: payload.enterpriseId,
             });
 
             // store new fresh token to redis

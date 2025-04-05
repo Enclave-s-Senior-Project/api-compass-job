@@ -579,13 +579,13 @@ export class JobService {
                 throw new BadRequestException(GlobalErrorType.INVALID_ID);
             }
 
-            // check that job has any applications
+            // Check if job has applications
             const hasApplications = await this.checkJobHasApplication(jobId);
             if (hasApplications) {
                 throw new BadRequestException(JobErrorType.JOB_HAS_APPLICATION);
             }
 
-            // Check if job exists and belongs to the enterprise
+            // Check job exists and belongs to the enterprise
             const existingJob = await this.jobRepository.findOne({
                 where: {
                     jobId,
@@ -598,31 +598,37 @@ export class JobService {
                 throw new NotFoundException(GlobalErrorType.JOB_NOT_FOUND);
             }
 
-            // check specializationIds is valid with categoryId
-            if (updatePayload.categoryIds?.length > 1 || updatePayload.categoryIds?.length === 0) {
+            // Validate category and specialization
+            if (updatePayload.categoryIds?.length !== 1) {
                 throw new BadRequestException(JobErrorType.JOB_CATEGORY_JUST_ONE);
             }
 
             if (updatePayload.specializationIds?.length > 0) {
                 const isFamilyCategory = await Promise.all(
-                    updatePayload.specializationIds?.map((specializationId) =>
-                        this.categoryService.checkFamilyCategory(updatePayload.categoryIds?.[0], specializationId)
+                    updatePayload.specializationIds.map((specializationId) =>
+                        this.categoryService.checkFamilyCategory(updatePayload.categoryIds[0], specializationId)
                     )
-                ).then((results) => results.every((result) => result));
+                ).then((results) => results.every(Boolean));
 
                 if (!isFamilyCategory) {
                     throw new BadRequestException(GlobalErrorType.MAJORITY_MUST_BE_CHILD_OF_INDUSTRY);
                 }
             }
 
-            const relationIds = {
-                tags: updatePayload.tagIds?.map((tag) => ({ tagId: tag })) || [],
-                categories: updatePayload.categoryIds?.map((categoryId) => ({ categoryId })) || [],
-                addresses: updatePayload.address?.map((addressId) => ({ addressId })) || [],
-                specializations:
-                    updatePayload.specializationIds?.map((specializationId) => ({ categoryId: specializationId })) ||
-                    [],
-            };
+            // Prepare relation data
+            const { address, categoryIds, specializationIds, tagIds, ...jobData } = updatePayload;
+
+            const addressIds = Array.isArray(address) ? address : [];
+            const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [];
+            const specializationIdsArray = Array.isArray(specializationIds) ? specializationIds : [];
+            const tagIdsArray = Array.isArray(tagIds) ? tagIds : [];
+
+            const [addresses, categories, tags, specializations] = await Promise.all([
+                addressIds.length > 0 ? this.addressService.getAddressByIds(addressIds) : [],
+                categoryIdsArray.length > 0 ? this.categoryService.findByIds(categoryIdsArray) : [],
+                tagIdsArray.length > 0 ? this.tagService.findByIds(tagIdsArray) : [],
+                specializationIdsArray.length > 0 ? this.categoryService.findByIds(specializationIdsArray) : [],
+            ]);
 
             // Delete existing relations
             await this.removeJobRelates(jobId);
@@ -630,26 +636,20 @@ export class JobService {
             // Update job
             await this.jobRepository.save({
                 ...existingJob,
-                name: updatePayload.name,
-                lowestWage: updatePayload.lowestWage,
-                highestWage: updatePayload.highestWage,
-                description: updatePayload.description,
-                responsibility: updatePayload.responsibility,
-                type: updatePayload.type,
-                experience: updatePayload.experience,
-                deadline: updatePayload.deadline,
-                introImg: updatePayload.introImg,
-                education: updatePayload.education,
-                enterpriseBenefits: updatePayload.enterpriseBenefits,
-                ...relationIds,
+                ...jobData,
+                addresses,
+                categories,
+                tags,
+                specializations,
             });
 
-            // Clear cache filter search
+            // Clear cache
             this.cacheService.removeSearchJobsCache();
             this.cacheService.removeEnterpriseSearchJobsCache();
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
+            console.error('Error updating job:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

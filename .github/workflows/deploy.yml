@@ -18,11 +18,11 @@ jobs:
 
       - name: Build Docker image for API
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest .
 
       - name: Push Docker image to Docker Hub
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest
 
   deploy:
     needs: build
@@ -41,7 +41,7 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             sudo docker stop jobcompass-api || true
             sudo docker rm jobcompass-api || true
-            sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest || true
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
-            sudo docker run -d --name jobcompass-api -p 3000:3000 --env-file .env ${{ secrets.DOCKER_USERNAME }}/jobcompass-api:latest
+            sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest || true
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest
+            sudo docker run -d --name jobcompass-api -p 3001:3001 --env-file .env ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest
           EOF

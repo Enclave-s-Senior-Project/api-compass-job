@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { BoostJobService } from './boost-job.service';
 import { BoostJobController } from './boost-job.controller';
 import { JobModule } from '@modules/job/job.module';
@@ -8,8 +8,9 @@ import { TmpModule } from '@modules/tmp/tmp.module';
 import { CacheModule } from '@src/cache/cache.module';
 
 @Module({
-    imports: [JobModule, EnterpriseModule, TmpModule, CacheModule],
+    imports: [EnterpriseModule, TmpModule, CacheModule, forwardRef(() => JobModule)],
     controllers: [BoostJobController],
     providers: [BoostJobService, BoostJobRepository],
+    exports: [BoostJobService],
 })
 export class BoostJobModule {}

@@ -11,7 +11,14 @@ import {
     OneToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { AccountEntity, WebsiteEntity, BaseEntity, JobEntity, ProfileEntity } from '@database/entities';
+import {
+    AccountEntity,
+    WebsiteEntity,
+    BaseEntity,
+    JobEntity,
+    ProfileEntity,
+    BoostedJobsEntity,
+} from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
 
@@ -91,11 +98,8 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'is_premium', type: 'boolean', default: false, nullable: false })
     isPremium: boolean;
 
-    @Column({ name: 'premium_type', type: 'enum', enum: PREMIUM_TYPE, nullable: true })
-    premiumType: PREMIUM_TYPE | null;
-
-    @Column({ name: 'expired_premium', type: 'date', nullable: true })
-    expiredPremium: Date | null;
+    @Column({ name: 'total_points', type: 'int', default: 0, nullable: false })
+    totalPoints: number;
 
     // Relationships
     @OneToOne(() => AccountEntity, (account) => account.enterprise)
@@ -113,49 +117,13 @@ export class EnterpriseEntity extends BaseEntity {
 
     @ManyToMany(() => ProfileEntity, (profile) => profile.enterprises)
     profiles: ProfileEntity[];
-    @BeforeInsert()
+
+    @OneToMany(() => BoostedJobsEntity, (boostedJob) => boostedJob.enterprise)
+    boostedJobs: BoostedJobsEntity[];
     @BeforeUpdate()
-    setPremiumExpiration() {
-        if (this.premiumType && !Object.values(PREMIUM_TYPE).includes(this.premiumType)) {
-            throw new Error('Invalid premium type');
-        }
-        if (this.isPremium && this.premiumType) {
-            const expirationDays = this.getExpirationDays(this.premiumType);
-            const newExpiration = new Date();
-            newExpiration.setDate(newExpiration.getDate() + expirationDays);
-            this.expiredPremium = newExpiration;
-            this.isPremium = true;
-            this.boostLimit = this.getBoostLimit(this.premiumType); // Set boost limit based on premium type
-        } else {
-            this.expiredPremium = null;
+    checkPremiumStatus(): void {
+        if (this.totalPoints === 0) {
             this.isPremium = false;
-            this.boostLimit = 0; // Reset boost limit when not premium
-        }
-    }
-
-    private getExpirationDays(premiumType: PREMIUM_TYPE): number {
-        switch (premiumType) {
-            case PREMIUM_TYPE.BASIC:
-                return 30; // 1 month
-            case PREMIUM_TYPE.STANDARD:
-                return 90; // 3 months
-            case PREMIUM_TYPE.PREMIUM:
-                return 360; // 1 year
-            default:
-                return 0;
-        }
-    }
-
-    private getBoostLimit(premiumType: PREMIUM_TYPE): number {
-        switch (premiumType) {
-            case PREMIUM_TYPE.BASIC:
-                return 10; // Example: 5 boosts for BASIC
-            case PREMIUM_TYPE.STANDARD:
-                return 20; // Example: 15 boosts for STANDARD
-            case PREMIUM_TYPE.PREMIUM:
-                return 70; // Example: 50 boosts for PREMIUM
-            default:
-                return 0;
         }
     }
 }

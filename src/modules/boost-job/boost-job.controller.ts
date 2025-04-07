@@ -15,7 +15,10 @@ export class BoostJobController {
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
     @Post()
-    create(@Body() createBoostJobDto: CreateBoostJobDto, @CurrentUser() user) {
-        return this.boostJobService.boostJob(createBoostJobDto, user.enterpriseId);
+    async create(
+        @CurrentUser() user: any,
+        @Body() createBoostJobDto: CreateBoostJobDto
+    ): Promise<BoostJobJobResponseDto> {
+        return this.boostJobService.create(createBoostJobDto, user.enterpriseId);
     }
 }

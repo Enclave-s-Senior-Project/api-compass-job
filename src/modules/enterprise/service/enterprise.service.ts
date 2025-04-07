@@ -95,7 +95,7 @@ export class EnterpriseService {
         });
 
         if (!enterprise) {
-            throw new NotFoundException(`Enterprise with ID ${id} not found.`);
+            throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS);
         }
 
         return enterprise;
@@ -258,23 +258,6 @@ export class EnterpriseService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
-    async updateEnterprisePremium(user: JwtPayload, payload: RegisterPremiumEnterpriseDto) {
-        try {
-            const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId: user.enterpriseId });
-            if (!enterprise) {
-                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
-            }
-
-            enterprise.premiumType = payload.premiumType;
-            enterprise.isPremium = true;
-
-            const updateEnterprise = await this.enterpriseRepository.save(enterprise);
-            this.delCache();
-            return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
-        } catch (error) {
-            throw ErrorCatchHelper.serviceCatch(error);
-        }
-    }
 
     async createCandidateWishList(user: JwtPayload, payload: CreateCandidateWishListDto) {
         try {
@@ -349,6 +332,38 @@ export class EnterpriseService {
             await this.redisCache.del(...nonRefreshTokenKeys);
         } else {
             console.log('No keys to delete.');
+        }
+    }
+
+    async findOneById(id: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: id },
+                select: {
+                    enterpriseId: true,
+                    boostLimit: true,
+                    totalPoints: true,
+                },
+            });
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            return enterprise;
+        } catch (error) {
+            throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+        }
+    }
+    async updateBoostLimit(enterpriseId: string, points: number) {
+        try {
+            const enterprise = await this.findOneById(enterpriseId);
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+            enterprise.totalPoints += points;
+            return this.enterpriseRepository.save(enterprise);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 }

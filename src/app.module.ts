@@ -16,6 +16,9 @@ import { AwsModule } from '@modules/upload/upload.module';
 import { ApplyJobModule } from '@modules/apply-job/apply-job.module';
 import { CvModule } from '@modules/cv/cv.module';
 import { BoostJobModule } from './modules/boost-job/boost-job.module';
+import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
+import { JobCronModule } from './modules/job-cron/job-cron.module';
 
 @Module({
     imports: [
@@ -38,6 +41,16 @@ import { BoostJobModule } from './modules/boost-job/boost-job.module';
         ApplyJobModule,
         CvModule,
         BoostJobModule,
+        ScheduleModule.forRoot(),
+        BullModule.forRoot({
+            connection: {
+                host: process.env.REDIS_HOST,
+                port: +process.env.REDIS_PORT,
+                password: process.env.REDIS_PASSWORD,
+            },
+            prefix: 'bull',
+        }),
+        JobCronModule,
     ],
 })
 export class AppModule {

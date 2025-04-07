@@ -845,4 +845,17 @@ export class JobService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    public async getJobByIdEnterprise(id: string, take: number) {
+        try {
+            const jobs = await this.jobRepository.find({
+                where: { enterprise: { enterpriseId: id } },
+                take: take,
+                order: { createdAt: 'DESC' },
+            });
+            return jobs;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

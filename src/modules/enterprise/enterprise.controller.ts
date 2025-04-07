@@ -129,23 +129,25 @@ export class EnterpriseController {
     totalJobsByEnterprise(@Param('id') id: string): Promise<EnterpriseResponseDto> {
         return this.enterpriseService.totalJobsByEnterprise(id);
     }
+
+    @SkipAuth()
     @Get(':id')
     @ApiOperation({ summary: 'Retrieve an enterprise by ID' })
     @ApiResponse({ status: 200, description: 'Enterprise details.' })
     @ApiResponse({ status: 404, description: 'Enterprise not found.' })
     findOne(@Param('id') id: string) {
-        return this.enterpriseService.findOne(id);
+        return this.enterpriseService.findEnterpriseById(id);
     }
 
-    @Get(':id')
-    @UseGuards(RolesGuard)
-    @Roles(Role.ENTERPRISE, Role.ADMIN)
-    @ApiOperation({ summary: 'Get enterprise by account Id.' })
-    @ApiResponse({ status: 200, description: 'Get Enterprise by successfully.' })
-    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
-    getEnterpriseByAccountId(@CurrentUser() user: JwtPayload) {
-        return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
-    }
+    // @Get(':id')
+    // @UseGuards(RolesGuard)
+    // @Roles(Role.ENTERPRISE, Role.ADMIN)
+    // @ApiOperation({ summary: 'Get enterprise by account Id.' })
+    // @ApiResponse({ status: 200, description: 'Get Enterprise by successfully.' })
+    // @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    // getEnterpriseByAccountId(@CurrentUser() user: JwtPayload) {
+    //     return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
+    // }
 
     @UseGuards(RolesGuard)
     @Roles(Role.ADMIN, Role.ENTERPRISE)

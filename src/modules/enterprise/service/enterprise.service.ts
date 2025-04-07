@@ -366,4 +366,29 @@ export class EnterpriseService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    async findEnterpriseById(id: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: id },
+                relations: ['account', 'websites', 'addresses'],
+            });
+
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            const jobs = await this.jobService.getJobByIdEnterprise(id, 5);
+            (enterprise as any).jobs = jobs;
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
+        } catch (error) {
+            if (error instanceof HttpException) {
+                return new EnterpriseResponseDtoBuilder()
+                    .setCode(error.getStatus())
+                    .setMessageCode(error.message)
+                    .build();
+            }
+            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+        }
+    }
 }

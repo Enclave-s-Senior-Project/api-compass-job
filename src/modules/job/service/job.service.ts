@@ -21,7 +21,7 @@ import { redisProviderName } from '@cache/cache.provider';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
-import { Brackets, IsNull } from 'typeorm';
+import { Brackets, LessThan, Not } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
@@ -767,6 +767,50 @@ export class JobService {
                         .execute(),
                 ]);
             });
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public batchUnexpiredJob(batchSize: number = 100, offset: number = 0): Promise<JobEntity[]> {
+        try {
+            const jobs = this.jobRepository.find({
+                where: {
+                    status: Not(JobStatusEnum.EXPIRED), // Only fetch jobs that are not already expired
+                    deadline: LessThan(new Date()), // Fetch jobs where the deadline has passed
+                },
+                select: {
+                    jobId: true,
+                    name: true,
+                    status: true,
+                    deadline: true,
+                    enterprise: {
+                        enterpriseId: true,
+                        email: true,
+                        name: true,
+                    },
+                },
+                relations: {
+                    enterprise: true,
+                },
+                skip: offset,
+                take: batchSize,
+            });
+            return jobs;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async updateBulkJobExpired(jobs: JobEntity[]) {
+        try {
+            const result = await this.jobRepository
+                .createQueryBuilder()
+                .update('jobs')
+                .set({ status: JobStatusEnum.EXPIRED })
+                .where('job_id IN (:...jobIds)', { jobIds: jobs.map((job) => job.jobId) })
+                .execute();
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

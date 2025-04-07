@@ -4,6 +4,8 @@ import { createTransport, Transporter } from 'nodemailer';
 import * as Mail from 'nodemailer/lib/mailer';
 import { confirmMail } from './templates';
 import { resetPassword } from './templates/reset-password.html';
+import { jobExpirationMail } from './templates/job-expiration.html';
+import { JobExpiredData } from '@src/modules/job-cron/job-cron.service';
 
 @Injectable()
 export class MailSenderService {
@@ -164,4 +166,43 @@ export class MailSenderService {
     //       }),
     //     );
     //   }
+
+    async sendNotificationJobExpiredMail(data: JobExpiredData): Promise<boolean> {
+        const mail = jobExpirationMail
+            .replace(/--ProjectLink--/g, process.env.PROJECT_URL)
+            .replace(/--ProjectLogo--/g, process.env.PROJECT_LOGO_URL)
+            .replace(/--ProjectName--/g, process.env.PROJECT_NAME)
+            .replace(/--EnterpriseName--/g, data.enterprise.name)
+            .replace(/--JobTitle--/g, data.jobName)
+            .replace(/--JobID--/g, data.jobId)
+            .replace(/--ExpirationDate--/g, new Date(data.deadline).toLocaleDateString())
+            .replace(/--DashboardLink--/g, '')
+            .replace(/--ProjectAddress--/g, process.env.PROJECT_ADDRESS)
+            .replace(/--Socials--/g, this.socials);
+
+        const mailOptions = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: data.enterprise.email, // list of receivers (separated by ,)
+            subject: `Your ${process.env.PROJECT_NAME} Job Listing has Expired`,
+            html: mail,
+        };
+
+        return new Promise<boolean>((resolve) =>
+            this.transporter.sendMail(mailOptions, async (error) => {
+                if (error) {
+                    this.logger.warn('Mail sending failed, check your service credentials.');
+                    resolve(false);
+                }
+                resolve(true);
+            })
+        )
+            .then((result) => {
+                this.logger.log(`Job expired email sent to ${data.enterprise.email}`);
+                return result;
+            })
+            .catch((error) => {
+                this.logger.error(`Failed to send job expired email: ${error.message}`);
+                return false;
+            });
+    }
 }

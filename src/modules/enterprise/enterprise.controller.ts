@@ -101,7 +101,7 @@ export class EnterpriseController {
     @ApiOperation({ summary: "Update information about enterprise's founding" })
     @ApiResponse({ status: 200, description: 'Updated information.' })
     updateEnterprisePremium(@CurrentUser() user: JwtPayload, @Body() body: RegisterPremiumEnterpriseDto) {
-        return this.enterpriseService.updateEnterprisePremium(user, body);
+        return;
     }
 
     @ApiBearerAuth(TOKEN_NAME)
@@ -111,7 +111,6 @@ export class EnterpriseController {
     @Get('me/jobs')
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
     getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: FindJobsByEnterpriseDto) {
-        console.log({ user });
         return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);
     }
 

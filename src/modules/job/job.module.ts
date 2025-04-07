@@ -8,9 +8,18 @@ import { TagModule } from '@modules/tag/tag.module';
 import { CategoryModule } from '@modules/category/category.module';
 import { AddressModule } from '@modules/address/address.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
+import { BoostJobModule } from '../boost-job/boost-job.module';
 
 @Module({
-    imports: [TmpModule, CacheModule, TagModule, CategoryModule, AddressModule, forwardRef(() => EnterpriseModule)],
+    imports: [
+        TmpModule,
+        CacheModule,
+        TagModule,
+        CategoryModule,
+        AddressModule,
+        forwardRef(() => EnterpriseModule),
+        forwardRef(() => BoostJobModule),
+    ],
     controllers: [JobController],
     providers: [JobService, JobRepository],
     exports: [JobService],

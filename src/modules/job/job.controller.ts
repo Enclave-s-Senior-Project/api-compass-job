@@ -56,7 +56,6 @@ export class JobController {
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Post('wishlist')
     createJobWishlist(@CurrentUser() user, @Body() body: CreateJobWishListDto): Promise<JobResponseDto> {
-        console.log({ user });
         return this.jobService.createJobWishList(body, user);
     }
 
@@ -123,5 +122,12 @@ export class JobController {
     @Patch(':id/close')
     closeJobOrMakeExpired(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
         return this.jobService.closeJob(id, user);
+    }
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Get(':id/estimate-rank')
+    estimateRank(@Param('jobId') jobId: string, @Query('plusPoints') plusPoints?: string) {
+        return this.jobService.estimateRankIfBoost(jobId, parseInt(plusPoints) || 0);
     }
 }

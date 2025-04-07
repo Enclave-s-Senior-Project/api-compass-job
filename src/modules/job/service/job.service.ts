@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { JobRepository } from '../repositories';
 import Redis, { RedisCommander } from 'ioredis';
-import { JobEntity } from '@database/entities';
+import { BoostedJobsEntity, JobEntity } from '@database/entities';
 import { JobErrorType } from '@common/errors/';
 import { ErrorType } from '@common/enums';
 import {
@@ -26,6 +26,7 @@ import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
 import { FindJobsByEnterpriseDto, SortByEnum } from '@src/modules/enterprise/dtos/find-job-by-enterprise.dto';
+import { BoostJobService } from '@src/modules/boost-job/boost-job.service';
 @Injectable()
 export class JobService {
     constructor(
@@ -35,6 +36,7 @@ export class JobService {
         private readonly enterpriseService: EnterpriseService,
         private readonly tagService: TagService,
         private readonly cacheService: CacheService,
+        private readonly boostJobService: BoostJobService,
         @Inject(redisProviderName) private readonly redisCache: Redis
     ) {}
 
@@ -213,7 +215,17 @@ export class JobService {
 
     async getJobById(id: string): Promise<JobEntity> {
         try {
-            const job = await this.jobRepository.findOne({ where: { jobId: id } });
+            const job = await this.jobRepository.findOne({
+                where: { jobId: id },
+                relations: ['enterprise'],
+                select: {
+                    enterprise: {
+                        enterpriseId: true,
+                    },
+                    jobId: true,
+                    status: true,
+                },
+            });
             return job;
         } catch (err) {
             console.log('Error getting job by id: ', err);
@@ -333,6 +345,7 @@ export class JobService {
                 'tags',
                 'categories',
                 'boostedJob',
+                'boosted_jobs.pointsUsed',
             ]);
 
             // Apply sorting with consistent parameters
@@ -532,13 +545,14 @@ export class JobService {
                 'tags.backgroundColor',
                 'boosted_jobs.id',
                 'boosted_jobs.boostedAt',
-                'boosted_jobs.expiresAt',
+                'boosted_jobs.pointsUsed',
             ]);
 
             queryBuilder
-                .orderBy('boosted_jobs.boostedAt', 'DESC', 'NULLS LAST') // Sort boosted jobs descending, non-boosted last
-                .addOrderBy('jobs.deadline', 'ASC') // Sort by deadline ascending
-                .addOrderBy('jobs.updatedAt', 'DESC') // Sort by updatedAt descending (newest first)
+                .orderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
+                .addOrderBy('boosted_jobs.boostedAt', 'ASC', 'NULLS LAST')
+                .addOrderBy('jobs.deadline', 'ASC')
+                .addOrderBy('jobs.updatedAt', 'DESC')
                 .skip(query.skip)
                 .take(query.take);
 
@@ -753,6 +767,36 @@ export class JobService {
                         .execute(),
                 ]);
             });
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async estimateRankIfBoost(jobId: string, plusPoints: number) {
+        try {
+            const job = await this.jobRepository.findOne({
+                where: { jobId },
+            });
+
+            if (!job) throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
+
+            const currentTotal = await this.boostJobService.getTotalPointsByJobId(jobId);
+            const projectedTotal = currentTotal + plusPoints;
+
+            const others = await this.boostJobService.getAllBoostedJobsWithTotalPoints(jobId);
+
+            const allJobs = [...others, { jobId, total: projectedTotal }];
+
+            allJobs.sort((a, b) => b.total - a.total);
+
+            const rank = allJobs.findIndex((j) => j.jobId === jobId) + 1;
+
+            return {
+                estimatedRank: rank,
+                projectedBoost: projectedTotal,
+                plusPoints,
+                totalJobs: allJobs.length,
+            };
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

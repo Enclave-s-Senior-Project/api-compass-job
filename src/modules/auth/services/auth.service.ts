@@ -183,6 +183,8 @@ export class AuthService {
 
             // store new fresh token to redis
             await this.storeRefreshTokenOnCache(payload.accountId, newRefreshToken, refreshTokenExpires / 1000); // convert to seconds
+            // delete old refresh token from redis
+            await this.deleteRefreshTokenOnCache(payload.accountId, refreshToken);
 
             return {
                 builder: new RefreshTokenResponseDtoBuilder()

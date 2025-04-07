@@ -82,6 +82,4 @@ export class AddressController {
     async deleteAddress(@Param('id') id: string): Promise<void> {
         return this.addressService.remove(id);
     }
-
-
 }

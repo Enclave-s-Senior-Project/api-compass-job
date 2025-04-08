@@ -308,8 +308,9 @@ export class AuthService {
         const payload = this.tokenService.decodeToken(refreshToken);
         const exists = await this.redisCache.get(`refreshtoken:${accountId}:${payload.jit}`);
         if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${payload.jit}`);
-        return Boolean(exists);
+        return !!exists;
     }
+
     public async getMe(user: JwtPayload): Promise<RegisterResponseDto | null> {
         try {
             let result = {} as any;

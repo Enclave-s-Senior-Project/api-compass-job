@@ -316,7 +316,6 @@ export class EnterpriseService {
 
             return new EnterpriseResponseDtoBuilder().success().build();
         } catch (error) {
-            console.log('error', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

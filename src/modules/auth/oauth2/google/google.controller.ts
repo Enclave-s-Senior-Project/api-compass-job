@@ -27,9 +27,10 @@ export class GoogleController {
             const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.oauth2Login(user);
             res.cookie('refresh-token', refreshToken, {
                 httpOnly: true,
-                sameSite: true,
+                sameSite: 'none', // Required for cross-site cookies
                 secure: true,
                 maxAge: refreshTokenExpires,
+                priority: 'high',
             });
 
             const query = new URLSearchParams({
@@ -38,7 +39,12 @@ export class GoogleController {
                 accessTokenExpires: builder.value.accessTokenExpires,
             }).toString();
 
-            return res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`);
+            return res
+                .writeHead(302, {
+                    Location: `${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`,
+                    cookie: `refresh-token=${refreshToken}; HttpOnly; SameSite=None; Secure; Max-Age=${refreshTokenExpires}; Priority=high`,
+                })
+                .end();
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);
             return res.redirect(

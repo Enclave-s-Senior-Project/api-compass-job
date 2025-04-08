@@ -164,10 +164,17 @@ export class AuthService {
 
     public async refreshToken(payload: JwtPayload, refreshToken: string) {
         try {
-            const { roles } = await this.accountRepository.findOne({
-                where: { accountId: payload.accountId },
-                select: { roles: true, enterprise: { enterpriseId: true }, profile: { profileId: true } },
-            });
+            const { roles, profile, enterprise } = await this.accountRepository
+                .createQueryBuilder('account')
+                .leftJoin('account.profile', 'profile')
+                .leftJoin('account.enterprise', 'enterprise')
+                .select(['account.roles', 'profile.profileId', 'enterprise.enterpriseId'])
+                .where('account.accountId = :accountId AND account.status = :status', {
+                    accountId: payload.accountId,
+                    status: UserStatus.ACTIVE,
+                })
+                .getOne();
+
             const {
                 accessToken,
                 accessTokenExpires,
@@ -177,8 +184,8 @@ export class AuthService {
             } = await this.tokenService.generateAuthToken({
                 accountId: payload.accountId,
                 roles: roles,
-                profileId: payload.accountId,
-                enterpriseId: payload.enterpriseId,
+                profileId: profile.profileId,
+                enterpriseId: enterprise?.enterpriseId,
             });
 
             // store new fresh token to redis
@@ -199,7 +206,8 @@ export class AuthService {
                 refreshTokenExpires,
             };
         } catch (error) {
-            throw new RefreshTokenResponseDtoBuilder().badRequest().build();
+            console.error(error);
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

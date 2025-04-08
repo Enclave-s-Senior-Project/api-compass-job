@@ -56,9 +56,10 @@ export class AuthController {
 
         res.cookie('refresh-token', refreshToken, {
             httpOnly: true,
-            sameSite: true,
+            sameSite: 'none', // Required for cross-site cookies
             secure: true,
             maxAge: refreshTokenExpires,
+            priority: 'high',
         });
 
         return builder;
@@ -95,25 +96,22 @@ export class AuthController {
         @CurrentUser() user,
         @Res({ passthrough: true }) response: Response
     ): Promise<RefreshTokenResponseDto> {
-        try {
-            const refreshToken = request.cookies?.['refresh-token'];
-            const {
-                refreshToken: newRefreshToken,
-                refreshTokenExpires,
-                builder,
-            } = await this.authService.refreshToken(user, refreshToken);
+        const refreshToken = request.cookies?.['refresh-token'];
+        const {
+            refreshToken: newRefreshToken,
+            refreshTokenExpires,
+            builder,
+        } = await this.authService.refreshToken(user, refreshToken);
 
-            response.cookie('refresh-token', newRefreshToken, {
-                httpOnly: true,
-                sameSite: true,
-                secure: true,
-                maxAge: refreshTokenExpires,
-            });
+        response.cookie('refresh-token', newRefreshToken, {
+            httpOnly: true,
+            sameSite: 'none', // Required for cross-site cookies
+            secure: true,
+            maxAge: refreshTokenExpires,
+            priority: 'high',
+        });
 
-            return builder;
-        } catch (error) {
-            return error;
-        }
+        return builder;
     }
 
     @SkipAuth()

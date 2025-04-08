@@ -1,11 +1,12 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { InvalidCredentialsException } from '@common/http/exceptions';
 import { JwtPayload } from '@common/dtos';
 import { AuthService } from '../services';
+import { ErrorType } from '@src/common/enums';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -30,7 +31,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         });
     }
 
-    async validate(request: Request, payload: JwtPayload): Promise<any> {
+    async validate(request: any, payload: JwtPayload): Promise<any> {
+        console.log('{request}', request.cookies?.['refresh-token'])
         if (!payload) {
             throw new InvalidCredentialsException();
         }
@@ -38,7 +40,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         if (
             !(await this.authService.validateAndDelRefreshToken(payload.accountId, request.cookies?.['refresh-token']))
         ) {
-            throw new InvalidCredentialsException();
+            throw new BadRequestException(ErrorType.InvalidToken);
         }
 
         // Return the JwtPayload with the required fields

@@ -3,7 +3,6 @@ import axios from 'axios';
 
 @Injectable()
 export class PaypalService {
-    // Generate Access Token
     private async generateAccessToken(): Promise<string> {
         try {
             const response = await axios.post(
@@ -24,7 +23,6 @@ export class PaypalService {
         }
     }
 
-    // Create Order
     async createOrder(): Promise<string> {
         try {
             const accessToken = await this.generateAccessToken();
@@ -63,7 +61,7 @@ export class PaypalService {
                         cancel_url: process.env.APP_BASE_URL + '/cancel-order',
                         shipping_preference: 'NO_SHIPPING',
                         user_action: 'PAY_NOW',
-                        brand_name: 'manfra.io',
+                        brand_name: 'JobCompass',
                     },
                 },
                 {
@@ -81,7 +79,6 @@ export class PaypalService {
         }
     }
 
-    // Capture Payment
     async capturePayment(orderId: string): Promise<any> {
         try {
             const accessToken = await this.generateAccessToken();
@@ -103,7 +100,6 @@ export class PaypalService {
         }
     }
 
-    // Get Order Details
     async getOrderDetails(orderId: string): Promise<any> {
         try {
             const accessToken = await this.generateAccessToken();
@@ -121,7 +117,6 @@ export class PaypalService {
         }
     }
 
-    // Get Payment Status
     async getPaymentStatus(orderId: string): Promise<any> {
         try {
             const accessToken = await this.generateAccessToken();
@@ -133,7 +128,7 @@ export class PaypalService {
                 },
             });
 
-            return response.data.status; // This will return the status of the payment
+            return response.data.status;
         } catch (error) {
             throw new Error(`Error fetching payment status for order ${orderId}: ${error.message}`);
         }

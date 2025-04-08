@@ -66,8 +66,6 @@ export class JobCronService {
                     },
                 }))
             );
-
-            console.log(`Updated and queued ${expiredJobs.length} expired jobs.`);
         }
     }
 }

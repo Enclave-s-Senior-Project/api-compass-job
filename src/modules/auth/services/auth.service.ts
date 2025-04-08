@@ -306,7 +306,7 @@ export class AuthService {
     }
     public async validateAndDelRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
         const payload = this.tokenService.decodeToken(refreshToken);
-        console.log(`key cache: refreshtoken:${accountId}:${payload.jit}`)
+        console.log(`key cache: refreshtoken:${accountId}:${payload.jit}`);
         const exists = await this.redisCache.get(`refreshtoken:${accountId}:${payload.jit}`);
         console.log('exists: ', exists);
         if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${payload.jit}`);

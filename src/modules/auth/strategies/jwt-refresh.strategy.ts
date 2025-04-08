@@ -32,7 +32,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     }
 
     async validate(request: any, payload: JwtPayload): Promise<any> {
-        console.log('{request}', request.cookies?.['refresh-token'])
+        console.log('{request}', request.cookies?.['refresh-token']);
         if (!payload) {
             throw new InvalidCredentialsException();
         }

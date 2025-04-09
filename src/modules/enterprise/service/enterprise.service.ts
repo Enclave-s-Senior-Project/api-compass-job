@@ -390,4 +390,21 @@ export class EnterpriseService {
             return new EnterpriseResponseDtoBuilder().internalServerError().build();
         }
     }
+
+    async updateEnterprisePayment(enterpriseId: string, isPremium: boolean, totalPoints: number, isTrial: boolean) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId });
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            enterprise.isPremium = isPremium;
+            enterprise.isTrial = isTrial;
+            enterprise.totalPoints = totalPoints;
+
+            return this.enterpriseRepository.save(enterprise);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

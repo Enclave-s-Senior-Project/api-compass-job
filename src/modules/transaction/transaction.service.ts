@@ -1,8 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { EnterpriseService } from '../enterprise/service/enterprise.service';
+import { CacheService } from '@src/cache/cache.service';
+import { TransactionRepository } from './repositories/transaction.repository';
+import { PAYMENT_STATUS, PREMIUM_TYPE } from '@src/database/entities/transaction.entity';
+import { TransactionResponseDtoBuilder } from './dtos/transaction-response.dto';
 
 @Injectable()
-export class PaypalService {
+export class TransactionService {
+    constructor(
+        private readonly enterpriseService: EnterpriseService,
+        private readonly transactionRepo: TransactionRepository,
+        private readonly cacheService: CacheService
+    ) {}
     private async generateAccessToken(): Promise<string> {
         try {
             const response = await axios.post(
@@ -23,10 +33,14 @@ export class PaypalService {
         }
     }
 
-    async createOrder(): Promise<string> {
+    async createOrder(enterpiseId: string, premiumName: string, price: number) {
         try {
+            const enterprise = await this.enterpriseService.findOneById(enterpiseId);
+            if (!enterprise) {
+                throw new Error('Enterprise not found');
+            }
+            const priceString = price.toFixed(2);
             const accessToken = await this.generateAccessToken();
-            console.log('Access Token:', accessToken);
             const response = await axios.post(
                 `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders`,
                 {
@@ -35,29 +49,28 @@ export class PaypalService {
                         {
                             items: [
                                 {
-                                    name: 'Node.js Complete Course',
-                                    description: 'Node.js Complete Course with Express and MongoDB',
-                                    quantity: 1,
+                                    name: premiumName,
+                                    quantity: '1',
                                     unit_amount: {
                                         currency_code: 'USD',
-                                        value: '100',
+                                        value: priceString,
                                     },
                                 },
                             ],
                             amount: {
                                 currency_code: 'USD',
-                                value: '100',
+                                value: priceString,
                                 breakdown: {
                                     item_total: {
                                         currency_code: 'USD',
-                                        value: '100',
+                                        value: priceString,
                                     },
                                 },
                             },
                         },
                     ],
                     application_context: {
-                        return_url: process.env.APP_BASE_URL + '/complete-order',
+                        return_url: `${process.env.APP_BASE_URL}/complete-order?premiumName=${premiumName}&enterpriseId=${enterpiseId}`,
                         cancel_url: process.env.APP_BASE_URL + '/cancel-order',
                         shipping_preference: 'NO_SHIPPING',
                         user_action: 'PAY_NOW',
@@ -72,7 +85,7 @@ export class PaypalService {
                 }
             );
             const approvalLink = response.data.links.find((link) => link.rel === 'approve')?.href;
-            return approvalLink;
+            return new TransactionResponseDtoBuilder().setValue(approvalLink).success().build();
         } catch (error) {
             console.log('error', error);
             throw new Error(`Error creating PayPal order: ${error.message}`);
@@ -131,6 +144,41 @@ export class PaypalService {
             return response.data.status;
         } catch (error) {
             throw new Error(`Error fetching payment status for order ${orderId}: ${error.message}`);
+        }
+    }
+
+    async completeOrder(premiumName: string, enterpriseId: string) {
+        try {
+            const enterprise = await this.enterpriseService.findOneById(enterpriseId);
+            if (!enterprise) {
+                throw new Error('Enterprise not found');
+            }
+            if (premiumName === PREMIUM_TYPE.STANDARD) {
+                await this.enterpriseService.updateEnterprisePayment(enterpriseId, true, 10, true);
+                const transaction = this.transactionRepo.create({
+                    pointsPurchased: 100,
+                    amountPaid: 0,
+                    paymentMethod: 'PayPal',
+                    paymentStatus: PAYMENT_STATUS.COMPLETED,
+                    premiumType: PREMIUM_TYPE.STANDARD,
+                    enterprise,
+                });
+                await this.transactionRepo.save(transaction);
+                return new TransactionResponseDtoBuilder().setValue(transaction).success().build();
+            }
+            await this.enterpriseService.updateEnterprisePayment(enterpriseId, true, 10, true);
+            const transaction = this.transactionRepo.create({
+                pointsPurchased: 100,
+                amountPaid: 0,
+                paymentMethod: 'PayPal',
+                paymentStatus: PAYMENT_STATUS.COMPLETED,
+                premiumType: PREMIUM_TYPE.PREMIUM,
+                enterprise,
+            });
+            await this.transactionRepo.save(transaction);
+            return new TransactionResponseDtoBuilder().setValue(transaction).success().build();
+        } catch (error) {
+            throw new Error(`Error fetching payment status for order `);
         }
     }
 }

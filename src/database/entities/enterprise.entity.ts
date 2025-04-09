@@ -21,6 +21,7 @@ import {
 } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
+import { TransactionEntity } from './transaction.entity';
 
 export enum OrganizationType {
     PRIVATE = 'PRIVATE',
@@ -30,7 +31,7 @@ export enum OrganizationType {
 }
 
 export enum PREMIUM_TYPE {
-    BASIC = 'BASIC',
+    BASIC = 'TRIAL',
     STANDARD = 'STANDARD',
     PREMIUM = 'PREMIUM',
 }
@@ -101,6 +102,9 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'total_points', type: 'int', default: 0, nullable: false })
     totalPoints: number;
 
+    @Column({ name: 'is_trial', type: 'boolean', default: false, nullable: true })
+    isTrial: boolean;
+
     // Relationships
     @OneToOne(() => AccountEntity, (account) => account.enterprise)
     @JoinColumn({ name: 'account_id' })
@@ -120,6 +124,10 @@ export class EnterpriseEntity extends BaseEntity {
 
     @OneToMany(() => BoostedJobsEntity, (boostedJob) => boostedJob.enterprise)
     boostedJobs: BoostedJobsEntity[];
+
+    @OneToMany(() => TransactionEntity, (transaction) => transaction.enterprise, { nullable: true })
+    transactions: TransactionEntity[];
+
     @BeforeUpdate()
     checkPremiumStatus(): void {
         if (this.totalPoints === 0) {

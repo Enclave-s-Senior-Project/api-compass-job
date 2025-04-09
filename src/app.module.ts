@@ -19,7 +19,7 @@ import { BoostJobModule } from './modules/boost-job/boost-job.module';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JobCronModule } from './modules/job-cron/job-cron.module';
-import { PaypalModule } from './modules/paypal/paypal.module';
+import { TransactionModule } from './modules/transaction/transaction.module';
 
 @Module({
     imports: [
@@ -52,7 +52,7 @@ import { PaypalModule } from './modules/paypal/paypal.module';
             prefix: 'bull',
         }),
         JobCronModule,
-        PaypalModule,
+        TransactionModule,
     ],
 })
 export class AppModule {

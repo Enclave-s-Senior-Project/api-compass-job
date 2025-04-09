@@ -17,6 +17,7 @@ import {
     WebsiteEntity,
     BoostedJobsEntity,
 } from '@database/entities';
+import { TransactionEntity } from '@src/database/entities/transaction.entity';
 
 @Module({
     imports: [
@@ -34,6 +35,7 @@ import {
             CategoryEntity,
             AddressEntity,
             BoostedJobsEntity,
+            TransactionEntity,
         ]),
     ],
     controllers: [TmpController],

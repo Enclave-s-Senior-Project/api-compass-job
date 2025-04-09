@@ -10,9 +10,10 @@ import { CustomExceptionFilter } from '@common/http/exceptions';
 import * as morgan from 'morgan';
 import * as session from 'express-session';
 import * as passport from 'passport';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 const bootstrap = async () => {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
     // Enable session support
     app.use(
@@ -25,6 +26,9 @@ const bootstrap = async () => {
     // Initialize Passport
     app.use(passport.initialize());
     app.use(passport.session());
+
+    // Set up middleware
+    app.set('trust proxy', 1); // trust first proxy
     app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
     app.use(compression());
     app.use(cookieParse());

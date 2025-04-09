@@ -43,6 +43,7 @@
         "class-validator": "^0.14.1",
         "compression": "^1.7.5",
         "cookie-parser": "^1.4.7",
+        "firebase-admin": "^13.2.0",
         "helmet": "^8.0.0",
         "imagekit": "^6.0.0",
         "ioredis": "^5.4.2",

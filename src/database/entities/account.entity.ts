@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, Check, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, Check, OneToOne, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity, ProfileEntity, EnterpriseEntity } from '@database/entities';
 import { arrayContains } from 'class-validator';
+import { NotificationEntity } from './notification.entity';
 
 export enum UserStatus {
     ACTIVE = 'ACTIVE',
@@ -44,4 +45,7 @@ export class AccountEntity extends BaseEntity {
 
     @OneToOne(() => EnterpriseEntity, (enterprise) => enterprise.account)
     readonly enterprise: EnterpriseEntity;
+
+    @OneToMany(() => NotificationEntity, (notification) => notification.account)
+    readonly notification: NotificationEntity;
 }

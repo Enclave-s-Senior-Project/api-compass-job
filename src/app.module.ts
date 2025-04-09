@@ -19,6 +19,7 @@ import { BoostJobModule } from './modules/boost-job/boost-job.module';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JobCronModule } from './modules/job-cron/job-cron.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 
 @Module({
@@ -52,6 +53,7 @@ import { TransactionModule } from './modules/transaction/transaction.module';
             prefix: 'bull',
         }),
         JobCronModule,
+        NotificationModule,
         TransactionModule,
     ],
 })

@@ -13,6 +13,7 @@ import { UserRatingEntity } from './user-rating.entity';
 import { WebsiteEntity, SocialType } from './website.entity';
 import { GenderType } from './profile.entity';
 import { BoostedJobsEntity } from './boosted-jobs.entity';
+import { NotificationEntity } from './notification.entity';
 
 export {
     GenderType,
@@ -31,4 +32,5 @@ export {
     AddressEntity,
     SocialType,
     BoostedJobsEntity,
+    NotificationEntity,
 };

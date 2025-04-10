@@ -71,6 +71,9 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'enterprise_benefits', type: 'text', nullable: true })
     readonly enterpriseBenefits: string | null;
 
+    @Column({ name: 'requirement', type: 'text', nullable: true })
+    readonly requirements: string | null;
+
     @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.jobs, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'enterprise_id' })
     readonly enterprise: EnterpriseEntity;

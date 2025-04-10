@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Query, UseGuards, Res } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '../auth';
 import {
@@ -11,11 +11,17 @@ import {
 import { RolesGuard } from '../auth/guards/role.guard';
 import { Role, Roles } from '../auth/decorators/roles.decorator';
 import { CreateTransactionDto } from './dtos/create-transaction.dto';
+import { ConfigService } from '@nestjs/config';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { Response } from 'express';
 
 @ApiTags('Transaction')
 @Controller({ path: 'transaction', version: '1' })
 export class TransactionController {
-    constructor(private readonly transactionService: TransactionService) {}
+    constructor(
+        private readonly transactionService: TransactionService,
+        private readonly configService: ConfigService
+    ) {}
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
@@ -51,15 +57,21 @@ export class TransactionController {
     }
 
     @SkipAuth()
-    @HttpCode(200)
     @Get('complete-order')
     async completeOrder(
         @Query('token') token: string,
         @Query('PayerID') payerId: string,
         @Query('premiumName') premiumName: string,
-        @Query('enterpriseId') enterpriseId: string
+        @Query('enterpriseId') enterpriseId: string,
+        @Res() res: Response
     ) {
-        return this.transactionService.completeOrder(premiumName, enterpriseId);
+        try {
+            this.transactionService.completeOrder(premiumName, enterpriseId);
+            res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK_TRANSACTION')}`);
+        } catch (error) {
+            const errorCaught = ErrorCatchHelper.serviceCatch(error);
+            res.redirect(`${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`);
+        }
     }
 
     @SkipAuth()

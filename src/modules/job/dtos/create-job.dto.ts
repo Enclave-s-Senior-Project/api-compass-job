@@ -107,4 +107,9 @@ export class CreateJobDto {
     @IsArray()
     @IsString({ each: true })
     readonly specializationIds?: string[];
+
+    @ApiProperty({ description: 'Job requirements', example: 'Develop and maintain web applications.' })
+    @IsString()
+    @IsNotEmpty()
+    readonly requirements: string;
 }

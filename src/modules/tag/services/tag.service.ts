@@ -5,7 +5,6 @@ import { TagEntity } from '@database/entities';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { ILike, Like } from 'typeorm';
 import { Tag } from '../entities/tag.entity';
-import { query } from 'express';
 
 @Injectable()
 export class TagService {

@@ -45,6 +45,7 @@ export class ApplyJobController {
         @Param('id') id: string,
         @Query() filter: PaginationDto
     ): Promise<ApplyJobResponseDto> {
+        console.log('hahahaaaaaaaaaaaaaaa');
         return this.applyJobService.listCandidatesApplyJob(id, filter);
     }
 }

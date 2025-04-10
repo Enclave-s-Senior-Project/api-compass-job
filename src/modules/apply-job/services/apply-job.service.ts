@@ -77,21 +77,54 @@ export class ApplyJobService {
                 relations: ['profile', 'job'],
             });
 
-            const meta = new PageMetaDto({
-                pageOptionsDto: pagination,
-                itemCount: total,
-            });
-
             if (!candidates || candidates.length === 0) {
                 throw new ApplyJobResponseDtoBuilder()
                     .badRequestContent(AppliedJobErrorType.APPLIED_JOB_NOT_FOUND)
                     .build();
             }
 
-            return new ApplyJobResponseDtoBuilder()
-                .success()
-                .setValue(new PageDto<AppliedJobEntity>(candidates, meta))
-                .build();
+            const grouped = {
+                [ApplyJobStatus.PENDING]: [],
+                [ApplyJobStatus.APPROVED]: [],
+                [ApplyJobStatus.DENIED]: [],
+            };
+
+            for (const candidate of candidates) {
+                const applicant = {
+                    id: candidate.profile?.profileId,
+                    name: candidate.profile?.fullName || 'Unknown',
+                    position: candidate.job.type || 'Not specified',
+                    experience: candidate.profile?.experience || 'Not specified',
+                    education: candidate.profile?.education || 'Not specified',
+                    applied: candidate.createdAt?.toISOString() || new Date().toISOString(),
+                    avatar: candidate.profile?.profileUrl || '',
+                };
+
+                grouped[candidate.status].push(applicant);
+            }
+
+            const responseColumns = [
+                {
+                    id: ApplyJobStatus.PENDING.toLowerCase(),
+                    title: 'Pending',
+                    count: grouped.PENDING.length,
+                    applicants: grouped.PENDING,
+                },
+                {
+                    id: ApplyJobStatus.APPROVED.toLowerCase(),
+                    title: 'Approved',
+                    count: grouped.APPROVED.length,
+                    applicants: grouped.APPROVED,
+                },
+                {
+                    id: ApplyJobStatus.DENIED.toLowerCase(),
+                    title: 'Denied',
+                    count: grouped.DENIED.length,
+                    applicants: grouped.DENIED,
+                },
+            ];
+
+            return new ApplyJobResponseDtoBuilder().success().setValue(responseColumns).build();
         } catch (error) {
             console.log(error);
             throw new BadRequestException('Failed to list candidates. Please check the provided data.');

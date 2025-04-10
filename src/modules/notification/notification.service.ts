@@ -1,4 +1,4 @@
-import firebase from 'firebase-admin';
+import * as firebase from 'firebase-admin';
 import { Firestore } from 'firebase-admin/firestore';
 import { Messaging } from 'firebase-admin/messaging';
 import { Inject, Injectable } from '@nestjs/common';
@@ -37,12 +37,7 @@ export class NotificationService {
                 token: token,
                 notification: {
                     body: payload.message,
-                    title: payload.title,
-                },
-                webpush: {
-                    notification: {
-                        data: payload,
-                    },
+                    title: payload.notificationId,
                 },
             });
             return response;

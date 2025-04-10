@@ -5,9 +5,10 @@ import { EnterpriseModule } from '../enterprise/enterprise.module';
 import { TmpModule } from '../tmp/tmp.module';
 import { CacheModule } from '@src/cache/cache.module';
 import { TransactionRepository } from './repositories/transaction.repository';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-    imports: [EnterpriseModule, TmpModule, CacheModule],
+    imports: [EnterpriseModule, TmpModule, CacheModule, ConfigModule],
     controllers: [TransactionController],
     providers: [TransactionService, TransactionRepository],
     exports: [TransactionService],

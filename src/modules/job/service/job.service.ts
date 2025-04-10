@@ -45,6 +45,10 @@ export class JobService {
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
 
             const addressIds = Array.isArray(address) ? address : [];
+            console.log('addressIds', addressIds);
+            if (addressIds.length === 0) {
+                console.log('address');
+            }
             const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [];
             const specializationIdsArray = Array.isArray(specializationIds) ? specializationIds : [];
             const tagIdsArray = Array.isArray(tagIds) ? tagIds : [];
@@ -282,7 +286,7 @@ export class JobService {
                 .leftJoinAndSelect('jobs.enterprise', 'enterprise')
                 .leftJoinAndSelect('jobs.tags', 'tags')
                 .leftJoinAndSelect('jobs.categories', 'categories')
-                .leftJoinAndSelect('jobs.boostedJob', 'boostedJob')
+                .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs')
                 .where('enterprise.enterpriseId = :enterpriseId', { enterpriseId });
 
             // Search filter - search in job name and tags (fixed join issue)
@@ -344,7 +348,8 @@ export class JobService {
                 'enterprise.logoUrl',
                 'tags',
                 'categories',
-                'boostedJob',
+                'boosted_jobs.id',
+                'boosted_jobs.boostedAt',
                 'boosted_jobs.pointsUsed',
             ]);
 

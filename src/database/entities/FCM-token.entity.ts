@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 'typeorm';
 import { AccountEntity } from './account.entity';
 import { BaseEntity } from './base.entity';
 
@@ -7,7 +7,7 @@ export class FCMTokenEntity extends BaseEntity {
     @PrimaryGeneratedColumn('uuid', { name: 'token_id' })
     readonly tokenId: string;
 
-    @Column({ name: 'token', type: 'text', unique: true })
+    @Column({ name: 'token', type: 'text' })
     readonly token: string;
 
     @ManyToOne(() => AccountEntity, (account) => account.fcmTokens, {

@@ -6,10 +6,12 @@ import { redisProviderName } from './cache.provider';
 export class CacheService {
     private filterJobKey: string;
     private enterpriseFilterJobKey: string;
+    private fcmTokenKey: string;
 
     constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {
         this.filterJobKey = 'jobfilter:';
         this.enterpriseFilterJobKey = 'jobfilter:enterprise:';
+        this.fcmTokenKey = 'fcmtoken:';
     }
 
     async deleteCache(extraExcludePatterns: string[] = []) {
@@ -114,5 +116,25 @@ export class CacheService {
         const cacheKey = this.enterpriseFilterJobKey + key;
         const cacheResult = await this.redisClient.get(cacheKey);
         return JSON.parse(cacheResult) || null;
+    }
+
+    public async cacheFCMToken(accountId: string, tokens: string[]) {
+        const cacheKey = this.fcmTokenKey + accountId;
+        await this.redisClient.set(cacheKey, JSON.stringify(tokens), 'EX', 60 * 60 * 24); // Cache for 1 day
+    }
+
+    public async getFCMTokens(accountId: string) {
+        const cacheKey = this.fcmTokenKey + accountId;
+        const cacheResult = await this.redisClient.get(cacheKey);
+        return JSON.parse(cacheResult) || [];
+    }
+
+    public async removeFCMToken(accountId: string) {
+        const cacheKey = this.fcmTokenKey + accountId;
+        await this.redisClient.del(cacheKey);
+    }
+
+    public async removeAllFCMTokens() {
+        await this.removeMultipleCacheWithPrefix(this.fcmTokenKey);
     }
 }

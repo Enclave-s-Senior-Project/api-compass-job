@@ -6,17 +6,16 @@ import { firebaseAdminProviderName } from './providers/firebase.provider';
 import { NotificationRepository } from './repositories/notification.repository';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { NotificationEntity } from '@src/database/entities';
+import { FcmTokenService } from '../fcm-token/fcm-token.service';
 
 @Injectable()
 export class NotificationService {
     constructor(
         @Inject(firebaseAdminProviderName) private readonly firebase: firebase.app.App,
-        private readonly notificationRepository: NotificationRepository
+        private readonly notificationRepository: NotificationRepository,
+        private readonly fcmTokenService: FcmTokenService
     ) {}
-
-    private get firestore(): Firestore {
-        return this.firebase.firestore();
-    }
 
     private get messaging(): Messaging {
         return this.firebase.messaging();
@@ -32,7 +31,54 @@ export class NotificationService {
         }
     }
 
-    async createNotification(payload: CreateNotificationDto) {
-        this.firestore.collection('notifications').add(payload);
+    public async sendNotification(token: string, payload: NotificationEntity) {
+        try {
+            const response = await this.messaging.send({
+                token: token,
+                notification: {
+                    body: payload.message,
+                    title: payload.title,
+                },
+                webpush: {
+                    notification: {
+                        data: payload,
+                    },
+                },
+            });
+            return response;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async sendNotificationToMany(payload: NotificationEntity, tokens: string[]) {
+        try {
+            const response = await this.messaging.sendEachForMulticast({
+                tokens: tokens,
+                notification: {
+                    body: payload.message,
+                    title: payload.title,
+                },
+                webpush: {
+                    notification: {
+                        data: payload,
+                    },
+                },
+            });
+
+            const failedTokens: string[] = [];
+
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    failedTokens.push(tokens[idx]);
+                }
+            });
+
+            this.fcmTokenService.deleteTokenWithoutAccountId(failedTokens);
+
+            return response;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 }

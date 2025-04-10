@@ -1,7 +1,5 @@
-import { Column, Entity, JoinColumn, Check, OneToOne, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
-import { BaseEntity, ProfileEntity, EnterpriseEntity } from '@database/entities';
-import { arrayContains } from 'class-validator';
-import { NotificationEntity } from './notification.entity';
+import { Column, Entity, Check, OneToOne, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
+import { BaseEntity, ProfileEntity, EnterpriseEntity, NotificationEntity, FCMTokenEntity } from '@database/entities';
 
 export enum UserStatus {
     ACTIVE = 'ACTIVE',
@@ -48,4 +46,7 @@ export class AccountEntity extends BaseEntity {
 
     @OneToMany(() => NotificationEntity, (notification) => notification.account)
     readonly notification: NotificationEntity;
+
+    @OneToMany(() => FCMTokenEntity, (fcmToken) => fcmToken.account)
+    readonly fcmTokens: FCMTokenEntity[];
 }

@@ -121,3 +121,10 @@ export enum CreateNotificationDtoErrorType {
     LINK_REQUIRED = 'LINK_REQUIRED',
     IS_READ_INVALID = 'IS_READ_INVALID',
 }
+
+export enum CreateFcmTokenDtoErrorType {
+    ACCOUNT_ID_REQUIRED = 'ACCOUNT_ID_REQUIRED',
+    ACCOUNT_ID_INVALID = 'ACCOUNT_ID_INVALID',
+    TOKEN_REQUIRED = 'TOKEN_REQUIRED',
+    TOKEN_INVALID = 'TOKEN_INVALID',
+}

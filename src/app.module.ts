@@ -20,6 +20,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JobCronModule } from './modules/job-cron/job-cron.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { FcmTokenModule } from './modules/fcm-token/fcm-token.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 
 @Module({
@@ -54,6 +55,7 @@ import { TransactionModule } from './modules/transaction/transaction.module';
         }),
         JobCronModule,
         NotificationModule,
+        FcmTokenModule,
         TransactionModule,
     ],
 })

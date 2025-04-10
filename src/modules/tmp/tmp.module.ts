@@ -17,6 +17,7 @@ import {
     WebsiteEntity,
     BoostedJobsEntity,
     NotificationEntity,
+    FCMTokenEntity,
 } from '@database/entities';
 import { TransactionEntity } from '@src/database/entities/transaction.entity';
 
@@ -37,6 +38,7 @@ import { TransactionEntity } from '@src/database/entities/transaction.entity';
             AddressEntity,
             BoostedJobsEntity,
             NotificationEntity,
+            FCMTokenEntity,
             TransactionEntity,
         ]),
     ],

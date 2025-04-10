@@ -19,6 +19,6 @@ export abstract class BaseEntity {
     })
     updatedAt: Date;
 
-    @Column({ name: 'is_active', type: 'boolean', nullable: true })
+    @Column({ name: 'is_active', type: 'boolean', nullable: true, default: true })
     isActive?: boolean;
 }

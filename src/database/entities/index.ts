@@ -14,6 +14,7 @@ import { WebsiteEntity, SocialType } from './website.entity';
 import { GenderType } from './profile.entity';
 import { BoostedJobsEntity } from './boosted-jobs.entity';
 import { NotificationEntity } from './notification.entity';
+import { FCMTokenEntity } from './FCM-token.entity';
 
 export {
     GenderType,
@@ -33,4 +34,5 @@ export {
     SocialType,
     BoostedJobsEntity,
     NotificationEntity,
+    FCMTokenEntity,
 };

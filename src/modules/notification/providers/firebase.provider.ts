@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 import { Provider } from '@nestjs/common';
 
 export const firebaseAdminProviderName = 'FIREBASE_ADMIN';
@@ -14,6 +14,6 @@ export const firebaseAdminProvider: Provider = {
             }),
         });
 
-        return { defaultApp };
+        return defaultApp;
     },
 };

@@ -45,6 +45,8 @@ export class NotificationService {
             });
             return response;
         } catch (error) {
+            console.error(error);
+
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

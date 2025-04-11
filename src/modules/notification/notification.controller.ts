@@ -39,7 +39,7 @@ export class NotificationController {
             message: 'Test message',
             link: '',
             isRead: false,
-            notificationId: '',
+            notificationId: 'c72b32df-3d17-4ce9-bcbc-bb061b317133',
             createdAt: new Date(),
             updatedAt: new Date(),
         };

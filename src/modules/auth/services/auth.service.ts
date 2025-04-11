@@ -113,6 +113,7 @@ export class AuthService {
                 builder: new LoginResponseDtoBuilder()
                     .setValue({
                         ...tokenWithoutRefreshToken,
+                        refreshTokenExpires,
                     })
                     .success()
                     .build(),
@@ -199,6 +200,7 @@ export class AuthService {
                         accessToken,
                         accessTokenExpires,
                         tokenType,
+                        refreshTokenExpires,
                     })
                     .success()
                     .build(),

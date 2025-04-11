@@ -33,14 +33,16 @@ export class FacebookController {
 
             const isProd = process.env.NODE_ENV === 'production';
 
-            res.cookie('refresh-token', refreshToken, {
-                httpOnly: true,
-                sameSite: isProd ? 'none' : 'lax',
-                secure: isProd,
-                maxAge: refreshTokenExpires,
-            });
+            const cookie = `refresh-token=${refreshToken}; HttpOnly; ${
+                isProd ? 'SameSite=None; Secure;' : 'SameSite=Lax;'
+            } Max-Age=${refreshTokenExpires}; Path=/`;
 
-            return res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`);
+            return res
+                .writeHead(302, {
+                    Location: `${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`,
+                    'Set-Cookie': cookie,
+                })
+                .end();
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);
             return res.redirect(

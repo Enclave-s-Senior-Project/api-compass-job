@@ -27,6 +27,8 @@ RUN pnpm prune --prod || echo "Skipping prune due to errors"
 FROM node:20-alpine AS deploy
 WORKDIR /app
 
+ENV NODE_ENV=production
+
 RUN npm i -g pnpm
 
 COPY --from=build /app/dist ./dist

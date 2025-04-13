@@ -54,12 +54,13 @@ export class AuthController {
     ): Promise<LoginResponseDto> {
         const { builder, refreshToken, refreshTokenExpires } = await this.authService.login(authCredentialsDto);
 
+        const isProd = process.env.NODE_ENV === 'production';
+
         res.cookie('refresh-token', refreshToken, {
             httpOnly: true,
-            sameSite: 'none', // Required for cross-site cookies
-            secure: true,
+            sameSite: isProd ? 'none' : 'lax', // Required for cross-site cookies
+            secure: isProd ? true : false,
             maxAge: refreshTokenExpires,
-            priority: 'high',
         });
 
         return builder;
@@ -103,12 +104,13 @@ export class AuthController {
             builder,
         } = await this.authService.refreshToken(user, refreshToken);
 
+        const isProd = process.env.NODE_ENV === 'production';
+
         response.cookie('refresh-token', newRefreshToken, {
             httpOnly: true,
-            sameSite: 'none', // Required for cross-site cookies
-            secure: true,
+            sameSite: isProd ? 'none' : 'lax', // Required for cross-site cookies
+            secure: isProd ? true : false,
             maxAge: refreshTokenExpires,
-            priority: 'high',
         });
 
         return builder;
@@ -168,18 +170,5 @@ export class AuthController {
         } catch (error) {
             return error;
         }
-    }
-    @SkipAuth()
-    @UseGuards(GoogleOAuthGuard)
-    @ApiOperation({ description: 'Google OAuth Login' })
-    @Get('/google')
-    async googleAuth(@Req() req) {}
-
-    @SkipAuth()
-    @UseGuards(GoogleOAuthGuard)
-    @ApiOperation({ description: 'Google OAuth Redirect' })
-    @Get('/google-redirect')
-    async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) res: Response) {
-        return this.authService.googleLogin(req);
     }
 }

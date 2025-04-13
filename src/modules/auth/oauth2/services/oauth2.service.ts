@@ -8,6 +8,8 @@ import { JwtPayload } from '@common/dtos';
 import { omit } from 'lodash';
 import { FacebookResponseDtoBuilder } from '../dtos/facebook-response.dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import * as crypto from 'crypto';
+import { ConfirmOAuth2Dto } from '../dtos/confirm-oauth2.dto';
 
 @Injectable()
 export class OAuth2Service extends AuthService {
@@ -21,35 +23,18 @@ export class OAuth2Service extends AuthService {
 
             if (!account) {
                 account = await this.createOAuth2Account(payload);
+            } else if (account.status !== UserStatus.ACTIVE) {
+                throw new NotAcceptableException(AuthErrorType.ACCOUNT_INACTIVE);
             }
 
-            const userPayload = omit(account, ['password', 'active']);
+            const expiredInMilliseconds = 1000 * 60; // 1 minute
+            const expired = new Date(Date.now() + expiredInMilliseconds);
 
-            const jwtPayload: JwtPayload = {
-                accountId: userPayload.accountId,
-                profileId: userPayload?.profile?.profileId,
-                enterpriseId: userPayload?.enterprise?.enterpriseId,
-                roles: userPayload.roles,
-            };
-
-            const token = await this.tokenService.generateAuthToken(jwtPayload);
-            await this.storeRefreshTokenOnCache(
-                userPayload.accountId,
-                token.refreshToken,
-                token.refreshTokenExpires / 1000
-            );
-
-            const { refreshToken, refreshTokenExpires, ...tokenWithoutRefreshToken } = token;
+            const { encryptedData: authToken, iv } = HashHelper.encode([account.accountId, expired].join(','));
 
             return {
-                builder: new FacebookResponseDtoBuilder()
-                    .setValue({
-                        ...tokenWithoutRefreshToken,
-                    })
-                    .success()
-                    .build(),
-                refreshToken,
-                refreshTokenExpires,
+                authToken,
+                iv,
             };
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -106,6 +91,54 @@ export class OAuth2Service extends AuthService {
                     });
                 }
             }
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async confirmOAuth2Account(payload: ConfirmOAuth2Dto) {
+        try {
+            const { authToken, iv } = payload;
+
+            const decryptedData = HashHelper.decode(authToken, iv);
+            const [accountId, expired] = decryptedData.split(',');
+
+            if (new Date() > new Date(expired)) {
+                throw new NotAcceptableException(OAuth2ErrorType.AUTH_TOKEN_EXPIRED);
+            }
+
+            const account = await this.findOneById(accountId);
+
+            if (!account) {
+                throw new NotAcceptableException(AuthErrorType.USER_NOT_FOUND);
+            } else if (account.status !== UserStatus.ACTIVE) {
+                throw new NotAcceptableException(AuthErrorType.ACCOUNT_INACTIVE);
+            }
+
+            const jwtPayload: JwtPayload = {
+                accountId: account.accountId,
+                profileId: account?.profile?.profileId,
+                enterpriseId: account?.enterprise?.enterpriseId,
+                roles: account.roles,
+            };
+
+            const token = await this.tokenService.generateAuthToken(jwtPayload);
+            await this.storeRefreshTokenOnCache(
+                account.accountId,
+                token.refreshToken,
+                token.refreshTokenExpires / 1000
+            );
+
+            const { refreshToken, refreshTokenExpires, ...tokenWithoutRefreshToken } = token;
+
+            return {
+                builder: new FacebookResponseDtoBuilder()
+                    .setValue({ ...tokenWithoutRefreshToken, refreshTokenExpires })
+                    .success()
+                    .build(),
+                refreshToken,
+                refreshTokenExpires,
+            };
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

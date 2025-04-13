@@ -1,6 +1,17 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';
+import * as passport from 'passport';
+
+// Serialize user into session (store minimal data for efficiency)
+passport.serializeUser((user, done) => {
+    done(null, user); // You could store just `user.providerId` if you lookup later
+});
+
+// Deserialize user from session
+passport.deserializeUser((user, done) => {
+    done(null, user); // Retrieve the user as-is
+});
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {

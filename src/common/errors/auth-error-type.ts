@@ -17,4 +17,5 @@ export enum AuthErrorType {
 
 export enum OAuth2ErrorType {
     FACEBOOK_EMAIL_REQUIRED = 'FACEBOOK_EMAIL_REQUIRED',
+    AUTH_TOKEN_EXPIRED = 'AUTH_TOKEN_EXPIRED',
 }

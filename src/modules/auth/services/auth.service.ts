@@ -45,14 +45,16 @@ export class AuthService {
         const condition = provider ? { email: email, [`${provider.name}Id`]: provider.id } : { email: email };
         return await this.accountRepository.findOne({
             where: condition,
-            select: {
-                profile: {
-                    profileId: true,
-                },
-                enterprise: {
-                    enterpriseId: true,
-                },
+            relations: {
+                profile: true,
+                enterprise: true,
             },
+        });
+    }
+
+    protected async findOneById(accountId: string): Promise<AccountEntity> {
+        return await this.accountRepository.findOne({
+            where: { accountId },
             relations: {
                 profile: true,
                 enterprise: true,
@@ -404,15 +406,5 @@ export class AuthService {
         } catch (error) {
             throw new RegisterResponseDtoBuilder().setValue(true).success().build();
         }
-    }
-
-    public async googleLogin(req: any) {
-        if (!req.user) {
-            return 'No user from google';
-        }
-        return {
-            message: 'User information from google',
-            user: req.user,
-        };
     }
 }

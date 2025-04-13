@@ -1,10 +1,12 @@
-import { Controller, Get, HttpStatus, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Res, UseGuards } from '@nestjs/common';
 import { CurrentUser, SkipAuth } from '../../decorators';
 import { OAuth2Service } from '../services/oauth2.service';
 import { FacebookOAuth2Guard } from '../guards/facebook-oauth2.guard';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { ConfirmOAuth2Dto } from '../dtos/confirm-oauth2.dto';
+
 @Controller({ path: 'auth/facebook', version: '1' })
 @SkipAuth()
 export class FacebookController {
@@ -23,13 +25,23 @@ export class FacebookController {
     @Get('callback')
     async facebookCallback(@CurrentUser() user, @Res() res: Response) {
         try {
-            const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.oauth2Login(user);
-            const query = new URLSearchParams({
-                tokenType: builder.value.tokenType,
-                accessToken: builder.value.accessToken,
-                accessTokenExpires: builder.value.accessTokenExpires,
-                refreshTokenExpires: refreshTokenExpires.toString(),
-            }).toString();
+            const { authToken, iv } = await this.oauth2Service.oauth2Login(user);
+
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL_CALLBACK')}?authToken=${authToken}&iv=${iv}&provider=facebook`
+            );
+        } catch (error) {
+            const errorCaught = ErrorCatchHelper.serviceCatch(error);
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`
+            );
+        }
+    }
+
+    @Post('/confirm')
+    async confirmOAuth2(@Body() body: ConfirmOAuth2Dto, @Res({ passthrough: true }) res: Response) {
+        try {
+            const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.confirmOAuth2Account(body);
 
             const isProd = process.env.NODE_ENV === 'production';
 
@@ -40,7 +52,7 @@ export class FacebookController {
                 maxAge: refreshTokenExpires,
             });
 
-            return res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`);
+            return builder;
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);
             return res.redirect(

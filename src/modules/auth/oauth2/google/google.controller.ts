@@ -1,10 +1,11 @@
-import { Controller, Get, UseGuards, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, UseGuards, HttpStatus, Res, Post, Query, Body } from '@nestjs/common';
 import { OAuth2Service } from '../services/oauth2.service';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOAuthGuard } from '../guards/google-oauth.guard';
 import { CurrentUser, SkipAuth } from '@modules/auth/decorators';
 import { Response } from 'express';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { ConfirmOAuth2Dto } from '../dtos/confirm-oauth2.dto';
 
 @Controller({ path: 'auth/google', version: '1' })
 @SkipAuth()
@@ -24,14 +25,23 @@ export class GoogleController {
     @Get('/google-redirect')
     async googleAuthRedirect(@CurrentUser() user, @Res({ passthrough: true }) res: Response) {
         try {
-            const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.oauth2Login(user);
+            const { authToken, iv } = await this.oauth2Service.oauth2Login(user);
 
-            const query = new URLSearchParams({
-                tokenType: builder.value.tokenType,
-                accessToken: builder.value.accessToken,
-                accessTokenExpires: builder.value.accessTokenExpires,
-                refreshTokenExpires: refreshTokenExpires.toString(),
-            }).toString();
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL_CALLBACK')}?authToken=${authToken}&iv=${iv}&provider=google`
+            );
+        } catch (error) {
+            const errorCaught = ErrorCatchHelper.serviceCatch(error);
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`
+            );
+        }
+    }
+
+    @Post('/confirm')
+    async confirmOAuth2(@Body() body: ConfirmOAuth2Dto, @Res({ passthrough: true }) res: Response) {
+        try {
+            const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.confirmOAuth2Account(body);
 
             const isProd = process.env.NODE_ENV === 'production';
 
@@ -42,7 +52,7 @@ export class GoogleController {
                 maxAge: refreshTokenExpires,
             });
 
-            return res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK')}?${query}`);
+            return builder;
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);
             return res.redirect(

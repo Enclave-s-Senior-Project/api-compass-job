@@ -18,9 +18,15 @@ const bootstrap = async () => {
     // Enable session support
     app.use(
         session({
-            secret: 'your-secret-key',
+            secret: process.env.PASSP0RT_SECRET,
             resave: false,
             saveUninitialized: false,
+            cookie: {
+                secure: true, // Requires HTTPS
+                sameSite: 'none', // For cross-site redirects
+                path: '/',
+                maxAge: 24 * 60 * 60 * 1000, // 1 day
+            },
         })
     );
     // Initialize Passport

@@ -67,7 +67,7 @@ export class TransactionController {
     ) {
         try {
             this.transactionService.completeOrder(premiumName, enterpriseId);
-            res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK_TRANSACTION')}`);
+            res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK_TRANSACTION')}?message=success`);
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);
             res.redirect(`${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`);
@@ -77,8 +77,12 @@ export class TransactionController {
     @SkipAuth()
     @HttpCode(200)
     @Get('cancel-order')
-    async cancelOrder(@Query('token') token: string) {
-        console.log('Order canceled with token:', token);
-        return 'Payment canceled';
+    async cancelOrder(@Query('token') token: string, @Res() res: Response) {
+        try {
+            res.redirect(`${this.configService.get<string>('CLIENT_URL_CALLBACK_TRANSACTION')}?message=fail`);
+        } catch (error) {
+            const errorCaught = ErrorCatchHelper.serviceCatch(error);
+            res.redirect(`${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`);
+        }
     }
 }

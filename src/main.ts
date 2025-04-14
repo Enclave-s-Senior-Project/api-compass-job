@@ -38,11 +38,20 @@ const bootstrap = async () => {
     app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
     app.use(compression());
     app.use(cookieParse());
+    const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || [];
+
     app.enableCors({
-        origin: true,
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
         credentials: true,
     });
+
     app.enableVersioning();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, stopAtFirstError: true }));
     app.useGlobalFilters(new CustomExceptionFilter());

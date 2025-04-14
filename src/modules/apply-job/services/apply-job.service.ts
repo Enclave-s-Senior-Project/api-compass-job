@@ -82,7 +82,7 @@ export class ApplyJobService {
                     .badRequestContent(AppliedJobErrorType.APPLIED_JOB_NOT_FOUND)
                     .build();
             }
-
+            console.log('Candidates:', candidates);
             const grouped = {
                 [ApplyJobStatus.PENDING]: [],
                 [ApplyJobStatus.APPROVED]: [],
@@ -90,6 +90,7 @@ export class ApplyJobService {
             };
 
             for (const candidate of candidates) {
+                console.log('Candidate:', candidate);
                 const applicant = {
                     id: candidate.profile?.profileId,
                     name: candidate.profile?.fullName || 'Unknown',
@@ -98,6 +99,8 @@ export class ApplyJobService {
                     education: candidate.profile?.education || 'Not specified',
                     applied: candidate.createdAt?.toISOString() || new Date().toISOString(),
                     avatar: candidate.profile?.profileUrl || '',
+                    gender: candidate.profile.gender,
+                    nationality: candidate.profile.nationality,
                 };
 
                 grouped[candidate.status].push(applicant);

@@ -28,7 +28,7 @@ export class GoogleController {
             const { authToken, iv } = await this.oauth2Service.oauth2Login(user);
 
             return res.redirect(
-                `${this.configService.get<string>('CLIENT_URL_CALLBACK')}?authToken=${authToken}&iv=${iv}&provider=google`
+                `${this.configService.get<string>('CLIENT_URL')}/auth/callback?authToken=${authToken}&iv=${iv}&provider=google`
             );
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);

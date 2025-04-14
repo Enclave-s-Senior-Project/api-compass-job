@@ -26,9 +26,9 @@ export class FacebookController {
     async facebookCallback(@CurrentUser() user, @Res() res: Response) {
         try {
             const { authToken, iv } = await this.oauth2Service.oauth2Login(user);
-
+            console.log('Facebook user:', this.configService.get<string>('CLIENT_URL'));
             return res.redirect(
-                `${this.configService.get<string>('CLIENT_URL_CALLBACK')}?authToken=${authToken}&iv=${iv}&provider=facebook`
+                `${this.configService.get<string>('CLIENT_URL')}/auth/callback?authToken=${authToken}&iv=${iv}&provider=facebook`
             );
         } catch (error) {
             const errorCaught = ErrorCatchHelper.serviceCatch(error);

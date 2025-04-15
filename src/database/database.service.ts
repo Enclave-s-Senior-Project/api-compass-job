@@ -28,10 +28,13 @@ export class DatabaseService implements OnModuleInit {
 
     protected async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query('CREATE EXTENSION IF NOT EXISTS unaccent;');
-
+        await queryRunner.query('CREATE EXTENSION IF NOT EXISTS pg_trgm;');
         await queryRunner.query("CREATE INDEX idx_jobs_name_gin ON jobs USING GIN(to_tsvector('english', name));");
         await queryRunner.query('CREATE INDEX idx_addresses_country ON addresses (country);');
         await queryRunner.query('CREATE INDEX idx_addresses_city ON addresses (city);');
+        await queryRunner.query(
+            'CREATE INDEX idx_addresses_mixed_address ON addresses USING GIN(mixed_address gin_trgm_ops);'
+        );
         await queryRunner.query('CREATE INDEX idx_job_categories_category_id ON job_categories (category_id);');
         await queryRunner.query(
             'CREATE INDEX idx_job_specializations_category_id ON job_specializations (category_id);'

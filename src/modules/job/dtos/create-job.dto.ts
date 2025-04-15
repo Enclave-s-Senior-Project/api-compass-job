@@ -2,6 +2,7 @@ import {
     IsArray,
     IsBoolean,
     IsDateString,
+    IsEnum,
     IsNotEmpty,
     IsNumber,
     IsOptional,
@@ -14,6 +15,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { JobTypeEnum } from '@src/common/enums/job.enum';
+import { EducationJobLevel } from '@src/common/enums/education-job.enum';
 
 export class CreateJobDto {
     @ApiProperty({ description: 'Job name', example: 'Software Engineer' })
@@ -68,9 +70,9 @@ export class CreateJobDto {
     readonly introImg?: string;
 
     @ApiProperty({ description: 'Job education requirement', example: 'Bachelor’s degree in Computer Science' })
-    @IsString()
+    @IsEnum(EducationJobLevel)
     @IsNotEmpty()
-    readonly education: string;
+    readonly education: EducationJobLevel;
 
     @ApiProperty({ description: 'Job benefits', example: 'Health insurance, Remote work options.', required: false })
     @IsOptional()

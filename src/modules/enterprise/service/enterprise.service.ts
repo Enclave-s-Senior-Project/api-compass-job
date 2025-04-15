@@ -2,7 +2,12 @@ import { BadRequestException, forwardRef, HttpException, Inject, Injectable, Not
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
-import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder, RegisterPremiumEnterpriseDto } from '../dtos';
+import {
+    EnterpriseResponseDto,
+    EnterpriseResponseDtoBuilder,
+    RegisterPremiumEnterpriseDto,
+    UpdateCompanyAddressDto,
+} from '../dtos';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { EnterpriseErrorType } from '@common/errors/enterprises-error-type';
 import { UpdateCompanyInfoDto } from '../dtos/update-company-info.dto';
@@ -19,6 +24,7 @@ import { UserService } from '@src/modules/user/service';
 import { ProfileErrorType } from '@src/common/errors/profile-error-type';
 import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
 import { FindJobsByEnterpriseDto } from '../dtos/find-job-by-enterprise.dto';
+import { AddressService } from '@src/modules/address/service/address.service';
 
 @Injectable()
 export class EnterpriseService {
@@ -26,6 +32,7 @@ export class EnterpriseService {
         @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
         private readonly profileService: UserService,
         private readonly enterpriseRepository: EnterpriseRepository,
+        private readonly addressService: AddressService,
         @Inject(redisProviderName) private readonly redisCache: RedisCommander
     ) {}
 
@@ -52,7 +59,21 @@ export class EnterpriseService {
 
     async getEnterpriseByAccountId(accountId: string) {
         try {
-            const enterprise = await this.enterpriseRepository.findOne({ where: { account: { accountId } } });
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { account: { accountId } },
+                relations: {
+                    addresses: true,
+                },
+                select: {
+                    addresses: {
+                        addressId: true,
+                        city: true,
+                        country: true,
+                        street: true,
+                        zipCode: true,
+                    },
+                },
+            });
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error fetching enterprise by account ID:', error);
@@ -404,6 +425,48 @@ export class EnterpriseService {
 
             return this.enterpriseRepository.save(enterprise);
         } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async updateCompanyAddress(id: string, payload: UpdateCompanyAddressDto): Promise<EnterpriseResponseDto> {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: id },
+                relations: ['addresses'],
+            });
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            const addressIds = (enterprise.addresses || []).map((a) => a.addressId);
+
+            if (addressIds.length > 0) {
+                await Promise.all([
+                    this.enterpriseRepository
+                        .createQueryBuilder()
+                        .relation(EnterpriseEntity, 'addresses')
+                        .of(enterprise)
+                        .remove(addressIds),
+                    this.addressService.remove(addressIds),
+                ]);
+            }
+
+            const address = await this.addressService.create(payload);
+
+            await this.enterpriseRepository
+                .createQueryBuilder()
+                .relation(EnterpriseEntity, 'addresses')
+                .of(enterprise)
+                .add(address.value.addressId);
+
+            const updatedEnterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: id },
+                relations: ['addresses'],
+            });
+
+            return new EnterpriseResponseDtoBuilder().setValue(updatedEnterprise).build();
+        } catch (error) {
+            console.error('Error updating company address:', error); // Fixed typo in log
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

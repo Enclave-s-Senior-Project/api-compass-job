@@ -1,6 +1,12 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req, HttpCode } from '@nestjs/common';
 import { EnterpriseService } from './service/enterprise.service';
-import { CreateEnterpriseDto, EnterpriseResponseDto, RegisterPremiumEnterpriseDto, UpdateEnterpriseDto } from './dtos';
+import {
+    CreateEnterpriseDto,
+    EnterpriseResponseDto,
+    RegisterPremiumEnterpriseDto,
+    UpdateCompanyAddressDto,
+    UpdateEnterpriseDto,
+} from './dtos';
 
 import {
     ApiTags,
@@ -73,6 +79,16 @@ export class EnterpriseController {
     @ApiResponse({ status: 200, description: 'User has an enterprise.' })
     getCurrentEnterprise(@CurrentUser() user: JwtPayload) {
         return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Patch('address')
+    @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
+    @ApiResponse({ status: 200, description: 'User has an enterprise.' })
+    updateCompanyAddress(@CurrentUser() user: JwtPayload, @Body() body: UpdateCompanyAddressDto) {
+        return this.enterpriseService.updateCompanyAddress(user.enterpriseId, body);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

@@ -79,7 +79,7 @@ export class AddressController {
     @ApiNoContentResponse({ description: 'Address deleted successfully.' })
     @ApiNotFoundResponse({ description: 'Address not found.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async deleteAddress(@Param('id') id: string): Promise<void> {
+    async deleteAddress(@Param('id') id: string[]): Promise<void> {
         return this.addressService.remove(id);
     }
 }

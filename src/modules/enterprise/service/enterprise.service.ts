@@ -145,12 +145,12 @@ export class EnterpriseService {
         return this.enterpriseRepository.remove(enterprise);
     }
 
-    async findByIndustryType(industryType: string) {
-        return this.enterpriseRepository.find({
-            where: { industryType },
-            relations: ['account', 'websites', 'jobs', 'addresses'],
-        });
-    }
+    // async findByIndustryType(industryType: string) {
+    //     return this.enterpriseRepository.find({
+    //         where: { industryType },
+    //         relations: ['account', 'websites', 'jobs', 'addresses'],
+    //     });
+    // }
     async findJobsByEnterpriseId(enterpriseId: string, pagination: FindJobsByEnterpriseDto) {
         try {
             return await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
@@ -342,7 +342,8 @@ export class EnterpriseService {
     }
 
     async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload) {
-        return this.profileService.getAllCandidate(options, user);
+        const temp = await this.enterpriseRepository.findOne({ where: { enterpriseId: user.enterpriseId } });
+        return this.profileService.getAllCandidate(options, user, temp.categories);
     }
     async delCache() {
         const keys = await this.redisCache.keys('*');

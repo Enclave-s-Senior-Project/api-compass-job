@@ -377,7 +377,11 @@ export class UserService {
         await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24);
     }
 
-    public async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload): Promise<UserResponseDto> {
+    public async getAllCandidate(
+        options: FilterCandidatesProfileDto,
+        user: JwtPayload,
+        categories: string[]
+    ): Promise<UserResponseDto> {
         try {
             const queryBuilder = this.profileRepository
                 .createQueryBuilder('profile')
@@ -390,12 +394,17 @@ export class UserService {
                 )
                 .addSelect('CASE WHEN cf.profile_id IS NOT NULL THEN true ELSE false END', 'is_favorite');
 
+            const hasAnyFilter = !!options.gender || !!options.isMarried || !!options.industryId;
+
+            if (!hasAnyFilter && categories.length > 0) {
+                queryBuilder.andWhere('profile.industry_id IN (:...categories)', { categories });
+            }
             if (options.gender) {
                 queryBuilder.andWhere('profile.gender = :gender', { gender: options.gender });
             }
-            if (options.isMaried) {
+            if (options.isMarried) {
                 queryBuilder.andWhere('profile.marital_status = :maritalStatus', {
-                    maritalStatus: options.isMaried,
+                    maritalStatus: options.isMarried,
                 });
             }
             if (options.industryId) {

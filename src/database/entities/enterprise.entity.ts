@@ -53,6 +53,9 @@ export class EnterpriseEntity extends BaseEntity {
     @Column({ name: 'description', type: 'text', default: process.env.ENTERPRISE_DESCRIPTION })
     readonly description: string | null;
 
+    @Column({ name: 'benefit', type: 'text', nullable: true })
+    readonly benefit: string | null;
+
     @Column({ name: 'company_vision', type: 'text', nullable: true })
     readonly companyVision: string | null;
 
@@ -89,8 +92,8 @@ export class EnterpriseEntity extends BaseEntity {
     })
     readonly status: EnterpriseStatus;
 
-    @Column('varchar', { name: 'industry_type', length: 255, nullable: true })
-    readonly industryType: string | null;
+    @Column({ name: 'categories', type: 'text', array: true, nullable: true })
+    readonly categories: string[];
 
     @Column({ name: 'bio', type: 'text', nullable: true })
     bio: string | null;

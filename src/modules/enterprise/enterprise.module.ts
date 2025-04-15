@@ -12,11 +12,12 @@ import { CategoryModule } from '../category/category.module';
 @Module({
     imports: [
         TmpModule,
-        CacheModule,
         forwardRef(() => JobModule),
+        CategoryModule,
         forwardRef(() => UserModule),
-        forwardRef(() => CategoryModule),
-    , AddressModule],
+        AddressModule,
+        CacheModule,
+    ],
     controllers: [EnterpriseController],
     providers: [EnterpriseService, EnterpriseRepository],
     exports: [EnterpriseService],

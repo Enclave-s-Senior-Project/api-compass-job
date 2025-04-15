@@ -245,6 +245,7 @@ export class JobService {
                 return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
             }
 
+            const temp = await this.categoryService.findByIds(job.enterprise.categories);
             if (userId) {
                 isFavorite = job.profiles?.some((profile) => profile.profileId === userId) ?? false;
             }
@@ -252,6 +253,10 @@ export class JobService {
             const jobWithFavorite = {
                 ...job,
                 isFavorite,
+                enterprise: {
+                    ...job.enterprise,
+                    categories: temp,
+                },
             };
 
             return new JobResponseDtoBuilder().setValue(jobWithFavorite).success().build();

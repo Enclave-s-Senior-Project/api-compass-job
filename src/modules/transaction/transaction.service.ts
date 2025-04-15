@@ -70,8 +70,8 @@ export class TransactionService {
                         },
                     ],
                     application_context: {
-                        return_url: `${process.env.APP_BASE_URL}/api/v1/transaction/complete-order?premiumName=${premiumName}&enterpriseId=${enterpiseId}`,
-                        cancel_url: process.env.APP_BASE_URL + '/api/v1/transaction/cancel-order',
+                        return_url: `${process.env.SERVER_URL}/api/v1/transaction/complete-order?premiumName=${premiumName}&enterpriseId=${enterpiseId}`,
+                        cancel_url: process.env.SERVER_URL + '/api/v1/transaction/cancel-order',
                         shipping_preference: 'NO_SHIPPING',
                         user_action: 'PAY_NOW',
                         brand_name: 'JobCompass',

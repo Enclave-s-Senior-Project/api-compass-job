@@ -25,11 +25,13 @@ import { ProfileErrorType } from '@src/common/errors/profile-error-type';
 import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
 import { FindJobsByEnterpriseDto } from '../dtos/find-job-by-enterprise.dto';
 import { AddressService } from '@src/modules/address/service/address.service';
+import { CategoryService } from '@src/modules/category/services';
 
 @Injectable()
 export class EnterpriseService {
     constructor(
         @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
+        @Inject(forwardRef(() => CategoryService)) private readonly categoriesService: CategoryService,
         private readonly profileService: UserService,
         private readonly enterpriseRepository: EnterpriseRepository,
         private readonly addressService: AddressService,
@@ -187,6 +189,9 @@ export class EnterpriseService {
                     .badRequestContent(EnterpriseErrorType.ENTERPRISE_CAN_REGISTER)
                     .build();
             }
+            const temp = await this.categoriesService.findByIds(enterprise.categories);
+            (enterprise as any).categories = temp;
+
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error creating enterprise:', error);
@@ -398,9 +403,13 @@ export class EnterpriseService {
             if (!enterprise) {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
             }
+            const categories = await this.categoriesService.findByIds(enterprise.categories);
+
+            (enterprise as any).categories = categories;
 
             const jobs = await this.jobService.getJobByIdEnterprise(id, 5);
             (enterprise as any).jobs = jobs;
+
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             if (error instanceof HttpException) {

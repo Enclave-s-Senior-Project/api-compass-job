@@ -13,7 +13,7 @@ export class FilterCandidatesProfileDto extends PaginationDto {
     @ApiProperty({ enum: MaritalStatusType, required: false })
     @IsOptional()
     @IsEnum(MaritalStatusType)
-    isMaried?: MaritalStatusType;
+    isMarried?: MaritalStatusType;
 
     @ApiProperty({ type: [String], isArray: true, required: false })
     @IsString({ each: true })

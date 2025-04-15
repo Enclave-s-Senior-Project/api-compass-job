@@ -7,9 +7,16 @@ import { CacheModule } from '@cache/cache.module';
 import { JobModule } from '@modules/job/job.module';
 import { UserModule } from '../user/user.module';
 import { AddressModule } from '../address/address.module';
+import { CategoryModule } from '../category/category.module';
 
 @Module({
-    imports: [TmpModule, CacheModule, forwardRef(() => JobModule), forwardRef(() => UserModule), AddressModule],
+    imports: [
+        TmpModule,
+        CacheModule,
+        forwardRef(() => JobModule),
+        forwardRef(() => UserModule),
+        forwardRef(() => CategoryModule),
+    , AddressModule],
     controllers: [EnterpriseController],
     providers: [EnterpriseService, EnterpriseRepository],
     exports: [EnterpriseService],

@@ -13,7 +13,7 @@ export class AddressService {
         try {
             const newAddress = this.addressRepository.create(createAddressDto);
             const savedAddress = await this.addressRepository.save(newAddress);
-            return new AddressResponseDtoBuilder().setCode(201).build();
+            return new AddressResponseDtoBuilder().setCode(201).setValue(savedAddress).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -69,17 +69,17 @@ export class AddressService {
         }
     }
 
-    async remove(id: string): Promise<void> {
-        const address = await this.addressRepository.findOneBy({ addressId: id });
+    async remove(ids: string[]): Promise<void> {
+        const addresses = await this.addressRepository.findByIds(ids);
 
-        if (!address) {
-            throw new NotFoundException(`Address with ID ${id} not found.`);
+        if (addresses.length === 0) {
+            throw new NotFoundException(`Addresses with IDs ${ids.join(', ')} not found.`);
         }
 
         try {
-            await this.addressRepository.remove(address);
+            await this.addressRepository.remove(addresses);
         } catch (error) {
-            throw new InternalServerErrorException('Failed to delete address.');
+            throw new InternalServerErrorException('Failed to delete addresses.');
         }
     }
     async getAddressByIds(ids: string[]): Promise<AddressEntity[]> {

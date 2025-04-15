@@ -6,7 +6,6 @@ export enum Experience {
 }
 
 export enum Education {
-    ALL = 'ALL',
     HIGH_SCHOOL = 'HIGH_SCHOOL',
     INTERMEDIATE = 'INTERMEDIATE',
     GRADUATION = 'GRADUATION',

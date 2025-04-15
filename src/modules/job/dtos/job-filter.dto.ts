@@ -1,8 +1,9 @@
 import { PaginationDto } from '@common/dtos';
 import { JobFilterErrorType } from '@common/errors/class-validator-error-type';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { EducationJobLevel } from '@src/common/enums/education-job.enum';
 import { JobTypeEnum } from '@src/common/enums/job.enum';
-import { IsOptional, IsString, IsInt, Min, IsBoolean, IsArray, ArrayNotEmpty, isInt } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsBoolean, IsArray, ArrayNotEmpty, isInt, Matches } from 'class-validator';
 
 export class JobFilterDto extends PaginationDto {
     @ApiPropertyOptional({ description: 'Filter by job name' })
@@ -33,18 +34,17 @@ export class JobFilterDto extends PaginationDto {
     @ApiPropertyOptional({ description: 'Filter by minimum wage' })
     @IsInt({ message: JobFilterErrorType.MIN_WAGE_NOT_INT })
     @IsOptional()
-    readonly minWage?: number;
+    readonly minWage?: string;
 
     @ApiPropertyOptional({ description: 'Filter by maximum wage' })
     @IsInt({ message: JobFilterErrorType.MAX_WAGE_NOT_INT }) // Fixed incorrect error type
     @IsOptional()
-    readonly maxWage?: number;
+    readonly maxWage?: string;
 
     @ApiPropertyOptional({ description: 'Filter by experience required (in years)' })
-    @Min(0, { message: JobFilterErrorType.EXPERIENCE_OUT_OF_RANGE })
-    @IsInt({ message: JobFilterErrorType.EXPERIENCE_NOT_INT })
+    @Matches(/^\d+\s*-\s*\d+$/, { message: JobFilterErrorType.EXPERIENCE_OUT_OF_RANGE })
     @IsOptional()
-    readonly experience?: number;
+    readonly experience?: string;
 
     @ApiPropertyOptional({ description: 'Filter by job type' })
     @IsArray({ message: JobFilterErrorType.TYPE_NOT_ARRAY_OF_STRINGS })
@@ -58,7 +58,7 @@ export class JobFilterDto extends PaginationDto {
     @ArrayNotEmpty({ message: JobFilterErrorType.EDUCATION_NOT_ARRAY_OF_STRINGS })
     @IsString({ each: true, message: JobFilterErrorType.EDUCATION_NOT_ARRAY_OF_STRINGS })
     @IsOptional()
-    readonly education?: string[];
+    readonly education?: EducationJobLevel[];
 
     @ApiPropertyOptional({ description: 'Filter by enterprise ID' })
     @IsString({ message: JobFilterErrorType.ENTERPRISE_ID_NOT_STRING })

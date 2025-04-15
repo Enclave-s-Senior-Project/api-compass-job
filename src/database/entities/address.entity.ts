@@ -1,4 +1,4 @@
-import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BeforeInsert, Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity, EnterpriseEntity, JobEntity, ProfileEntity } from '@database/entities';
 
 @Entity({ name: 'addresses' })
@@ -18,6 +18,9 @@ export class AddressEntity extends BaseEntity {
     @Column({ name: 'zip_code', type: 'varchar', length: 10, nullable: false })
     readonly zipCode: string;
 
+    @Column({ name: 'mixed_address', type: 'varchar', length: 255, nullable: false })
+    mixedAddress: string;
+
     // relationships
     @ManyToMany(() => JobEntity, (job) => job.addresses)
     @JoinTable({ name: 'job_addresses', joinColumn: { name: 'address_id' }, inverseJoinColumn: { name: 'job_id' } })
@@ -34,4 +37,9 @@ export class AddressEntity extends BaseEntity {
     @ManyToMany(() => ProfileEntity, (profile) => profile.addresses)
     @JoinTable({ name: 'profile_addresses', joinColumn: { name: 'job_id' }, inverseJoinColumn: { name: 'profile_id' } })
     readonly profiles: ProfileEntity[];
+
+    @BeforeInsert()
+    async generateMixedAddress() {
+        this.mixedAddress = `${this.street}, ${this.city}, ${this.zipCode}, ${this.country}`;
+    }
 }

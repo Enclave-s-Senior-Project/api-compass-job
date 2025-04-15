@@ -22,6 +22,7 @@ import {
 import { AddressEntity } from '@database/entities/address.entity';
 import { BoostedJobsEntity } from './boosted-jobs.entity';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
+import { EducationJobLevel } from '@src/common/enums/education-job.enum';
 
 @Entity('jobs')
 export class JobEntity extends BaseEntity {
@@ -62,8 +63,8 @@ export class JobEntity extends BaseEntity {
     @Column({ name: 'status', type: 'enum', enum: JobStatusEnum, default: JobStatusEnum.OPEN })
     readonly status: JobStatusEnum;
 
-    @Column({ name: 'education', type: 'varchar', length: 50, nullable: true })
-    readonly education: string;
+    @Column({ name: 'education', type: 'enum', enum: EducationJobLevel, nullable: true })
+    readonly education: EducationJobLevel;
 
     @Column({ name: 'isBoost', type: 'boolean', default: false })
     readonly isBoost: boolean;

@@ -45,10 +45,6 @@ export class JobService {
             const { address, categoryIds, specializationIds, tagIds, ...jobData } = createJobDto;
 
             const addressIds = Array.isArray(address) ? address : [];
-            console.log('addressIds', addressIds);
-            if (addressIds.length === 0) {
-                console.log('address');
-            }
             const categoryIdsArray = Array.isArray(categoryIds) ? categoryIds : [];
             const specializationIdsArray = Array.isArray(specializationIds) ? specializationIds : [];
             const tagIdsArray = Array.isArray(tagIds) ? tagIds : [];
@@ -448,7 +444,13 @@ export class JobService {
                 });
             }
             if (query.city) {
-                queryBuilder.andWhere('unaccent(addresses.city) ILIKE unaccent(:city)', { city: `%${query.city}%` });
+                queryBuilder.andWhere(
+                    'addresses.mixed_address % :address OR addresses.mixed_address ILIKE :addressPattern',
+                    {
+                        address: query.city.trim(),
+                        addressPattern: `%${query.city.trim()}%`,
+                    }
+                );
             }
 
             // Category Filters
@@ -477,9 +479,8 @@ export class JobService {
 
             // Job Attributes
             if (query.experience !== undefined) {
-                queryBuilder.andWhere('jobs.experience = :experience', {
-                    experience: Number(query.experience),
-                });
+                const [min, max] = query.experience.split('-').map(Number);
+                queryBuilder.andWhere('jobs.experience BETWEEN :min AND :max', { min, max });
             }
             if (query.type) {
                 queryBuilder.andWhere('jobs.type = ANY(:type)', { type: query.type });

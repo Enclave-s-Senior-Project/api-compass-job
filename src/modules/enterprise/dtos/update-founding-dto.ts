@@ -1,7 +1,7 @@
 import { UpdateFoundingInfoDtoErrorType } from '@common/errors/class-validator-error-type';
 import { OrganizationType } from '@database/entities/enterprise.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsArray, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class UpdateFoundingInfoDto {
     @ApiPropertyOptional({
@@ -64,9 +64,9 @@ export class UpdateFoundingInfoDto {
         description: 'The industry type of the company',
         example: 'Information Technology',
     })
-    @IsString({ message: UpdateFoundingInfoDtoErrorType.INVALID_INDUSTRY_TYPE })
+    @IsArray({ message: UpdateFoundingInfoDtoErrorType.INVALID_INDUSTRY_TYPE })
     @IsNotEmpty({ message: UpdateFoundingInfoDtoErrorType.INDUSTRY_TYPE_REQUIRED })
-    readonly industryType: string;
+    readonly categories?: string[];
 
     @ApiProperty({ example: 'johndoe@example.com', required: false })
     @IsOptional()

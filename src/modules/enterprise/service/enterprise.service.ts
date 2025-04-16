@@ -76,6 +76,9 @@ export class EnterpriseService {
                     },
                 },
             });
+            const categories = await this.categoriesService.findByIds(enterprise.categories);
+
+            (enterprise as any).categories = categories;
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error fetching enterprise by account ID:', error);

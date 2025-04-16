@@ -1,11 +1,9 @@
 import {
-    BeforeInsert,
     BeforeUpdate,
     Column,
     Entity,
     Index,
     JoinColumn,
-    JoinTable,
     ManyToMany,
     OneToMany,
     OneToOne,

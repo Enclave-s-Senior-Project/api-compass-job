@@ -554,7 +554,6 @@ export class JobService {
                 'enterprise.organizationType',
                 'enterprise.teamSize',
                 'enterprise.status',
-                'enterprise.industryType',
                 'enterprise.isPremium',
                 'tags.tagId',
                 'tags.name',

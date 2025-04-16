@@ -484,11 +484,13 @@ export class JobService {
 
             // Category Filters
             if (query.industryCategoryId) {
+                console.log('industryCategoryId', query.industryCategoryId);
                 queryBuilder.andWhere('industries.categoryId = :industryId', {
                     industryId: query.industryCategoryId,
                 });
             }
             if (query.majorityCategoryId) {
+                console.log('majorityCategoryId', query.majorityCategoryId);
                 queryBuilder.andWhere('majorities.categoryId = :majorityId', {
                     majorityId: query.majorityCategoryId,
                 });
@@ -577,7 +579,7 @@ export class JobService {
             ]);
 
             queryBuilder
-                .orderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
+                .addOrderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
                 .addOrderBy('boosted_jobs.boostedAt', 'ASC', 'NULLS LAST')
                 .addOrderBy('jobs.deadline', 'ASC')
                 .addOrderBy('jobs.updatedAt', 'DESC')

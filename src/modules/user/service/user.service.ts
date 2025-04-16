@@ -394,27 +394,31 @@ export class UserService {
                 )
                 .addSelect('CASE WHEN cf.profile_id IS NOT NULL THEN true ELSE false END', 'is_favorite');
 
-            const hasAnyFilter = !!options.gender || !!options.isMarried || !!options.industryId;
-
-            if (!hasAnyFilter && categories.length > 0) {
+            if (!options.industryId && categories.length > 0) {
                 queryBuilder.andWhere('profile.industry_id IN (:...categories)', { categories });
+            } else {
+                const categoriesArray = Array.isArray(options.industryId) ? options.industryId : [options.industryId];
+                queryBuilder.andWhere('profile.industry_id IN (:...categoriesArray)', { categoriesArray });
             }
+
             if (options.gender) {
                 queryBuilder.andWhere('profile.gender = :gender', { gender: options.gender });
             }
+
             if (options.isMarried) {
                 queryBuilder.andWhere('profile.marital_status = :maritalStatus', {
                     maritalStatus: options.isMarried,
                 });
             }
-            if (options.industryId) {
-                const categoriesArray = Array.isArray(options.industryId) ? options.industryId : [options.industryId];
-                queryBuilder.andWhere('profile.industry_id IN (:...categoriesArray)', { categoriesArray });
-            }
 
             const total = await queryBuilder.getCount();
 
-            queryBuilder.skip(options.skip).take(options.take);
+            queryBuilder
+                .skip(options.skip)
+                .take(options.take)
+                .addOrderBy('profile.view', 'DESC')
+                .addOrderBy('profile.isPremium', 'DESC')
+                .addOrderBy('profile.createdAt', options.order);
 
             const { entities, raw } = await queryBuilder.getRawAndEntities();
 

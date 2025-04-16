@@ -33,9 +33,9 @@ export class TransactionService {
         }
     }
 
-    async createOrder(enterpiseId: string, premiumName: string, price: number) {
+    async createOrder(enterpriseId: string, premiumName: string, price: number) {
         try {
-            const enterprise = await this.enterpriseService.findOneById(enterpiseId);
+            const enterprise = await this.enterpriseService.findOneById(enterpriseId);
             if (!enterprise) {
                 throw new Error('Enterprise not found');
             }
@@ -70,7 +70,7 @@ export class TransactionService {
                         },
                     ],
                     application_context: {
-                        return_url: `${process.env.SERVER_URL}/api/v1/transaction/complete-order?premiumName=${premiumName}&enterpriseId=${enterpiseId}`,
+                        return_url: `${process.env.SERVER_URL}/api/v1/transaction/complete-order?premiumName=${premiumName}&enterpriseId=${enterpriseId}`,
                         cancel_url: process.env.SERVER_URL + '/api/v1/transaction/cancel-order',
                         shipping_preference: 'NO_SHIPPING',
                         user_action: 'PAY_NOW',

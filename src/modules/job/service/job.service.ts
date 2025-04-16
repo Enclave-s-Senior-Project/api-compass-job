@@ -235,31 +235,43 @@ export class JobService {
 
     async getDetailJobById(id: string, userId: string): Promise<JobResponseDto> {
         try {
-            let isFavorite = false;
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
-                relations: ['tags', 'enterprise', 'addresses', 'profiles', 'categories', 'specializations'],
+                relations: ['tags', 'enterprise', 'addresses', 'categories', 'specializations'],
+                select: {
+                    tags: true,
+                    enterprise: true,
+                    addresses: true,
+                    categories: true,
+                    specializations: true,
+                },
             });
 
             if (!job) {
                 return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
             }
 
+            let isFavorite = userId
+                ? (job.profiles?.some((profile) => profile.profileId === userId) ?? false)
+                : false;
+
+            const applicationCount = await this.getTotalAppliedJob(job.jobId);
             const temp = await this.categoryService.findByIds(job.enterprise.categories);
             if (userId) {
                 isFavorite = job.profiles?.some((profile) => profile.profileId === userId) ?? false;
             }
 
-            const jobWithFavorite = {
+            const jobWithExtras = {
                 ...job,
                 isFavorite,
                 enterprise: {
                     ...job.enterprise,
                     categories: temp,
                 },
+                applicationCount,
             };
 
-            return new JobResponseDtoBuilder().setValue(jobWithFavorite).success().build();
+            return new JobResponseDtoBuilder().setValue(jobWithExtras).success().build();
         } catch (error) {
             console.error('Error get detail job by id: ', error);
             return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
@@ -516,17 +528,11 @@ export class JobService {
             queryBuilder.select([
                 'jobs.jobId',
                 'jobs.name',
-                'jobs.lowestWage',
-                'jobs.highestWage',
-                'jobs.description',
-                'jobs.responsibility',
+                'jobs.introImg',
                 'jobs.type',
                 'jobs.experience',
                 'jobs.deadline',
-                'jobs.introImg',
                 'jobs.status',
-                'jobs.education',
-                'jobs.enterpriseBenefits',
                 'jobs.updatedAt',
                 'addresses.addressId',
                 'addresses.country',
@@ -866,6 +872,18 @@ export class JobService {
             });
             return jobs;
         } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    public async getTotalAppliedJob(jobId: string): Promise<number> {
+        try {
+            const job = await this.jobRepository.findOne({
+                where: { jobId },
+                relations: ['appliedJob'],
+            });
+            return job?.appliedJob?.length || 0;
+        } catch (error) {
+            console.error('Error fetching total applied jobs:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

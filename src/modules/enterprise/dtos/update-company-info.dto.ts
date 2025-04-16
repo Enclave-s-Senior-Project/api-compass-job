@@ -25,7 +25,7 @@ export class UpdateCompanyInfoDto {
     readonly bio?: string;
 
     @ApiProperty({ description: 'Contact phone number', maxLength: 18 })
-    @IsPhoneNumber(null, { message: UpdateCompanyInfoDtoErrorType.PHONE_NUMBER_INVALID })
+    @Matches(/^\+?[0-9]{7,15}$/, { message: UpdateCompanyInfoDtoErrorType.PHONE_NUMBER_INVALID })
     @MaxLength(18, { message: 'Phone number must not exceed 18 characters' })
     @IsOptional()
     readonly phone?: string;

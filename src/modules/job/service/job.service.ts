@@ -240,7 +240,21 @@ export class JobService {
                 relations: ['tags', 'enterprise', 'addresses', 'categories', 'specializations'],
                 select: {
                     tags: true,
-                    enterprise: true,
+                    enterprise: {
+                        enterpriseId: true,
+                        name: true,
+                        bio: true,
+                        addresses: true,
+                        logoUrl: true,
+                        email: true,
+                        phone: true,
+                        foundedIn: true,
+                        teamSize: true,
+                        isPremium: true,
+                        websites: true,
+                        organizationType: true,
+                        categories: true,
+                    },
                     addresses: true,
                     categories: true,
                     specializations: true,
@@ -251,9 +265,7 @@ export class JobService {
                 return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
             }
 
-            let isFavorite = userId
-                ? (job.profiles?.some((profile) => profile.profileId === userId) ?? false)
-                : false;
+            let isFavorite = userId ? (job.profiles?.some((profile) => profile.profileId === userId) ?? false) : false;
 
             const applicationCount = await this.getTotalAppliedJob(job.jobId);
             const temp = await this.categoryService.findByIds(job.enterprise.categories);

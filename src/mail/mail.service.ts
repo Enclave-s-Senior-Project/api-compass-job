@@ -6,6 +6,8 @@ import { confirmMail } from './templates';
 import { resetPassword } from './templates/reset-password.html';
 import { jobExpirationMail } from './templates/job-expiration.html';
 import { JobExpiredData } from '@src/modules/job-cron/job-cron.service';
+import { applicationStatusMail } from './templates/application-status.html';
+import { NotificationType } from '@src/database/entities/notification.entity';
 
 @Injectable()
 export class MailSenderService {
@@ -66,44 +68,6 @@ export class MailSenderService {
         }
     }
 
-    //   async sendChangeEmailMail(
-    //     name: string,
-    //     email: string,
-    //     token: string,
-    //   ): Promise<boolean> {
-    //     const buttonLink = `${config.project.mailChangeUrl}?token=${token}`;
-
-    //     const mail = changeMail
-    //       .replace(new RegExp('--PersonName--', 'g'), name)
-    //       .replace(new RegExp('--ProjectName--', 'g'), config.project.name)
-    //       .replace(new RegExp('--ProjectAddress--', 'g'), config.project.address)
-    //       .replace(new RegExp('--ProjectLogo--', 'g'), config.project.logoUrl)
-    //       .replace(new RegExp('--ProjectSlogan--', 'g'), config.project.slogan)
-    //       .replace(new RegExp('--ProjectColor--', 'g'), config.project.color)
-    //       .replace(new RegExp('--ProjectLink--', 'g'), config.project.url)
-    //       .replace(new RegExp('--Socials--', 'g'), this.socials)
-    //       .replace(new RegExp('--ButtonLink--', 'g'), buttonLink);
-
-    //     const mailOptions = {
-    //       from: `"${config.mail.senderCredentials.name}" <${config.mail.senderCredentials.email}>`,
-    //       to: email, // list of receivers (separated by ,)
-    //       subject: `Change Your ${config.project.name} Account's Email`,
-    //       html: mail,
-    //     };
-
-    //     return new Promise<boolean>((resolve) =>
-    //       this.transporter.sendMail(mailOptions, async (error) => {
-    //         if (error) {
-    //           this.logger.warn(
-    //             'Mail sending failed, check your service credentials.',
-    //           );
-    //           resolve(false);
-    //         }
-    //         resolve(true);
-    //       }),
-    //     );
-    //   }
-
     async sendResetPasswordMail(username: string, email: string, token: string, iv: string): Promise<boolean> {
         const buttonLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&email=${email}&iv=${iv}`;
 
@@ -131,41 +95,46 @@ export class MailSenderService {
         );
     }
 
-    //   async sendPasswordChangeInfoMail(
-    //     name: string,
-    //     email: string,
-    //   ): Promise<boolean> {
-    //     const buttonLink = config.project.url;
-    //     const mail = changePasswordInfo
-    //       .replace(new RegExp('--PersonName--', 'g'), name)
-    //       .replace(new RegExp('--ProjectName--', 'g'), config.project.name)
-    //       .replace(new RegExp('--ProjectAddress--', 'g'), config.project.address)
-    //       .replace(new RegExp('--ProjectLogo--', 'g'), config.project.logoUrl)
-    //       .replace(new RegExp('--ProjectSlogan--', 'g'), config.project.slogan)
-    //       .replace(new RegExp('--ProjectColor--', 'g'), config.project.color)
-    //       .replace(new RegExp('--ProjectLink--', 'g'), config.project.url)
-    //       .replace(new RegExp('--Socials--', 'g'), this.socials)
-    //       .replace(new RegExp('--ButtonLink--', 'g'), buttonLink);
+    async sendApplicationStatusMail(
+        username: string,
+        email: string,
+        jobTitle: string,
+        companyName: string,
+        status: NotificationType.APPLICATION_ACCEPTED | NotificationType.APPLICATION_REJECTED,
+        message?: string
+    ): Promise<boolean> {
+        const statusText = status === NotificationType.APPLICATION_ACCEPTED ? 'Approved' : 'Rejected';
+        const statusColor = status === NotificationType.APPLICATION_ACCEPTED ? '#28a745' : '#dc3545';
 
-    //     const mailOptions = {
-    //       from: `"${config.mail.senderCredentials.name}" <${config.mail.senderCredentials.email}>`,
-    //       to: email, // list of receivers (separated by ,)
-    //       subject: `Your ${config.project.name} Account's Password is Changed`,
-    //       html: mail,
-    //     };
+        const mail = applicationStatusMail
+            .replace(/--ProjectName--/g, process.env.PROJECT_NAME)
+            .replace(/--ProjectLogo--/g, process.env.PROJECT_LOGO_URL)
+            .replace(/--ProjectLink--/g, process.env.PROJECT_URL)
+            .replace(/--ProjectAddress--/g, process.env.PROJECT_ADDRESS)
+            .replace(/--Socials--/g, this.socials)
+            .replace(/--Username--/g, username)
+            .replace(/--JobTitle--/g, jobTitle)
+            .replace(/--CompanyName--/g, companyName)
+            .replace(/--ApplicationStatus--/g, statusText)
+            .replace(/--StatusColor--/g, statusColor)
+            .replace(/--FeedbackMessage--/g, message || 'No additional feedback provided.');
 
-    //     return new Promise<boolean>((resolve) =>
-    //       this.transporter.sendMail(mailOptions, async (error) => {
-    //         if (error) {
-    //           this.logger.warn(
-    //             'Mail sending failed, check your service credentials.',
-    //           );
-    //           resolve(false);
-    //         }
-    //         resolve(true);
-    //       }),
-    //     );
-    //   }
+        const mailOptions: Mail.Options = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: email,
+            subject: `Your Application for ${jobTitle} at ${companyName} has been ${statusText}`,
+            html: mail,
+        };
+
+        try {
+            await this.transporter.sendMail(mailOptions);
+            this.logger.log(`Application status email sent to ${email}`);
+            return true;
+        } catch (error) {
+            this.logger.warn(`Mail sending failed: ${error.message}`);
+            return false;
+        }
+    }
 
     async sendNotificationJobExpiredMail(data: JobExpiredData): Promise<boolean> {
         const mail = jobExpirationMail

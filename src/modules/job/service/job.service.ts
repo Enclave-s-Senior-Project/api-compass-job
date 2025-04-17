@@ -261,13 +261,13 @@ export class JobService {
             });
 
             if (!job) {
-                return new JobResponseDtoBuilder().badRequestContent(JobErrorType.JOB_NOT_FOUND).build();
+                throw new NotFoundException(GlobalErrorType.JOB_NOT_FOUND);
             }
 
             let isFavorite = userId ? (job.profiles?.some((profile) => profile.profileId === userId) ?? false) : false;
 
             const applicationCount = await this.getTotalAppliedJob(job.jobId);
-            const temp = await this.categoryService.findByIds(job.enterprise.categories);
+
             if (userId) {
                 isFavorite = job.profiles?.some((profile) => profile.profileId === userId) ?? false;
             }
@@ -277,15 +277,13 @@ export class JobService {
                 isFavorite,
                 enterprise: {
                     ...job.enterprise,
-                    categories: temp,
                 },
                 applicationCount,
             };
 
             return new JobResponseDtoBuilder().setValue(jobWithExtras).success().build();
         } catch (error) {
-            console.error('Error get detail job by id: ', error);
-            return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 

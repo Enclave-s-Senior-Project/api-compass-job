@@ -28,4 +28,5 @@ export const HttpErrorType = {
     503: 'SERVICE_UNAVAILABLE',
     504: 'GATEWAY_TIMEOUT',
     505: 'HTTP_VERSION_NOT_SUPPORTED',
+    199: 'WARNING',
 };

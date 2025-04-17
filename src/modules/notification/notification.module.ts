@@ -10,5 +10,6 @@ import { NotificationController } from './notification.controller';
     imports: [TmpModule, FcmTokenModule],
     providers: [firebaseAdminProvider, NotificationService, NotificationRepository],
     controllers: [NotificationController],
+    exports: [NotificationService],
 })
 export class NotificationModule {}

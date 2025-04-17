@@ -1,5 +1,4 @@
 import * as firebase from 'firebase-admin';
-import { Firestore } from 'firebase-admin/firestore';
 import { Messaging } from 'firebase-admin/messaging';
 import { Inject, Injectable } from '@nestjs/common';
 import { firebaseAdminProviderName } from './providers/firebase.provider';
@@ -26,7 +25,12 @@ export class NotificationService {
 
     public async create(payload: CreateNotificationDto) {
         try {
-            const notification = this.notificationRepository.create(payload);
+            const notification = this.notificationRepository.create({
+                account: {
+                    accountId: payload.accountId,
+                },
+                ...payload,
+            });
             await this.notificationRepository.save(notification);
             return notification;
         } catch (error) {

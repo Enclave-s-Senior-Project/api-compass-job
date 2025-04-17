@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, IsNull, Repository } from 'typeorm';
+import { ILike, In, IsNull, Repository } from 'typeorm';
 import {
     CategoryResponseDto,
     CategoryResponseDtoBuilder,
@@ -164,7 +164,20 @@ export class CategoryService {
         await this.categoryRepository.remove(category);
     }
     async findByIds(ids: string[]): Promise<CategoryEntity[]> {
-        return this.categoryRepository.findByIds(ids);
+        return this.categoryRepository.find({
+            where: { categoryId: In(ids), isActive: true },
+            relations: { parent: true },
+            select: {
+                categoryId: true,
+                categoryName: true,
+                isActive: true,
+                parent: {
+                    categoryId: true,
+                    categoryName: true,
+                    isActive: true,
+                },
+            },
+        });
     }
 
     async checkFamilyCategory(parentId: string, childId: string): Promise<boolean> {

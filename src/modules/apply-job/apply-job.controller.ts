@@ -10,6 +10,7 @@ import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { JwtPayload, PaginationDto } from '@common/dtos';
 import { ApplyJobResponseDto } from './dtos';
+import { UpdateApplicationStatusDto } from './dtos/update-application-status.dto';
 
 @ApiTags('Apply-job')
 @Controller({ path: 'apply-job', version: '1' })
@@ -42,9 +43,22 @@ export class ApplyJobController {
     @ApiResponse({ status: 200, description: 'List of candidates applied job.' })
     @Get('/:id')
     async listCandidatesApplyJob(
-        @Param('id') id: string,
+        @CurrentUser() user: JwtPayload,
+        @Param('id') jobId: string,
         @Query() filter: PaginationDto
     ): Promise<ApplyJobResponseDto> {
-        return this.applyJobService.listCandidatesApplyJob(id, filter);
+        return this.applyJobService.listCandidatesApplyJob(user.enterpriseId, jobId, filter);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @ApiOperation({
+        summary: 'Update application status',
+        description: 'Allows enterprise users and admins to update the status of a job application',
+    })
+    @Patch('status')
+    updateApplicationStatus(@Body() body: UpdateApplicationStatusDto, @CurrentUser() user) {
+        return this.applyJobService.updateApplicationStatus(body, user);
     }
 }

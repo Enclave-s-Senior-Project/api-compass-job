@@ -78,7 +78,7 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
     @ApiResponse({ status: 200, description: 'User has an enterprise.' })
     getCurrentEnterprise(@CurrentUser() user: JwtPayload) {
-        return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
+        return this.enterpriseService.getMe(user.enterpriseId);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

@@ -26,6 +26,7 @@ import { FilterCandidatesProfileDto } from '../dtos/filter-candidate.dto';
 import { FindJobsByEnterpriseDto } from '../dtos/find-job-by-enterprise.dto';
 import { AddressService } from '@src/modules/address/service/address.service';
 import { CategoryService } from '@src/modules/category/services';
+import { CacheService } from '@src/cache/cache.service';
 
 @Injectable()
 export class EnterpriseService {
@@ -35,7 +36,7 @@ export class EnterpriseService {
         private readonly profileService: UserService,
         private readonly enterpriseRepository: EnterpriseRepository,
         private readonly addressService: AddressService,
-        @Inject(redisProviderName) private readonly redisCache: RedisCommander
+        private readonly cacheService: CacheService
     ) {}
 
     async create(createEnterpriseDto: CreateEnterpriseDto, user: JwtPayload): Promise<EnterpriseResponseDto> {
@@ -51,10 +52,52 @@ export class EnterpriseService {
                 account: { accountId: user.accountId },
             });
             await this.enterpriseRepository.save(enterprise);
-            this.delCache();
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error creating enterprise:', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getMe(enterpriseId: string) {
+        try {
+            const cache = await this.cacheService.getEnterpriseInfo(enterpriseId);
+            if (cache) {
+                return new EnterpriseResponseDtoBuilder().setValue(cache).build();
+            }
+
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: enterpriseId },
+                relations: {
+                    addresses: true,
+                },
+            });
+
+            this.cacheService.cacheEnterpriseInfo(enterpriseId, enterprise);
+
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async findAddressesByEnterpriseId(enterpriseId: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId },
+                relations: ['addresses'],
+                select: {
+                    enterpriseId: true,
+                    addresses: true,
+                },
+            });
+
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
+        } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -64,21 +107,25 @@ export class EnterpriseService {
             const enterprise = await this.enterpriseRepository.findOne({
                 where: { account: { accountId } },
                 relations: {
-                    addresses: true,
+                    categories: true,
                 },
                 select: {
+                    boostedJobs: false,
+                    totalPoints: false,
                     addresses: {
                         addressId: true,
                         city: true,
                         country: true,
                         street: true,
                         zipCode: true,
+                        mixedAddress: true,
                     },
                 },
             });
             const categories = await this.categoriesService.findByIds(enterprise.categories);
 
             (enterprise as any).categories = categories;
+
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             console.error('Error fetching enterprise by account ID:', error);
@@ -137,16 +184,16 @@ export class EnterpriseService {
     ): Promise<EnterpriseEntity> {
         if (typeof arg1 === 'string') {
             const enterprise = await this.findOne(arg1);
-            this.delCache();
+            this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
             return this.enterpriseRepository.save({ ...enterprise, ...payload });
         }
-        this.delCache();
+        this.cacheService.deleteEnterpriseInfo(arg1.enterpriseId);
         return this.enterpriseRepository.save({ ...arg1, ...payload });
     }
 
     async remove(id: string) {
         const enterprise = await this.findOne(id);
-        this.delCache();
+        this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
         return this.enterpriseRepository.remove(enterprise);
     }
 
@@ -161,23 +208,6 @@ export class EnterpriseService {
             return await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
         } catch (error) {
             console.error(error);
-            throw ErrorCatchHelper.serviceCatch(error);
-        }
-    }
-    async findAddressesByEnterpriseId(enterpriseId: string) {
-        try {
-            const enterprise = await this.enterpriseRepository.findOne({
-                where: { enterpriseId },
-                relations: ['addresses'],
-            });
-
-            if (!enterprise) {
-                throw new NotFoundException(`Enterprise with ID ${enterpriseId} not found.`);
-            }
-
-            return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
-        } catch (error) {
-            console.error('Error creating enterprise:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -207,8 +237,7 @@ export class EnterpriseService {
             const enterprise = await this.getActiveEnterprise(user.enterpriseId);
             await this.update(enterprise, payload);
 
-            // this.storeEnterpriseOnRedis(updatedEnterprise.enterpriseId, updatedEnterprise);
-            this.delCache();
+            this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
             return new EnterpriseResponseDtoBuilder().setValue(payload).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -226,16 +255,7 @@ export class EnterpriseService {
         if (!enterprise) {
             throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
         }
-        this.delCache();
         return enterprise;
-    }
-
-    async storeEnterpriseOnRedis(enterpriseId: string, payload: EnterpriseEntity) {
-        await this.redisCache.set(`enterprise:${enterpriseId}`, JSON.stringify(payload), 'EX', 432000); // 5 days
-    }
-
-    async getEnterpriseFromRedis(enterpriseId: string) {
-        return JSON.parse(await this.redisCache.get(`enterprise:${enterpriseId}`));
     }
 
     async cancelEnterprise(id: string) {
@@ -260,7 +280,6 @@ export class EnterpriseService {
             }
             if (temp.status === 'PENDING') {
                 const updateEnterprise = await this.enterpriseRepository.save({ ...temp, ...enterprise });
-                this.delCache();
                 return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
             } else {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
@@ -273,14 +292,14 @@ export class EnterpriseService {
         try {
             const cacheKey = `enterprise-total-job:${enterpriseId}`;
 
-            const cachedTotal = await this.redisCache.get(cacheKey);
+            const cachedTotal = await this.cacheService.getEnterpriseTotalJob(enterpriseId);
             if (cachedTotal) {
                 new EnterpriseResponseDtoBuilder().setValue(cachedTotal).build();
             }
 
             const total = await this.jobService.totalJobsByEnterprise(enterpriseId);
 
-            await this.redisCache.set(cacheKey, JSON.stringify(total), 'EX', 432000);
+            await this.cacheService.cacheEnterpriseTotalJob(enterpriseId, total);
 
             return new EnterpriseResponseDtoBuilder().setValue(total).build();
         } catch (error) {
@@ -352,16 +371,6 @@ export class EnterpriseService {
     async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload) {
         const temp = await this.enterpriseRepository.findOne({ where: { enterpriseId: user.enterpriseId } });
         return this.profileService.getAllCandidate(options, user, temp.categories);
-    }
-    async delCache() {
-        const keys = await this.redisCache.keys('*');
-        const nonRefreshTokenKeys = keys.filter((key) => !key.includes('refreshtoken'));
-
-        if (nonRefreshTokenKeys.length > 0) {
-            await this.redisCache.del(...nonRefreshTokenKeys);
-        } else {
-            console.log('No keys to delete.');
-        }
     }
 
     async findOneById(id: string) {
@@ -476,6 +485,8 @@ export class EnterpriseService {
                 where: { enterpriseId: id },
                 relations: ['addresses'],
             });
+
+            await this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
 
             return new EnterpriseResponseDtoBuilder().setValue(updatedEnterprise).build();
         } catch (error) {

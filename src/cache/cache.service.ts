@@ -7,11 +7,15 @@ export class CacheService {
     private filterJobKey: string;
     private enterpriseFilterJobKey: string;
     private fcmTokenKey: string;
+    private enterpriseInfoKey: string;
+    private enterpriseTotalJobKey: string;
 
     constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {
         this.filterJobKey = 'jobfilter:';
         this.enterpriseFilterJobKey = 'jobfilter:enterprise:';
         this.fcmTokenKey = 'fcmtoken:';
+        this.enterpriseInfoKey = 'enterprise:info:';
+        this.enterpriseTotalJobKey = 'enterprise:totaljob:';
     }
 
     async deleteCache(extraExcludePatterns: string[] = []) {
@@ -136,5 +140,73 @@ export class CacheService {
 
     public async removeAllFCMTokens() {
         await this.removeMultipleCacheWithPrefix(this.fcmTokenKey);
+    }
+
+    public async cacheEnterpriseInfo(enterpriseId: string, info: any, expireTime: number = 60 * 60 * 24) {
+        try {
+            const cacheKey = this.enterpriseInfoKey + enterpriseId;
+            await this.redisClient.set(cacheKey, JSON.stringify(info), 'EX', expireTime); // Default: Cache for 1 day
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async getEnterpriseInfo(enterpriseId: string) {
+        try {
+            const cacheKey = this.enterpriseInfoKey + enterpriseId;
+            const cacheResult = await this.redisClient.get(cacheKey);
+            return cacheResult ? JSON.parse(cacheResult) : null;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async deleteEnterpriseInfo(enterpriseId: string) {
+        try {
+            const cacheKey = this.enterpriseInfoKey + enterpriseId;
+            await this.redisClient.del(cacheKey);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeAllEnterpriseInfo() {
+        return await this.removeMultipleCacheWithPrefix(this.enterpriseInfoKey);
+    }
+
+    public async cacheEnterpriseTotalJob(enterpriseId: string, total: number, expireTime: number = 60 * 60 * 24) {
+        try {
+            const cacheKey = this.enterpriseTotalJobKey + enterpriseId;
+            await this.redisClient.set(cacheKey, JSON.stringify(total), 'EX', expireTime); // Default: Cache for 1 day
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async getEnterpriseTotalJob(enterpriseId: string) {
+        try {
+            const cacheKey = this.enterpriseTotalJobKey + enterpriseId;
+            const cacheResult = await this.redisClient.get(cacheKey);
+            return cacheResult ? JSON.parse(cacheResult) : null;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async deleteEnterpriseTotalJob(enterpriseId: string) {
+        try {
+            const cacheKey = this.enterpriseTotalJobKey + enterpriseId;
+            await this.redisClient.del(cacheKey);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeAllEnterpriseTotalJobs() {
+        return await this.removeMultipleCacheWithPrefix(this.enterpriseTotalJobKey);
     }
 }

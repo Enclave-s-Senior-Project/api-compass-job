@@ -73,9 +73,8 @@ export class JobService {
                 specializations,
                 introImg,
             });
-            this.cacheService.deleteCache();
+            this.cacheService.deleteEnterpriseTotalJob(enterpriseId);
             await this.jobRepository.save(newJob);
-            this.cacheService.deleteCache();
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
         } catch (error) {
             console.error('Error creating job:', error);
@@ -726,6 +725,7 @@ export class JobService {
             // clear filter search cache
             this.cacheService.removeSearchJobsCache();
             this.cacheService.removeEnterpriseSearchJobsCache();
+            this.cacheService.deleteEnterpriseTotalJob(user.enterpriseId);
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

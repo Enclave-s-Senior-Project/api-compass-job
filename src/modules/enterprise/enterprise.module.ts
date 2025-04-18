@@ -8,6 +8,7 @@ import { JobModule } from '@modules/job/job.module';
 import { UserModule } from '../user/user.module';
 import { AddressModule } from '../address/address.module';
 import { CategoryModule } from '../category/category.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { CategoryModule } from '../category/category.module';
         forwardRef(() => UserModule),
         AddressModule,
         CacheModule,
+        forwardRef(() => AuthModule),
     ],
     controllers: [EnterpriseController],
     providers: [EnterpriseService, EnterpriseRepository],

@@ -27,12 +27,14 @@ import { FindJobsByEnterpriseDto } from '../dtos/find-job-by-enterprise.dto';
 import { AddressService } from '@src/modules/address/service/address.service';
 import { CategoryService } from '@src/modules/category/services';
 import { CacheService } from '@src/cache/cache.service';
+import { AuthService } from '@src/modules/auth';
 
 @Injectable()
 export class EnterpriseService {
     constructor(
         @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
         @Inject(forwardRef(() => CategoryService)) private readonly categoriesService: CategoryService,
+        @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
         private readonly profileService: UserService,
         private readonly enterpriseRepository: EnterpriseRepository,
         private readonly addressService: AddressService,
@@ -46,6 +48,11 @@ export class EnterpriseService {
             });
             if (isEnterprises) {
                 throw new BadRequestException(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS);
+            }
+            const checkEmail = await this.enterpriseRepository.findOne({ where: { email: createEnterpriseDto.email } });
+            const checkEmailAccount = await this.authService.checkEmail(createEnterpriseDto.email);
+            if (checkEmail || checkEmailAccount) {
+                throw new BadRequestException(EnterpriseErrorType.EMAIL_ALREADY_EXISTS);
             }
             const enterprise = await this.enterpriseRepository.create({
                 ...createEnterpriseDto,
@@ -216,6 +223,7 @@ export class EnterpriseService {
         try {
             const enterprise = await this.enterpriseRepository.findOne({
                 where: { account: { accountId: id } },
+                relations: ['addresses'],
             });
             if (!enterprise || enterprise == null) {
                 return new EnterpriseResponseDtoBuilder()

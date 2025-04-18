@@ -3,6 +3,12 @@ import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { UpdateCompanyAddressDtoErrorType } from '@common/errors/class-validator-error-type';
 
 export class UpdateCompanyAddressDto {
+    @ApiProperty({ description: 'Enterprise', maxLength: 100 })
+    @IsString({ message: UpdateCompanyAddressDtoErrorType.INVALID_ENTERPRISE })
+    @IsNotEmpty({ message: UpdateCompanyAddressDtoErrorType.INVALID_ENTERPRISE })
+    @MaxLength(100, { message: 'Enterprise must not exceed 100 characters' })
+    readonly enterpriseId?: string;
+
     @ApiProperty({ description: 'Country', example: 'United States', maxLength: 100 })
     @IsString({ message: UpdateCompanyAddressDtoErrorType.INVALID_COUNTRY })
     @IsNotEmpty({ message: UpdateCompanyAddressDtoErrorType.COUNTRY_REQUIRED })

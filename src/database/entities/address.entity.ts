@@ -18,7 +18,7 @@ export class AddressEntity extends BaseEntity {
     @Column({ name: 'zip_code', type: 'varchar', length: 10, nullable: false })
     readonly zipCode: string;
 
-    @Column({ name: 'mixed_address', type: 'varchar', length: 255, nullable: false })
+    @Column({ name: 'mixed_address', type: 'varchar', length: 255, nullable: true })
     mixedAddress: string;
 
     // relationships

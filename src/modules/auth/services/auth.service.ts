@@ -407,4 +407,16 @@ export class AuthService {
             throw new RegisterResponseDtoBuilder().setValue(true).success().build();
         }
     }
+
+    public async checkEmail(email: string): Promise<Boolean> {
+        try {
+            const temp = await this.accountRepository.findOne({ where: { email: email } });
+            if (temp) {
+                return true;
+            }
+            return false;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

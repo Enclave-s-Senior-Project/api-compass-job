@@ -410,7 +410,7 @@ export class AuthService {
 
     public async checkEmail(email: string): Promise<Boolean> {
         try {
-            const temp = await this.accountRepository.findOne({ where: { email: email } });
+            const temp = await this.accountRepository.exists({ where: { email: email } });
             if (temp) {
                 return true;
             }

@@ -8,6 +8,8 @@ import { jobExpirationMail } from './templates/job-expiration.html';
 import { JobExpiredData } from '@src/modules/job-cron/job-cron.service';
 import { applicationStatusMail } from './templates/application-status.html';
 import { NotificationType } from '@src/database/entities/notification.entity';
+import { EnterpriseStatus } from '@src/common/enums';
+import { enterpriseStatusTemplate } from './templates/enterprise-status.html';
 
 @Injectable()
 export class MailSenderService {
@@ -173,5 +175,64 @@ export class MailSenderService {
                 this.logger.error(`Failed to send job expired email: ${error.message}`);
                 return false;
             });
+    }
+
+    /**
+     * Send email to enterprise when their registration status is updated.
+     */
+    async sendEnterpriseStatusMail(
+        emails: string[],
+        enterpriseName: string,
+        status: EnterpriseStatus,
+        reason?: string
+    ): Promise<boolean> {
+        let subject = '';
+        let message = '';
+
+        switch (status) {
+            case EnterpriseStatus.ACTIVE:
+                subject = `Your Enterprise Registration is Approved`;
+                message = `Congratulations, ${enterpriseName}! Your enterprise registration has been approved. You can now access all features.`;
+                break;
+            case EnterpriseStatus.BLOCKED:
+                subject = `Your Enterprise Registration is Blocked`;
+                message = `Dear ${enterpriseName}, your enterprise registration has been blocked. Please contact support for more information.`;
+                break;
+            case EnterpriseStatus.PENDING:
+                subject = `Your Enterprise Registration is Pending`;
+                message = `Dear ${enterpriseName}, your enterprise registration is still pending. We will notify you once it is reviewed.`;
+                break;
+            default:
+                subject = `Your Enterprise Registration is Rejected`;
+                message = `Dear ${enterpriseName}, unfortunately, your enterprise registration has been rejected. Please contact support for details.`;
+        }
+
+        const html = enterpriseStatusTemplate(
+            process.env.PROJECT_NAME,
+            process.env.PROJECT_LOGO_URL,
+            process.env.PROJECT_URL,
+            process.env.PROJECT_ADDRESS,
+            this.socials,
+            enterpriseName,
+            subject,
+            message,
+            reason
+        );
+
+        const mailOptions: Mail.Options = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: emails,
+            subject,
+            html,
+        };
+
+        try {
+            await this.transporter.sendMail(mailOptions);
+            this.logger.log(`Enterprise status email sent to ${emails.join(', ')}`);
+            return true;
+        } catch (error) {
+            this.logger.warn(`Mail sending failed: ${error.message}`);
+            return false;
+        }
     }
 }

@@ -135,6 +135,7 @@ export enum ConfirmOAuth2DtoErrorType {
     IV_REQUIRED = 'IV_REQUIRED',
     IV_NOT_STRING = 'IV_NOT_STRING',
 }
+
 export enum UpdateCompanyAddressDtoErrorType {
     COUNTRY_REQUIRED = 'COUNTRY_REQUIRED',
     CITY_REQUIRED = 'CITY_REQUIRED',
@@ -145,4 +146,11 @@ export enum UpdateCompanyAddressDtoErrorType {
     INVALID_STREET = 'INVALID_STREET',
     INVALID_ZIP_CODE = 'INVALID_ZIP_CODE',
     INVALID_ENTERPRISE = 'INVALID_ENTERPRISE',
+}
+
+// Message keys for UpdateStatusEnterpriseDto
+export enum UpdateStatusEnterpriseDtoErrorType {
+    STATUS_INVALID = 'STATUS_INVALID',
+    REASON_REQUIRED = 'REASON_REQUIRED',
+    REASON_NOT_STRING = 'REASON_NOT_STRING',
 }

@@ -20,8 +20,8 @@ export class CreateNotificationDto {
     type: NotificationType;
 
     @IsUrl(undefined, { message: CreateNotificationDtoErrorType.LINK_INVALID })
-    @IsNotEmpty({ message: CreateNotificationDtoErrorType.LINK_REQUIRED })
-    link: string;
+    @IsOptional()
+    link?: string;
 
     @IsBoolean({ message: CreateNotificationDtoErrorType.IS_READ_INVALID })
     @IsOptional()

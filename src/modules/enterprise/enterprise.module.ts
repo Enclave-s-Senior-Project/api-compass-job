@@ -9,6 +9,8 @@ import { UserModule } from '../user/user.module';
 import { AddressModule } from '../address/address.module';
 import { CategoryModule } from '../category/category.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationModule } from '../notification/notification.module';
+import { MailModule } from '@src/mail/mail.module';
 
 @Module({
     imports: [
@@ -19,6 +21,8 @@ import { AuthModule } from '../auth/auth.module';
         AddressModule,
         CacheModule,
         forwardRef(() => AuthModule),
+        NotificationModule,
+        MailModule,
     ],
     controllers: [EnterpriseController],
     providers: [EnterpriseService, EnterpriseRepository],

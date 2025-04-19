@@ -166,16 +166,10 @@ export class CategoryService {
     async findByIds(ids: string[]): Promise<CategoryEntity[]> {
         return this.categoryRepository.find({
             where: { categoryId: In(ids), isActive: true },
-            relations: { parent: true },
             select: {
                 categoryId: true,
                 categoryName: true,
                 isActive: true,
-                parent: {
-                    categoryId: true,
-                    categoryName: true,
-                    isActive: true,
-                },
             },
         });
     }

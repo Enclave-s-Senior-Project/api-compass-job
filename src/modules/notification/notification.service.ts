@@ -49,8 +49,6 @@ export class NotificationService {
             });
             return response;
         } catch (error) {
-            console.error(error);
-
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -78,7 +76,7 @@ export class NotificationService {
                 }
             });
 
-            this.fcmTokenService.deleteTokenWithoutAccountId(failedTokens);
+            // this.fcmTokenService.deleteTokenWithoutAccountId(failedTokens);
 
             return response;
         } catch (error) {

@@ -39,14 +39,18 @@ export class DatabaseService implements OnModuleInit {
         await queryRunner.query(
             'CREATE INDEX idx_job_specializations_category_id ON job_specializations (category_id);'
         );
+        await queryRunner.query('CREATE INDEX idx_enterprise_name ON enterprises (LOWER(name));');
     }
 
     protected async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query('DROP INDEX IF EXISTS idx_enterprise_name;');
         await queryRunner.query('DROP INDEX IF EXISTS idx_job_specializations_category_id;');
         await queryRunner.query('DROP INDEX IF EXISTS idx_job_categories_category_id;');
+        await queryRunner.query('DROP INDEX IF EXISTS idx_addresses_mixed_address;');
         await queryRunner.query('DROP INDEX IF EXISTS idx_addresses_city;');
         await queryRunner.query('DROP INDEX IF EXISTS idx_addresses_country;');
         await queryRunner.query('DROP INDEX IF EXISTS idx_jobs_name_gin;');
+        await queryRunner.query('DROP EXTENSION IF EXISTS pg_trgm;');
         await queryRunner.query('DROP EXTENSION IF EXISTS unaccent;');
     }
 }

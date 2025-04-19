@@ -17,6 +17,10 @@ export enum NotificationType {
     JOB_APPLIED = 'job_applied',
     APPLICATION_ACCEPTED = 'application_accepted',
     APPLICATION_REJECTED = 'application_rejected',
+    ENTERPRISE_REGISTRATION_APPROVED = 'enterprise_registration_approved',
+    ENTERPRISE_REGISTRATION_REJECTED = 'enterprise_registration_rejected',
+    ENTERPRISE_REGISTRATION_PENDING = 'enterprise_registration_pending',
+    ENTERPRISE_REGISTRATION_BLOCKED = 'enterprise_registration_blocked',
     // ADD MORE WHEN NEEDED
 }
 

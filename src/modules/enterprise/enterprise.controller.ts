@@ -25,6 +25,7 @@ import { UpdateFoundingInfoDto } from './dtos/update-founding-dto';
 import { CreateCandidateWishListDto } from './dtos/create-candidate-wishlist.dto';
 import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 import { FindJobsByEnterpriseDto } from './dtos/find-job-by-enterprise.dto';
+import { UpdateStatusEnterpriseDto } from './dtos/update-status-enterprise.dto';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -133,6 +134,20 @@ export class EnterpriseController {
         return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);
     }
 
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Get('pending')
+    @ApiOperation({
+        summary: 'Get list of enterprises with pending status',
+        description: 'Retrieve a paginated list of enterprises that are currently in pending status.',
+    })
+    @ApiResponse({ status: 200, description: 'List of pending enterprises.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    getPendingStatusEnterprises(@Query() paginationDto: PaginationDto): Promise<EnterpriseResponseDto> {
+        return this.enterpriseService.getPendingStatusEnterprises(paginationDto);
+    }
+
     @SkipAuth()
     @Get(':id/jobs')
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
@@ -157,16 +172,6 @@ export class EnterpriseController {
     findOne(@Param('id') id: string) {
         return this.enterpriseService.findEnterpriseById(id);
     }
-
-    // @Get(':id')
-    // @UseGuards(RolesGuard)
-    // @Roles(Role.ENTERPRISE, Role.ADMIN)
-    // @ApiOperation({ summary: 'Get enterprise by account Id.' })
-    // @ApiResponse({ status: 200, description: 'Get Enterprise by successfully.' })
-    // @ApiResponse({ status: 404, description: 'Enterprise not found.' })
-    // getEnterpriseByAccountId(@CurrentUser() user: JwtPayload) {
-    //     return this.enterpriseService.getEnterpriseByAccountId(user.accountId);
-    // }
 
     @UseGuards(RolesGuard)
     @Roles(Role.ADMIN, Role.ENTERPRISE)
@@ -251,5 +256,18 @@ export class EnterpriseController {
         @Req() req: Request
     ): Promise<EnterpriseResponseDto> {
         return this.enterpriseService.deleteCandidateWishList(user, id);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @ApiOperation({ summary: 'Update the status of an enterprise' })
+    @ApiResponse({ status: 200, description: 'Status updated successfully.' })
+    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Patch('status/:id')
+    updateStatus(@Param('id') enterpriseId: string, @Body() body: UpdateStatusEnterpriseDto) {
+        return this.enterpriseService.updateEnterpriseStatus(enterpriseId, body);
     }
 }

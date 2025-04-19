@@ -28,6 +28,12 @@ import { AddressService } from '@src/modules/address/service/address.service';
 import { CategoryService } from '@src/modules/category/services';
 import { CacheService } from '@src/cache/cache.service';
 import { AuthService } from '@src/modules/auth';
+import { NotificationService } from '@src/modules/notification/notification.service';
+import { NotificationType } from '@src/database/entities/notification.entity';
+import { MailSenderService } from '@src/mail/mail.service';
+import { WarningException } from '@src/common/http/exceptions/warning.exception';
+import { UpdateStatusEnterpriseDto } from '../dtos/update-status-enterprise.dto';
+import { ILike, IsNull, Not } from 'typeorm';
 
 @Injectable()
 export class EnterpriseService {
@@ -38,7 +44,9 @@ export class EnterpriseService {
         private readonly profileService: UserService,
         private readonly enterpriseRepository: EnterpriseRepository,
         private readonly addressService: AddressService,
-        private readonly cacheService: CacheService
+        private readonly cacheService: CacheService,
+        private readonly notificationService: NotificationService,
+        private readonly mailService: MailSenderService
     ) {}
 
     async create(createEnterpriseDto: CreateEnterpriseDto, user: JwtPayload): Promise<EnterpriseResponseDto> {
@@ -61,7 +69,6 @@ export class EnterpriseService {
             await this.enterpriseRepository.save(enterprise);
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
-            console.error('Error creating enterprise:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -135,8 +142,7 @@ export class EnterpriseService {
 
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
-            console.error('Error fetching enterprise by account ID:', error);
-            throw error;
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -152,33 +158,29 @@ export class EnterpriseService {
                 itemCount: total,
             });
             if (!profiles) {
-                throw new EnterpriseResponseDtoBuilder()
-                    .badRequestContent(EnterpriseErrorType.ENTERPRISE_NOT_FOUND)
-                    .build();
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
             }
             return new EnterpriseResponseDtoBuilder().setValue(new PageDto<EnterpriseEntity>(profiles, meta)).build();
         } catch (error) {
-            if (error instanceof HttpException) {
-                return new EnterpriseResponseDtoBuilder()
-                    .setCode(error.getStatus())
-                    .setMessageCode(error.message)
-                    .build();
-            }
-            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
     async findOne(id: string) {
-        const enterprise = await this.enterpriseRepository.findOne({
-            where: { enterpriseId: id },
-            relations: ['account', 'websites', 'jobs', 'addresses'],
-        });
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId: id },
+                relations: ['account', 'websites', 'jobs', 'addresses'],
+            });
 
-        if (!enterprise) {
-            throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS);
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS);
+            }
+
+            return enterprise;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-
-        return enterprise;
     }
 
     // Overloaded update method signatures
@@ -189,32 +191,33 @@ export class EnterpriseService {
         arg1: string | EnterpriseEntity,
         payload: UpdateCompanyInfoDto | UpdateFoundingInfoDto
     ): Promise<EnterpriseEntity> {
-        if (typeof arg1 === 'string') {
-            const enterprise = await this.findOne(arg1);
-            this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
-            return this.enterpriseRepository.save({ ...enterprise, ...payload });
+        try {
+            if (typeof arg1 === 'string') {
+                const enterprise = await this.findOne(arg1);
+                this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
+                return this.enterpriseRepository.save({ ...enterprise, ...payload });
+            }
+            this.cacheService.deleteEnterpriseInfo(arg1.enterpriseId);
+            return this.enterpriseRepository.save({ ...arg1, ...payload });
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-        this.cacheService.deleteEnterpriseInfo(arg1.enterpriseId);
-        return this.enterpriseRepository.save({ ...arg1, ...payload });
     }
 
     async remove(id: string) {
-        const enterprise = await this.findOne(id);
-        this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
-        return this.enterpriseRepository.remove(enterprise);
+        try {
+            const enterprise = await this.findOne(id);
+            this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
+            return this.enterpriseRepository.remove(enterprise);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 
-    // async findByIndustryType(industryType: string) {
-    //     return this.enterpriseRepository.find({
-    //         where: { industryType },
-    //         relations: ['account', 'websites', 'jobs', 'addresses'],
-    //     });
-    // }
     async findJobsByEnterpriseId(enterpriseId: string, pagination: FindJobsByEnterpriseDto) {
         try {
             return await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
         } catch (error) {
-            console.error(error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -226,17 +229,14 @@ export class EnterpriseService {
                 relations: ['addresses'],
             });
             if (!enterprise || enterprise == null) {
-                return new EnterpriseResponseDtoBuilder()
-                    .badRequestContent(EnterpriseErrorType.ENTERPRISE_CAN_REGISTER)
-                    .build();
+                return new BadRequestException(EnterpriseErrorType.ENTERPRISE_CAN_REGISTER);
             }
             const temp = await this.categoriesService.findByIds(enterprise.categories);
             (enterprise as any).categories = temp;
 
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
-            console.error('Error creating enterprise:', error);
-            throw error;
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -270,7 +270,7 @@ export class EnterpriseService {
         try {
             const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId: id });
             if (enterprise.status === 'PENDING') {
-                const temp = await this.enterpriseRepository.remove(enterprise);
+                await this.enterpriseRepository.remove(enterprise);
                 return new EnterpriseResponseDtoBuilder().success().build();
             } else {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
@@ -298,8 +298,6 @@ export class EnterpriseService {
     }
     async totalJobsByEnterprise(enterpriseId: string): Promise<EnterpriseResponseDto> {
         try {
-            const cacheKey = `enterprise-total-job:${enterpriseId}`;
-
             const cachedTotal = await this.cacheService.getEnterpriseTotalJob(enterpriseId);
             if (cachedTotal) {
                 new EnterpriseResponseDtoBuilder().setValue(cachedTotal).build();
@@ -341,7 +339,6 @@ export class EnterpriseService {
 
             return new EnterpriseResponseDtoBuilder().success().build();
         } catch (error) {
-            console.log('error', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -377,8 +374,12 @@ export class EnterpriseService {
     }
 
     async getAllCandidate(options: FilterCandidatesProfileDto, user: JwtPayload) {
-        const temp = await this.enterpriseRepository.findOne({ where: { enterpriseId: user.enterpriseId } });
-        return this.profileService.getAllCandidate(options, user, temp.categories);
+        try {
+            const temp = await this.enterpriseRepository.findOne({ where: { enterpriseId: user.enterpriseId } });
+            return this.profileService.getAllCandidate(options, user, temp.categories);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 
     async findOneById(id: string) {
@@ -432,13 +433,7 @@ export class EnterpriseService {
 
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
-            if (error instanceof HttpException) {
-                return new EnterpriseResponseDtoBuilder()
-                    .setCode(error.getStatus())
-                    .setMessageCode(error.message)
-                    .build();
-            }
-            return new EnterpriseResponseDtoBuilder().internalServerError().build();
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
@@ -498,7 +493,158 @@ export class EnterpriseService {
 
             return new EnterpriseResponseDtoBuilder().setValue(updatedEnterprise).build();
         } catch (error) {
-            console.error('Error updating company address:', error); // Fixed typo in log
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getPendingStatusEnterprises(pagination: PaginationDto) {
+        try {
+            const [enterprises, total] = await this.enterpriseRepository.findAndCount({
+                where: {
+                    status: EnterpriseStatus.PENDING,
+                    name: pagination.options ? ILike(`${pagination.options}%`) : Not(IsNull()),
+                },
+                relations: {
+                    addresses: true,
+                },
+                select: {
+                    addresses: {
+                        addressId: true,
+                        city: true,
+                        country: true,
+                        street: true,
+                        zipCode: true,
+                    },
+                },
+                skip: (Number(pagination.page) - 1) * Number(pagination.take),
+                take: Number(pagination.take),
+                order: { createdAt: 'ASC' },
+            });
+
+            // Group categories and fetch once
+            const categoryIds = enterprises.map((enterprise) => enterprise.categories).flat();
+            const categories = await this.categoriesService.findByIds(categoryIds);
+
+            // Map categories to enterprises
+            const enterprisesWithCategories = enterprises.map((enterprise) => {
+                const fullyCategories = categories.filter((category) =>
+                    enterprise.categories.includes(category.categoryId)
+                );
+                return { ...enterprise, categories: fullyCategories };
+            });
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: pagination,
+                itemCount: total,
+            });
+
+            return new EnterpriseResponseDtoBuilder()
+                .setValue(new PageDto<any>(enterprisesWithCategories, meta))
+                .build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async updateEnterpriseStatus(enterpriseId: string, payload: UpdateStatusEnterpriseDto) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId },
+                relations: {
+                    account: {
+                        fcmTokens: true,
+                    },
+                },
+                select: {
+                    enterpriseId: true,
+                    email: true,
+                    name: true,
+                    status: true,
+                    account: {
+                        accountId: true,
+                        email: true,
+                        fcmTokens: {
+                            tokenId: true,
+                            token: true,
+                        },
+                    },
+                },
+            });
+
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+
+            if (enterprise.status === payload.status) {
+                throw new WarningException(EnterpriseErrorType.ENTERPRISE_STATUS_ALREADY_SET);
+            }
+
+            // update the status of the enterprise
+            await this.update(enterpriseId, { status: payload.status });
+
+            // Notify the enterprise about the status change
+            await this.notifyEnterpriseStatusChange(enterprise, payload.status);
+
+            // Send email to the enterprise about the status change
+            this.sendEmailEnterpriseStatusChange(enterprise, payload.status, payload.reason);
+
+            return new EnterpriseResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    private async notifyEnterpriseStatusChange(enterprise: EnterpriseEntity, status: EnterpriseStatus) {
+        try {
+            const title =
+                status === EnterpriseStatus.ACTIVE
+                    ? 'Enterprise Registration Approved'
+                    : status === EnterpriseStatus.BLOCKED
+                      ? 'Enterprise Registration Blocked'
+                      : status === EnterpriseStatus.PENDING
+                        ? 'Enterprise Registration Pending'
+                        : 'Enterprise Registration Rejected';
+            const message =
+                status === EnterpriseStatus.ACTIVE
+                    ? 'Your enterprise registration has been approved.'
+                    : status === EnterpriseStatus.BLOCKED
+                      ? 'Your enterprise registration has been blocked.'
+                      : status === EnterpriseStatus.PENDING
+                        ? 'Your enterprise registration is pending.'
+                        : 'Your enterprise registration has been rejected.';
+
+            const notification = await this.notificationService.create({
+                accountId: enterprise.account.accountId,
+                type: NotificationType.ENTERPRISE_REGISTRATION_APPROVED,
+                title,
+                message,
+            });
+
+            // Send notification to the enterprise account
+            const fcmTokens = enterprise.account?.fcmTokens?.map((token) => token.token);
+            if (fcmTokens.length > 0) await this.notificationService.sendNotificationToMany(notification, fcmTokens);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    private async sendEmailEnterpriseStatusChange(
+        enterprise: EnterpriseEntity,
+        status: EnterpriseStatus,
+        reason?: string
+    ) {
+        try {
+            // Send email to the enterprise account
+            const emails = [];
+
+            if (enterprise.email) emails.push(enterprise.email);
+            if (enterprise.account.email && !emails.includes(enterprise.account.email))
+                emails.push(enterprise.account.email);
+
+            if (emails.length > 0) {
+                this.mailService.sendEnterpriseStatusMail(emails, enterprise.name, status, reason);
+            }
+        } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

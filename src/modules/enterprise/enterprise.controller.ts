@@ -88,10 +88,10 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Check if the current user has created an enterprise' })
     @ApiResponse({ status: 200, description: 'User has an enterprise.' })
     updateCompanyAddress(@CurrentUser() user: JwtPayload, @Body() body: UpdateCompanyAddressDto) {
-        if (!body.enterpriseId) {
-            return this.enterpriseService.updateCompanyAddress(user.enterpriseId, body);
+        if (!user.enterpriseId) {
+            return this.enterpriseService.updateCompanyAddress(body.enterpriseId, body);
         }
-        return this.enterpriseService.updateCompanyAddress(body.enterpriseId, body);
+        return this.enterpriseService.updateCompanyAddress(user.enterpriseId, body);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

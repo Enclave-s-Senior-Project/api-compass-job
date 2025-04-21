@@ -848,27 +848,30 @@ export class JobService {
         try {
             const job = await this.jobRepository.findOne({
                 where: { jobId },
+                relations: ['categories'],
             });
-
             if (!job) throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
 
             const currentTotal = await this.boostJobService.getTotalPointsByJobId(jobId);
             const projectedTotal = currentTotal + plusPoints;
 
-            const others = await this.boostJobService.getAllBoostedJobsWithTotalPoints(jobId);
+            const others = await this.boostJobService.getAllBoostedJobsWithTotalPointsByCategories(
+                job.categories.map((category) => category.categoryId),
+                jobId
+            );
 
             const allJobs = [...others, { jobId, total: projectedTotal }];
-
             allJobs.sort((a, b) => b.total - a.total);
 
             const rank = allJobs.findIndex((j) => j.jobId === jobId) + 1;
 
-            return {
+            const temp = {
                 estimatedRank: rank,
                 projectedBoost: projectedTotal,
                 plusPoints,
                 totalJobs: allJobs.length,
             };
+            return new JobResponseDtoBuilder().setValue(temp).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -894,7 +897,14 @@ export class JobService {
             });
             return job?.appliedJob?.length || 0;
         } catch (error) {
-            console.error('Error fetching total applied jobs:', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async updateBoostJob(jobId: string, point: number) {
+        try {
+            return await this.jobRepository.update({ jobId }, { isBoost: true });
+        } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

@@ -127,7 +127,7 @@ export class JobController {
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Get(':id/estimate-rank')
-    estimateRank(@Param('jobId') jobId: string, @Query('plusPoints') plusPoints?: string) {
-        return this.jobService.estimateRankIfBoost(jobId, parseInt(plusPoints) || 0);
+    estimateRank(@Param('id') jobId: string, @Query('plusPoints') plusPoints?: number) {
+        return this.jobService.estimateRankIfBoost(jobId, plusPoints);
     }
 }

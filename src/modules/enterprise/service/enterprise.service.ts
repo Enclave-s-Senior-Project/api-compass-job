@@ -437,7 +437,13 @@ export class EnterpriseService {
         }
     }
 
-    async updateEnterprisePayment(enterpriseId: string, isPremium: boolean, totalPoints: number, isTrial: boolean) {
+    async updateEnterprisePayment(
+        enterpriseId: string,
+        isPremium: boolean,
+        totalPoints: number,
+        isTrial: boolean,
+        currentPoint: number
+    ) {
         try {
             const enterprise = await this.enterpriseRepository.findOneBy({ enterpriseId });
             if (!enterprise) {
@@ -446,7 +452,7 @@ export class EnterpriseService {
 
             enterprise.isPremium = isPremium;
             enterprise.isTrial = isTrial;
-            enterprise.totalPoints = totalPoints;
+            enterprise.totalPoints = totalPoints + currentPoint;
 
             return this.enterpriseRepository.save(enterprise);
         } catch (error) {

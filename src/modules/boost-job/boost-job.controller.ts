@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpCode } from '@nestjs/common';
 import { BoostJobService } from './boost-job.service';
 import { CreateBoostJobDto } from './dto/create-boost-job.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -14,11 +14,19 @@ export class BoostJobController {
 
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE)
+    @HttpCode(200)
     @Post()
     async create(
         @CurrentUser() user: any,
         @Body() createBoostJobDto: CreateBoostJobDto
     ): Promise<BoostJobJobResponseDto> {
         return this.boostJobService.create(createBoostJobDto, user.enterpriseId);
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @Get(':id')
+    async findOne(@Param('id') id: string): Promise<BoostJobJobResponseDto> {
+        return this.boostJobService.checkBoostJob(id);
     }
 }

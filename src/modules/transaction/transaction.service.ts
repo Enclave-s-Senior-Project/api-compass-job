@@ -154,7 +154,13 @@ export class TransactionService {
                 throw new Error('Enterprise not found');
             }
             if (premiumName === PREMIUM_TYPE.STANDARD) {
-                await this.enterpriseService.updateEnterprisePayment(enterpriseId, true, 10, true);
+                await this.enterpriseService.updateEnterprisePayment(
+                    enterpriseId,
+                    true,
+                    30,
+                    true,
+                    enterprise.totalPoints
+                );
                 const transaction = this.transactionRepo.create({
                     pointsPurchased: 100,
                     amountPaid: 0,
@@ -166,7 +172,7 @@ export class TransactionService {
                 await this.transactionRepo.save(transaction);
                 return new TransactionResponseDtoBuilder().setValue(transaction).success().build();
             }
-            await this.enterpriseService.updateEnterprisePayment(enterpriseId, true, 10, true);
+            await this.enterpriseService.updateEnterprisePayment(enterpriseId, true, 50, true, enterprise.totalPoints);
             const transaction = this.transactionRepo.create({
                 pointsPurchased: 100,
                 amountPaid: 0,

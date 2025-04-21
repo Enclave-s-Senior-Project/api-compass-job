@@ -1,21 +1,33 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Delete, Query, ValidationPipe } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    Param,
+    Patch,
+    Post,
+    Delete,
+    Query,
+    ValidationPipe,
+    UseGuards,
+} from '@nestjs/common';
 import { CategoryService } from './services';
 import {
-    ApiBearerAuth,
-    ApiInternalServerErrorResponse,
     ApiOkResponse,
     ApiOperation,
     ApiTags,
-    ApiUnauthorizedResponse,
     ApiNotFoundResponse,
     ApiBadRequestResponse,
     ApiCreatedResponse,
     ApiNoContentResponse,
-    ApiQuery,
+    ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CategoryResponseDto, CreateCategoryDto, CreateChildCategoriesDto, UpdateCategoryDto } from './dtos';
-import { SkipAuth } from '@modules/auth';
+import { SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { PaginationDto } from '@common/dtos';
+import { RolesGuard } from '../auth/guards/role.guard';
+import { Role, Roles } from '../auth/decorators/roles.decorator';
+import { ChangeParentDto } from './dtos/change-parent.dto';
 
 @ApiTags('Category')
 @Controller({
@@ -25,18 +37,19 @@ import { PaginationDto } from '@common/dtos';
 export class CategoryController {
     constructor(private readonly categoryService: CategoryService) {}
 
-    @SkipAuth()
-    @Post()
+    @ApiBearerAuth(TOKEN_NAME)
     @HttpCode(201)
     @ApiOperation({ summary: 'Create root category', description: 'Create a new root category without a parent.' })
     @ApiCreatedResponse({ description: 'Category created successfully.', type: CategoryResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid category data.' })
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Post()
     async createCategory(@Body(ValidationPipe) createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
         return this.categoryService.create(createCategoryDto);
     }
 
-    @SkipAuth()
-    @Post(':parentId/children')
+    @ApiBearerAuth(TOKEN_NAME)
     @HttpCode(201)
     @ApiOperation({
         summary: 'Create multiple child categories',
@@ -44,12 +57,16 @@ export class CategoryController {
     })
     @ApiCreatedResponse({ description: 'Child categories created successfully.', type: [CategoryResponseDto] })
     @ApiBadRequestResponse({ description: 'Invalid data or parent category not found.' })
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Post(':parentId/children')
     async createChildCategories(
         @Param('parentId') parentId: string,
         @Body(ValidationPipe) createChildCategoriesDto: CreateChildCategoriesDto
     ): Promise<CategoryResponseDto[]> {
         return this.categoryService.createChildCategories(parentId, createChildCategoriesDto);
     }
+
     @SkipAuth()
     @Get()
     @HttpCode(200)
@@ -103,13 +120,14 @@ export class CategoryController {
         return this.categoryService.findParent(id);
     }
 
-    @SkipAuth()
-    @Patch(':id')
-    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ summary: 'Update category', description: 'Update a category by its ID.' })
     @ApiOkResponse({ description: 'Category updated successfully.', type: CategoryResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid data.' })
     @ApiNotFoundResponse({ description: 'Category not found.' })
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Patch(':id')
     async updateCategory(
         @Param('id') id: string,
         @Body(ValidationPipe) updateCategoryDto: UpdateCategoryDto
@@ -117,25 +135,24 @@ export class CategoryController {
         return this.categoryService.update(id, updateCategoryDto);
     }
 
-    @SkipAuth()
-    @Patch(':id/parent')
-    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ summary: 'Change parent category', description: 'Change the parent category of a category.' })
     @ApiOkResponse({ description: 'Parent category updated successfully.', type: CategoryResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid parent category ID.' })
-    async changeParentCategory(
-        @Param('id') id: string,
-        @Body('parentId', ValidationPipe) parentId: string
-    ): Promise<CategoryResponseDto> {
-        return this.categoryService.changeParent(id, parentId);
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Patch(':id/parent')
+    async changeParentCategory(@Param('id') id: string, @Body() body: ChangeParentDto): Promise<CategoryResponseDto> {
+        return this.categoryService.changeParent(id, body.parentId);
     }
 
-    @SkipAuth()
-    @Delete(':id')
-    @HttpCode(204)
+    @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ summary: 'Delete category', description: 'Remove a category by its ID.' })
     @ApiNoContentResponse({ description: 'Category deleted successfully.' })
     @ApiNotFoundResponse({ description: 'Category not found.' })
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Delete(':id')
     async deleteCategory(@Param('id') id: string): Promise<void> {
         return this.categoryService.remove(id);
     }

@@ -1,0 +1,4 @@
+export const TagErrorType = {
+    TAG_NAME_ALREADY_EXISTS: 'TAG_NAME_ALREADY_EXISTS',
+    TAG_NOT_FOUND: 'TAG_NOT_FOUND',
+};

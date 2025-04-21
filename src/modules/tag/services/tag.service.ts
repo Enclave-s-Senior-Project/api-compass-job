@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateTagDto, UpdateTagDto, TagResponseDto, TagResponseDtoBuilder } from '../dtos';
 import { TagRepository } from '../repositories/tag.repository';
 import { TagEntity } from '@database/entities';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
-import { ILike, Like } from 'typeorm';
-import { Tag } from '../entities/tag.entity';
+import { ILike, IsNull, Not } from 'typeorm';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { TagErrorType } from '../../../common/errors/tag.errors';
 
 @Injectable()
 export class TagService {
@@ -20,8 +21,7 @@ export class TagService {
                 .getMany();
 
             if (existingTags.length > 0) {
-                const existingNames = existingTags.map((tag) => tag.name);
-                throw new BadRequestException(`Tags with these names already exist: ${existingNames.join(', ')}`);
+                throw new BadRequestException(TagErrorType.TAG_NAME_ALREADY_EXISTS);
             }
 
             const tags = this.tagRepository.create(createTagDtos);
@@ -29,31 +29,17 @@ export class TagService {
 
             return new TagResponseDtoBuilder().success().setValue(tags).build();
         } catch (error) {
-            throw new InternalServerErrorException(`Failed to create tags: ${error.message}`);
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
     async findAll(filter: PaginationDto, name?: string): Promise<TagResponseDto> {
         try {
             const { order, take, skip, options } = filter;
-            const searchName = name !== undefined && name !== null ? name : '';
-
-            if (searchName) {
-                const [tags, total] = await this.tagRepository.findAndCount({
-                    order: { name: order },
-                    take,
-                    skip,
-                    where: { name: ILike(`%${searchName}%`) },
-                });
-                const meta = new PageMetaDto({
-                    pageOptionsDto: filter,
-                    itemCount: total,
-                });
-                return new TagResponseDtoBuilder().success().setValue(new PageDto<TagEntity>(tags, meta)).build();
-            }
 
             const [tags, total] = await this.tagRepository.findAndCount({
                 order: { name: order },
+                where: { name: name ? ILike(`%${name}%`) : Not(IsNull()) },
                 take,
                 skip,
             });
@@ -64,36 +50,50 @@ export class TagService {
 
             return new TagResponseDtoBuilder().success().setValue(new PageDto<TagEntity>(tags, meta)).build();
         } catch (error) {
-            throw new InternalServerErrorException('Failed to retrieve tags.');
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
     async findOne(id: string): Promise<TagResponseDto> {
-        const tag = await this.tagRepository.findOneBy({ tagId: id });
-        if (!tag) {
-            throw new NotFoundException('Tag not found.');
+        try {
+            const tag = await this.tagRepository.findOneBy({ tagId: id });
+            if (!tag) {
+                throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
+            }
+            return new TagResponseDtoBuilder().success().setValue(tag).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-        return new TagResponseDtoBuilder().success().setValue(tag).build();
     }
 
     async update(id: string, updateTagDto: UpdateTagDto): Promise<TagResponseDto> {
-        const tag = await this.tagRepository.findOneBy({ tagId: id });
-        if (!tag) {
-            throw new NotFoundException('Tag not found.');
-        }
-        await this.tagRepository.save(tag);
+        try {
+            const tag = await this.tagRepository.findOneBy({ tagId: id });
+            if (!tag) {
+                throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
+            }
+            await this.tagRepository.save({ ...tag, ...updateTagDto });
 
-        return new TagResponseDtoBuilder().success().setValue(tag).build();
+            return new TagResponseDtoBuilder().success().setValue(tag).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 
-    async remove(id: string): Promise<void> {
-        const tag = await this.tagRepository.findOneBy({ tagId: id });
-        if (!tag) {
-            throw new NotFoundException('Tag not found.');
-        }
+    async remove(id: string): Promise<TagResponseDto> {
+        try {
+            const tag = await this.tagRepository.findOneBy({ tagId: id });
+            if (!tag) {
+                throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
+            }
 
-        await this.tagRepository.remove(tag);
+            await this.tagRepository.remove(tag);
+            return new TagResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
+
     async findByIds(tagIds: string[]): Promise<TagEntity[]> {
         return await this.tagRepository.findByIds(tagIds);
     }
@@ -112,8 +112,7 @@ export class TagService {
 
             return new TagResponseDtoBuilder().success().setValue(tags).build();
         } catch (error) {
-            console.error('Error fetching tags by name:', error);
-            throw new InternalServerErrorException('Failed to retrieve tags.');
+            throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 }

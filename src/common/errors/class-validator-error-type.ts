@@ -154,3 +154,8 @@ export enum UpdateStatusEnterpriseDtoErrorType {
     REASON_REQUIRED = 'REASON_REQUIRED',
     REASON_NOT_STRING = 'REASON_NOT_STRING',
 }
+
+export enum ChangeParentDtoErrorType {
+    INVALID_ID = 'INVALID_ID',
+    ID_REQUIRED = 'ID_REQUIRED',
+}

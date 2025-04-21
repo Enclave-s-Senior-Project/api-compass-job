@@ -1,5 +1,18 @@
 // tag.controller.ts
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Delete, ValidationPipe, Query } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    Param,
+    Patch,
+    Post,
+    Delete,
+    ValidationPipe,
+    Query,
+    UseGuards,
+    Put,
+} from '@nestjs/common';
 import { TagService } from './services';
 import {
     ApiInternalServerErrorResponse,
@@ -11,11 +24,14 @@ import {
     ApiCreatedResponse,
     ApiNoContentResponse,
     ApiQuery,
+    ApiBearerAuth,
 } from '@nestjs/swagger';
 import { TagResponseDto, CreateTagDto, UpdateTagDto } from './dtos/';
-import { SkipAuth } from '@modules/auth';
+import { SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { PaginationDto } from '@common/dtos';
 import { GetTagsByNameDto } from './dtos/filter-tag.dto';
+import { RolesGuard } from '../auth/guards/role.guard';
+import { Role, Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Tag')
 @Controller({
@@ -32,7 +48,7 @@ export class TagController {
     @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
     @ApiBadRequestResponse({ description: 'Invalid IDs.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async getTagsByName(@Query() query: GetTagsByNameDto): Promise<TagResponseDto> {
+    getTagsByName(@Query() query: GetTagsByNameDto): Promise<TagResponseDto> {
         return this.tagService.findByName(query.name);
     }
 
@@ -43,7 +59,7 @@ export class TagController {
     @ApiCreatedResponse({ description: 'Tag created successfully.', type: TagResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid Tag data.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async createTag(@Body(ValidationPipe) createTagDto: CreateTagDto[]): Promise<TagResponseDto> {
+    createTag(@Body(ValidationPipe) createTagDto: CreateTagDto[]): Promise<TagResponseDto> {
         return this.tagService.create(createTagDto);
     }
 
@@ -54,7 +70,7 @@ export class TagController {
     @ApiOkResponse({ description: 'Tags retrieved successfully.', type: TagResponseDto, isArray: true })
     @ApiQuery({ name: 'name', required: false, description: 'Tên của tag', schema: { default: '' } })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async getAllTags(@Query() pageOptionsDto: PaginationDto, @Query('name') name?: string): Promise<TagResponseDto> {
+    getAllTags(@Query() pageOptionsDto: PaginationDto, @Query('name') name?: string): Promise<TagResponseDto> {
         return this.tagService.findAll(pageOptionsDto, name);
     }
 
@@ -65,33 +81,34 @@ export class TagController {
     @ApiOkResponse({ description: 'Tag retrieved successfully.', type: TagResponseDto })
     @ApiNotFoundResponse({ description: 'Tag not found.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async getTagById(@Param('id') id: string): Promise<TagResponseDto> {
+    getTagById(@Param('id') id: string): Promise<TagResponseDto> {
         return this.tagService.findOne(id);
     }
 
-    @SkipAuth()
-    @Patch(':id')
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Put(':id')
     @HttpCode(200)
     @ApiOperation({ summary: 'Update Tag', description: 'Update an existing Tag by its ID.' })
     @ApiOkResponse({ description: 'Tag updated successfully.', type: TagResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid update data.' })
     @ApiNotFoundResponse({ description: 'Tag not found.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async updateTag(
-        @Param('id') id: string,
-        @Body(ValidationPipe) updateTagDto: UpdateTagDto
-    ): Promise<TagResponseDto> {
+    updateTag(@Param('id') id: string, @Body(ValidationPipe) updateTagDto: UpdateTagDto): Promise<TagResponseDto> {
         return this.tagService.update(id, updateTagDto);
     }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
     @Delete(':id')
     @HttpCode(204)
     @ApiOperation({ summary: 'Delete Tag', description: 'Remove a Tag by its ID.' })
     @ApiNoContentResponse({ description: 'Tag deleted successfully.' })
     @ApiNotFoundResponse({ description: 'Tag not found.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    async deleteTag(@Param('id') id: string): Promise<void> {
+    deleteTag(@Param('id') id: string) {
         return this.tagService.remove(id);
     }
 }

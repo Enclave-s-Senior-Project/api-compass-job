@@ -1,3 +1,4 @@
+import { isUUID, IsUUID } from 'class-validator';
 import {
     BadRequestException,
     ForbiddenException,
@@ -394,9 +395,10 @@ export class UserService {
                 )
                 .addSelect('CASE WHEN cf.profile_id IS NOT NULL THEN true ELSE false END', 'is_favorite');
 
-            if (!options.industryId && categories.length > 0) {
+            if (!options.industryId && categories.length > 0 && categories.every((cat) => isUUID(cat))) {
                 queryBuilder.andWhere('profile.industry_id IN (:...categories)', { categories });
-            } else {
+            }
+            if (options.industryId) {
                 const categoriesArray = Array.isArray(options.industryId) ? options.industryId : [options.industryId];
                 queryBuilder.andWhere('profile.industry_id IN (:...categoriesArray)', { categoriesArray });
             }

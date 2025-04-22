@@ -35,6 +35,16 @@ import { UpdateStatusEnterpriseDto } from './dtos/update-status-enterprise.dto';
 export class EnterpriseController {
     constructor(private readonly enterpriseService: EnterpriseService) {}
 
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE)
+    @ApiOperation({ summary: 'Get information enterprise' })
+    @ApiResponse({ status: 200, description: 'Enterprise updated successfully.' })
+    @Get('status')
+    getStatusEnterprise(@CurrentUser() user: JwtPayload) {
+        console.log('user', user);
+        return this.enterpriseService.getStatusEnterprises(user.enterpriseId);
+    }
     @HttpCode(200)
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)

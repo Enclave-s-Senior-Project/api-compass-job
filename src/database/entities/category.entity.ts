@@ -21,7 +21,10 @@ export class CategoryEntity extends BaseEntity {
     readonly categoryName: string;
 
     //     relationships
-    @ManyToOne(() => CategoryEntity, (category) => category.parent)
+    @ManyToOne(() => CategoryEntity, (category) => category.parent, {
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    })
     @JoinColumn({ name: 'parent_id' })
     parent: CategoryEntity;
 

@@ -3,7 +3,7 @@ import { CreateTagDto, UpdateTagDto, TagResponseDto, TagResponseDtoBuilder } fro
 import { TagRepository } from '../repositories/tag.repository';
 import { TagEntity } from '@database/entities';
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
-import { ILike, IsNull, Not } from 'typeorm';
+import { ILike, IsNull, Not, In } from 'typeorm';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { TagErrorType } from '../../../common/errors/tag.errors';
 
@@ -88,6 +88,39 @@ export class TagService {
             }
 
             await this.tagRepository.remove(tag);
+            return new TagResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async removeBulk(tagIds: string[]): Promise<TagResponseDto> {
+        try {
+            // Find tags that exist
+            const tags = await this.tagRepository.find({
+                where: { tagId: In(tagIds) },
+            });
+
+            // If no tags found at all
+            if (tags.length === 0) {
+                throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
+            }
+
+            // If some tags not found, provide detailed error
+            if (tags.length !== tagIds.length) {
+                const foundIds = tags.map((tag) => tag.tagId);
+                const missingIds = tagIds.filter((id) => !foundIds.includes(id));
+
+                if (missingIds.length === 1) {
+                    throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
+                } else {
+                    throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
+                }
+            }
+
+            // Delete the tags
+            await this.tagRepository.remove(tags);
+
             return new TagResponseDtoBuilder().success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

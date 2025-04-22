@@ -10,6 +10,7 @@ import {
     Query,
     ValidationPipe,
     UseGuards,
+    Put,
 } from '@nestjs/common';
 import { CategoryService } from './services';
 import {
@@ -127,7 +128,7 @@ export class CategoryController {
     @ApiNotFoundResponse({ description: 'Category not found.' })
     @UseGuards(RolesGuard)
     @Roles(Role.ADMIN)
-    @Patch(':id')
+    @Put(':id')
     async updateCategory(
         @Param('id') id: string,
         @Body(ValidationPipe) updateCategoryDto: UpdateCategoryDto

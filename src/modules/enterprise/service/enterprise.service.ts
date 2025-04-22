@@ -661,4 +661,29 @@ export class EnterpriseService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    async getStatusEnterprises(enterpriseId: string) {
+        try {
+            const enterprise = await this.enterpriseRepository.findOne({
+                where: { enterpriseId },
+                relations: ['addresses', 'jobs', 'profiles'],
+            });
+            if (!enterprise) {
+                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            }
+            const categories = await this.categoriesService.findByIds(enterprise.categories);
+            (enterprise as any).categories = categories;
+            const totalJobs = enterprise.jobs?.length || 0;
+            const totalBoostedJobs = enterprise.jobs?.filter((job) => job.isBoost === true).length || 0;
+            const totalCandidateFavorites = enterprise.profiles?.length || 0;
+            const latestJobs =
+                enterprise.jobs
+                    ?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .slice(0, 5) || [];
+            const result = { ...enterprise, totalJobs, totalBoostedJobs, totalCandidateFavorites, latestJobs };
+            return new EnterpriseResponseDtoBuilder().setValue(result).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

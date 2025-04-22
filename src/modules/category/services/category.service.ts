@@ -56,24 +56,25 @@ export class CategoryService {
 
     async findPrimaryCategories(pagination: PaginationDto): Promise<CategoryResponseDto> {
         try {
-            const whereCondition = pagination.options
-                ? { parent: IsNull(), categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
-                : { parent: IsNull() };
-
-            const primaryCategories = await this.categoryRepository.find({
-                where: whereCondition,
-                skip: (pagination.page - 1) * pagination.take,
-                take: pagination.take,
-                order: { createdAt: pagination.order },
-            });
+            const [entities, total] = await this.categoryRepository
+                .createQueryBuilder('c')
+                .leftJoinAndSelect('c.children', 'x')
+                .where('c.parent IS NULL')
+                .andWhere(pagination.options ? 'c.categoryName ILIKE :categoryName' : 'c.categoryName IS NOT NULL', {
+                    categoryName: `${pagination.options}%`,
+                })
+                .orderBy('c.createdAt', pagination.order)
+                .skip(pagination.skip)
+                .take(pagination.take)
+                .getManyAndCount();
 
             const meta = new PageMetaDto({
                 pageOptionsDto: pagination,
-                itemCount: 0,
+                itemCount: total,
             });
 
             return new CategoryResponseDtoBuilder()
-                .setValue(new PageDto<CategoryEntity>(primaryCategories, meta))
+                .setValue(new PageDto<CategoryEntity>(entities, meta))
                 .success()
                 .build();
         } catch (error) {
@@ -157,11 +158,15 @@ export class CategoryService {
     }
 
     async remove(id: string): Promise<void> {
-        const category = await this.categoryRepository.findOne({ where: { categoryId: id } });
-        if (!category) {
-            throw new NotFoundException(`Category with ID ${id} not found.`);
+        try {
+            const category = await this.categoryRepository.findOne({ where: { categoryId: id } });
+            if (!category) {
+                throw new NotFoundException(`Category with ID ${id} not found.`);
+            }
+            await this.categoryRepository.remove(category);
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
         }
-        await this.categoryRepository.remove(category);
     }
     async findByIds(ids: string[]): Promise<CategoryEntity[]> {
         return this.categoryRepository.find({

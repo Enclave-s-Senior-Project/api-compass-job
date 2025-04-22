@@ -11,6 +11,7 @@ import {
 import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { CategoryEntity } from '@database/entities';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { CategoryErrorType } from '@common/errors/category-error';
 
 @Injectable()
 export class CategoryService {
@@ -34,7 +35,7 @@ export class CategoryService {
     ): Promise<CategoryResponseDto[]> {
         const parentCategory = await this.categoryRepository.findOne({ where: { categoryId: parentId } });
         if (!parentCategory) {
-            throw new NotFoundException(`Parent category with ID ${parentId} not found.`);
+            throw new NotFoundException(CategoryErrorType.PARENT_CATEGORY_NOT_FOUND);
         }
 
         const childCategories = createChildCategoriesDto.children.map((child) =>
@@ -85,7 +86,7 @@ export class CategoryService {
     async findOne(id: string): Promise<CategoryResponseDto> {
         const category = await this.categoryRepository.findOne({ where: { categoryId: id }, relations: ['parent'] });
         if (!category) {
-            throw new NotFoundException(`Category with ID ${id} not found.`);
+            throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
         }
         return new CategoryResponseDtoBuilder().setValue(category).success().build();
     }
@@ -125,7 +126,7 @@ export class CategoryService {
             relations: ['parent'],
         });
         if (!category || !category.parent) {
-            throw new NotFoundException(`Parent category for category ID ${id} not found.`);
+            throw new NotFoundException(CategoryErrorType.PARENT_CATEGORY_NOT_FOUND);
         }
         return new CategoryResponseDtoBuilder().setValue(category).success().build();
     }
@@ -133,7 +134,7 @@ export class CategoryService {
     async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<CategoryResponseDto> {
         const category = await this.categoryRepository.findOne({ where: { categoryId: id } });
         if (!category) {
-            throw new NotFoundException(`Category with ID ${id} not found.`);
+            throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
         }
 
         Object.assign(category, updateCategoryDto);
@@ -143,31 +144,45 @@ export class CategoryService {
 
     async changeParent(id: string, parentId: string): Promise<CategoryResponseDto> {
         if (id === parentId) {
-            throw new BadRequestException(`Category cannot be its own parent.`);
+            throw new BadRequestException(CategoryErrorType.CANNOT_BE_OWN_PARENT);
         }
 
         const category = await this.categoryRepository.findOne({ where: { categoryId: id } });
-        if (!category) throw new NotFoundException(`Category with ID ${id} not found.`);
+        if (!category) throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
 
         const parentCategory = await this.categoryRepository.findOne({ where: { categoryId: parentId } });
-        if (!parentCategory) throw new NotFoundException(`Parent category with ID ${parentId} not found.`);
+        if (!parentCategory) throw new NotFoundException(CategoryErrorType.PARENT_CATEGORY_NOT_FOUND);
 
         category.parent = parentCategory;
         await this.categoryRepository.save(category);
         return new CategoryResponseDtoBuilder().setValue(category).success().build();
     }
 
-    async remove(id: string): Promise<void> {
+    async remove(id: string): Promise<CategoryResponseDto> {
         try {
             const category = await this.categoryRepository.findOne({ where: { categoryId: id } });
             if (!category) {
-                throw new NotFoundException(`Category with ID ${id} not found.`);
+                throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
             }
             await this.categoryRepository.remove(category);
+            return new CategoryResponseDtoBuilder().success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    async removeMany(ids: string[]): Promise<CategoryResponseDto> {
+        try {
+            const result = await this.categoryRepository.delete({ categoryId: In(ids) });
+            if (!result.affected) {
+                throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
+            }
+            return new CategoryResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
     async findByIds(ids: string[]): Promise<CategoryEntity[]> {
         return this.categoryRepository.find({
             where: { categoryId: In(ids), isActive: true },

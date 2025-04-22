@@ -5,7 +5,6 @@ import {
     Get,
     HttpCode,
     Param,
-    Patch,
     Post,
     Delete,
     ValidationPipe,
@@ -27,6 +26,7 @@ import {
     ApiBearerAuth,
 } from '@nestjs/swagger';
 import { TagResponseDto, CreateTagDto, UpdateTagDto } from './dtos/';
+import { DeleteTagsDto } from './dtos/delete-tags.dto';
 import { SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { PaginationDto } from '@common/dtos';
 import { GetTagsByNameDto } from './dtos/filter-tag.dto';
@@ -59,7 +59,7 @@ export class TagController {
     @ApiCreatedResponse({ description: 'Tag created successfully.', type: TagResponseDto })
     @ApiBadRequestResponse({ description: 'Invalid Tag data.' })
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
-    createTag(@Body(ValidationPipe) createTagDto: CreateTagDto[]): Promise<TagResponseDto> {
+    createTag(@Body() createTagDto: CreateTagDto[]): Promise<TagResponseDto> {
         return this.tagService.create(createTagDto);
     }
 
@@ -110,5 +110,19 @@ export class TagController {
     @ApiInternalServerErrorResponse({ description: 'Server error.' })
     deleteTag(@Param('id') id: string) {
         return this.tagService.remove(id);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Delete()
+    @HttpCode(204)
+    @ApiOperation({ summary: 'Delete Multiple Tags', description: 'Remove multiple tags by their IDs.' })
+    @ApiNoContentResponse({ description: 'Tags deleted successfully.' })
+    @ApiNotFoundResponse({ description: 'One or more tags not found.' })
+    @ApiBadRequestResponse({ description: 'Invalid tag IDs.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error.' })
+    deleteManyTags(@Body() deleteTagsDto: DeleteTagsDto) {
+        return this.tagService.removeBulk(deleteTagsDto.tagIds);
     }
 }

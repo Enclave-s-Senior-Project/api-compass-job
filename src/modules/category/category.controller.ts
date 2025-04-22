@@ -29,6 +29,7 @@ import { PaginationDto } from '@common/dtos';
 import { RolesGuard } from '../auth/guards/role.guard';
 import { Role, Roles } from '../auth/decorators/roles.decorator';
 import { ChangeParentDto } from './dtos/change-parent.dto';
+import { DeleteManyCategoriesDto } from './dtos/delete-many-categories.dto';
 
 @ApiTags('Category')
 @Controller({
@@ -154,7 +155,18 @@ export class CategoryController {
     @UseGuards(RolesGuard)
     @Roles(Role.ADMIN)
     @Delete(':id')
-    async deleteCategory(@Param('id') id: string): Promise<void> {
+    async deleteCategory(@Param('id') id: string) {
         return this.categoryService.remove(id);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ summary: 'Delete multiple categories', description: 'Remove multiple categories by their IDs.' })
+    @ApiNoContentResponse({ description: 'Categories deleted successfully.' })
+    @ApiBadRequestResponse({ description: 'Invalid IDs provided.' })
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Delete()
+    async deleteManyCategories(@Body() body: DeleteManyCategoriesDto) {
+        return this.categoryService.removeMany(body.categoryIds);
     }
 }

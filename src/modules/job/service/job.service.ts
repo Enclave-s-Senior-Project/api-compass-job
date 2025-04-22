@@ -74,6 +74,9 @@ export class JobService {
                 introImg,
             });
             this.cacheService.deleteEnterpriseTotalJob(enterpriseId);
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
+
             await this.jobRepository.save(newJob);
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
         } catch (error) {

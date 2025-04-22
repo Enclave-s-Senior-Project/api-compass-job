@@ -77,7 +77,6 @@ export class JobService {
             await this.jobRepository.save(newJob);
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
         } catch (error) {
-            console.error('Error creating job:', error);
             throw new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
         }
     }
@@ -236,7 +235,7 @@ export class JobService {
         try {
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
-                relations: ['tags', 'enterprise', 'addresses', 'categories', 'specializations'],
+                relations: ['tags', 'enterprise', 'addresses', 'categories', 'specializations', 'profiles'],
                 select: {
                     tags: true,
                     enterprise: {
@@ -257,6 +256,9 @@ export class JobService {
                     addresses: true,
                     categories: true,
                     specializations: true,
+                    profiles: {
+                        profileId: true,
+                    },
                 },
             });
 

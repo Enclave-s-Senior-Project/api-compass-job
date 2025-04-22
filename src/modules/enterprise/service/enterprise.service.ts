@@ -87,9 +87,16 @@ export class EnterpriseService {
                 },
             });
 
-            this.cacheService.cacheEnterpriseInfo(enterpriseId, enterprise);
+            const categories = await this.categoriesService.findByIds(enterprise.categories);
 
-            return new EnterpriseResponseDtoBuilder().setValue(enterprise).success().build();
+            const enterpriseWithCategories = {
+                ...enterprise,
+                categories: categories,
+            };
+
+            this.cacheService.cacheEnterpriseInfo(enterpriseId, enterpriseWithCategories);
+
+            return new EnterpriseResponseDtoBuilder().setValue(enterpriseWithCategories).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -121,7 +128,7 @@ export class EnterpriseService {
             const enterprise = await this.enterpriseRepository.findOne({
                 where: { account: { accountId } },
                 relations: {
-                    categories: true,
+                    addresses: true,
                 },
                 select: {
                     boostedJobs: false,
@@ -261,7 +268,7 @@ export class EnterpriseService {
         });
 
         if (!enterprise) {
-            throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
+            throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_ACTIVE);
         }
         return enterprise;
     }

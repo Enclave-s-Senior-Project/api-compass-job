@@ -51,6 +51,11 @@ export class ApplyJobService {
             if (!job) {
                 throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
             }
+
+            if (job?.enterprise?.enterpriseId === user.enterpriseId) {
+                throw new NotFoundException(JobErrorType.CAN_NOT_APPLY_OWN_JOB);
+            }
+
             if (!cv) {
                 throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
             }

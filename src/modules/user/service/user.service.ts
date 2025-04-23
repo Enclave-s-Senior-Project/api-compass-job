@@ -504,4 +504,28 @@ export class UserService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    public async getProfileUserDashboard(userId: string) {
+        try {
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: userId },
+                relations: ['appliedJob', 'appliedJob.job', 'jobs'],
+            });
+            if (!profile) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
+            const totalAppliedJob = profile.appliedJob.length;
+            const totalFavoriteJob = profile.jobs.length;
+            const temp = {
+                ...profile,
+                appliedJob: profile.appliedJob.slice(0, 6),
+                totalAppliedJob,
+                totalFavoriteJob,
+            };
+            return new UserResponseDtoBuilder().setValue(temp).success().build();
+        } catch (error) {
+            console.error('Error in getInformationUser:', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

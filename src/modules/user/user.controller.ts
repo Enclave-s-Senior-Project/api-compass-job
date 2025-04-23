@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { UserService } from './service/user.service';
 import {
     ApiBearerAuth,
@@ -9,10 +9,12 @@ import {
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { PaginationDto } from '@common/dtos';
+import { JwtPayload, PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
+import { RolesGuard } from '@modules/auth/guards/role.guard';
+import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 
 @ApiTags('User')
 @Controller({
@@ -59,6 +61,15 @@ export class UserController {
         return this.userService.filterUsers(pageOptionsDto);
     }
 
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.USER, Role.ENTERPRISE)
+    @ApiOperation({ description: 'Filter users' })
+    @Get('me')
+    async informationUSer(@CurrentUser() user: JwtPayload) {
+        return this.userService.getProfileUserDashboard(user.profileId);
+    }
     @SkipAuth()
     @HttpCode(200)
     @ApiOperation({ description: 'Get user information by ID profile' })

@@ -9,6 +9,7 @@ import { CategoryModule } from '@modules/category/category.module';
 import { AddressModule } from '@modules/address/address.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { BoostJobModule } from '../boost-job/boost-job.module';
+import { MailModule } from '@src/mail/mail.module';
 
 @Module({
     imports: [
@@ -19,6 +20,7 @@ import { BoostJobModule } from '../boost-job/boost-job.module';
         AddressModule,
         forwardRef(() => EnterpriseModule),
         forwardRef(() => BoostJobModule),
+        MailModule,
     ],
     controllers: [JobController],
     providers: [JobService, JobRepository],

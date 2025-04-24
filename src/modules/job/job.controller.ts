@@ -120,9 +120,24 @@ export class JobController {
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
     @Patch(':id/close')
-    closeJobOrMakeExpired(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<JobResponseDto> {
+    @ApiOperation({ description: 'Close a job or mark it as expired. Only available for enterprise users and admins.' })
+    closeJobOrMakeExpired(
+        @Param('id') id: string,
+        @CurrentUser() user: JwtPayload,
+        @Body() body: { reason?: string }
+    ): Promise<JobResponseDto> {
         return this.jobService.closeJob(id, user);
     }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @Patch(':id/open')
+    @ApiOperation({ description: 'Reopen a previously closed job. This action is restricted to admin users only.' })
+    openJob(@Param('id') id: string, @Body() body: { reason?: string }): Promise<JobResponseDto> {
+        return this.jobService.openJob(id, body.reason);
+    }
+
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)

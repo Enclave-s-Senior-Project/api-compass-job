@@ -141,7 +141,7 @@ export class EnterpriseController {
     @Get('me/jobs')
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
     getOwnJobs(@CurrentUser() user: JwtPayload, @Query() paginationDto: FindJobsByEnterpriseDto) {
-        return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto);
+        return this.enterpriseService.findJobsByEnterpriseId(user.enterpriseId, paginationDto, true);
     }
 
     @ApiBearerAuth(TOKEN_NAME)
@@ -158,12 +158,16 @@ export class EnterpriseController {
         return this.enterpriseService.getPendingStatusEnterprises(paginationDto);
     }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
     @Get(':id/jobs')
     @ApiOperation({ summary: 'Get all jobs related to an enterprise' })
     @ApiResponse({ status: 200, description: 'List of jobs associated with the enterprise.' })
-    findJobsByEnterprise(@Param('id') id: string, @Query() paginationDto: FindJobsByEnterpriseDto) {
-        return this.enterpriseService.findJobsByEnterpriseId(id, paginationDto);
+    findJobsByEnterprise(
+        @CurrentUser() user: JwtPayload,
+        @Param('id') id: string,
+        @Query() paginationDto: FindJobsByEnterpriseDto
+    ) {
+        return this.enterpriseService.findJobsByEnterpriseId(id, paginationDto, user.roles.includes(Role.ADMIN));
     }
 
     @SkipAuth()

@@ -39,7 +39,7 @@ export class FindJobsByEnterpriseDto extends PaginationDto {
     @ApiPropertyOptional({
         description: 'Filter by job experience level',
 
-        default: 1,
+        default: '1-2',
     })
     @Matches(/\d{1,2}-\d{1,3}/)
     @IsOptional()

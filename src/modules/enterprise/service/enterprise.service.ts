@@ -221,9 +221,9 @@ export class EnterpriseService {
         }
     }
 
-    async findJobsByEnterpriseId(enterpriseId: string, pagination: FindJobsByEnterpriseDto) {
+    async findJobsByEnterpriseId(enterpriseId: string, pagination: FindJobsByEnterpriseDto, isAdmin: boolean) {
         try {
-            return await this.jobService.getJobOfEnterprise(enterpriseId, pagination);
+            return await this.jobService.getJobOfEnterprise(enterpriseId, pagination, isAdmin);
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

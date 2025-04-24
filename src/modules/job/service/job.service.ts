@@ -27,6 +27,9 @@ import * as _ from 'lodash';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
 import { FindJobsByEnterpriseDto, SortByEnum } from '@src/modules/enterprise/dtos/find-job-by-enterprise.dto';
 import { BoostJobService } from '@src/modules/boost-job/boost-job.service';
+import { Role } from '@src/modules/auth/decorators/roles.decorator';
+import { MailSenderService } from '@src/mail/mail.service';
+import { WarningException } from '@src/common/http/exceptions/warning.exception';
 @Injectable()
 export class JobService {
     constructor(
@@ -37,6 +40,7 @@ export class JobService {
         private readonly tagService: TagService,
         private readonly cacheService: CacheService,
         private readonly boostJobService: BoostJobService,
+        private readonly mailService: MailSenderService,
         @Inject(redisProviderName) private readonly redisCache: Redis
     ) {}
 
@@ -292,7 +296,11 @@ export class JobService {
         }
     }
 
-    async getJobOfEnterprise(enterpriseId: string, pagination: FindJobsByEnterpriseDto): Promise<JobResponseDto> {
+    async getJobOfEnterprise(
+        enterpriseId: string,
+        pagination: FindJobsByEnterpriseDto,
+        canGetAllStatusJob: boolean
+    ): Promise<JobResponseDto> {
         try {
             // Validate input
             if (!ValidationHelper.isValidateUUIDv4(enterpriseId)) {
@@ -337,8 +345,11 @@ export class JobService {
                 queryBuilder.andWhere('jobs.type = :jobType', { jobType: pagination.jobType });
             }
 
-            if (pagination.jobStatus) {
+            if (pagination.jobStatus && canGetAllStatusJob) {
                 queryBuilder.andWhere('jobs.status = :jobStatus', { jobStatus: pagination.jobStatus });
+            } else if (!canGetAllStatusJob) {
+                // Default to OPEN status if it's a normal user
+                queryBuilder.andWhere('jobs.status = :status', { status: JobStatusEnum.OPEN });
             }
 
             if (pagination.jobLocation) {
@@ -744,22 +755,113 @@ export class JobService {
         return !!hasApplications;
     }
 
-    public async closeJob(jobId: string, user: JwtPayload) {
+    public async closeJob(jobId: string, user: JwtPayload, reason?: string) {
         try {
             // Validate UUID
             if (!ValidationHelper.isValidateUUIDv4(jobId)) {
                 throw new BadRequestException(GlobalErrorType.INVALID_ID);
             }
 
-            const existingJob = await this.jobRepository.exists({
-                where: { jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } },
+            const isAdmin = user.roles.includes(Role.ADMIN);
+
+            let condition = {};
+            if (isAdmin) {
+                condition = { jobId: jobId };
+            } else {
+                condition = { jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } };
+            }
+
+            const existingJob = await this.jobRepository.findOne({
+                where: condition,
+                relations: ['enterprise'],
+                select: {
+                    enterprise: {
+                        enterpriseId: true,
+                        name: true,
+                        email: true,
+                    },
+                },
             });
+
             if (!existingJob) {
                 throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
             }
 
+            if (existingJob.status === JobStatusEnum.CLOSED) {
+                throw new WarningException(JobErrorType.JOB_IS_CLOSED);
+            }
+
             await this.jobRepository.update({ jobId }, { status: JobStatusEnum.CLOSED, deadline: new Date() });
+
+            if (isAdmin) {
+                // send email notification to enterprise
+                const defaultReason =
+                    'Your job posting may have violated our platform rules or guidelines. If you believe this is an error, please contact our support team.';
+                this.mailService.sendJobClosureNotificationMail(
+                    existingJob.enterprise.email,
+                    existingJob.name,
+                    existingJob.jobId,
+                    existingJob.enterprise.name,
+                    reason || defaultReason
+                );
+            }
+
             // clear filter search cache
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
+
+            return new JobResponseDtoBuilder().setValue(null).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async openJob(jobId: string, reason?: string) {
+        try {
+            // Validate UUID
+            if (!ValidationHelper.isValidateUUIDv4(jobId)) {
+                throw new BadRequestException(GlobalErrorType.INVALID_ID);
+            }
+
+            // Find the job
+            const existingJob = await this.jobRepository.findOne({
+                where: { jobId: jobId },
+                relations: ['enterprise'],
+                select: {
+                    enterprise: {
+                        enterpriseId: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            });
+
+            if (!existingJob) {
+                throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
+            }
+
+            // Check if job is in CLOSED status
+            if (existingJob.status !== JobStatusEnum.CLOSED) {
+                throw new WarningException(JobErrorType.JOB_IS_OPENED);
+            }
+
+            // Update job status to OPEN with new deadline
+            await this.jobRepository.update(
+                { jobId },
+                {
+                    status: JobStatusEnum.OPEN,
+                }
+            );
+
+            // Send email notification to enterprise about reopened job
+            this.mailService.sendJobReopenedNotificationMail(
+                existingJob.enterprise.email,
+                existingJob.name,
+                existingJob.jobId,
+                existingJob.enterprise.name
+            );
+
+            // Clear cache to reflect changes
             this.cacheService.removeSearchJobsCache();
             this.cacheService.removeEnterpriseSearchJobsCache();
 

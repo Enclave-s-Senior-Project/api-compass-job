@@ -161,16 +161,16 @@ export class CategoryService {
 
     async remove(id: string): Promise<CategoryResponseDto> {
         try {
-            let category: CategoryEntity;
-            try {
-                category = await this.categoryRepository.findOne({ where: { categoryId: id } });
-            } catch (error) {
-                throw new WarningException(CategoryErrorType.CATEGORY_MAY_BE_IN_USE);
-            }
+            let category = await this.categoryRepository.findOne({ where: { categoryId: id } });
             if (!category) {
                 throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
             }
-            await this.categoryRepository.remove(category);
+
+            try {
+                await this.categoryRepository.remove(category);
+            } catch (error) {
+                throw new WarningException(CategoryErrorType.CATEGORY_MAY_BE_IN_USE);
+            }
             return new CategoryResponseDtoBuilder().success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

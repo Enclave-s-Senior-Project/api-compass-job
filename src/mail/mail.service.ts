@@ -5,6 +5,8 @@ import * as Mail from 'nodemailer/lib/mailer';
 import { confirmMail } from './templates';
 import { resetPassword } from './templates/reset-password.html';
 import { jobExpirationMail } from './templates/job-expiration.html';
+import { jobClosureMail } from './templates/job-closure.html';
+import { reopenJobMail } from './templates/job-reopened.html';
 import { JobExpiredData } from '@src/modules/job-cron/job-cron.service';
 import { applicationStatusMail } from './templates/application-status.html';
 import { NotificationType } from '@src/database/entities/notification.entity';
@@ -175,6 +177,86 @@ export class MailSenderService {
                 this.logger.error(`Failed to send job expired email: ${error.message}`);
                 return false;
             });
+    }
+
+    /**
+     * Send email notification when a job is closed by admin or other reasons
+     */
+    async sendJobClosureNotificationMail(
+        email: string,
+        jobName: string,
+        jobId: string,
+        enterpriseName: string,
+        reason: string
+    ): Promise<boolean> {
+        const mail = jobClosureMail
+            .replace(/--ProjectLink--/g, process.env.PROJECT_URL)
+            .replace(/--ProjectLogo--/g, process.env.PROJECT_LOGO_URL)
+            .replace(/--ProjectName--/g, process.env.PROJECT_NAME)
+            .replace(/--EnterpriseName--/g, enterpriseName)
+            .replace(/--JobTitle--/g, jobName)
+            .replace(/--JobID--/g, jobId)
+            .replace(/--ClosureReason--/g, reason)
+            .replace(/--DashboardLink--/g, process.env.CLIENT_URL + process.env.ENTERPRISE_JOB_DASHBOARD)
+            .replace(/--ProjectAddress--/g, process.env.PROJECT_ADDRESS)
+            .replace(/--Socials--/g, this.socials);
+
+        const mailOptions: Mail.Options = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: email,
+            subject: `Your ${process.env.PROJECT_NAME} Job Listing has been Closed`,
+            html: mail,
+        };
+
+        try {
+            await this.transporter.sendMail(mailOptions);
+            this.logger.log(`Job closure email sent to ${email}`);
+            return true;
+        } catch (error) {
+            this.logger.error(`Mail sending failed: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Sends a notification to the enterprise when their job posting has been reopened by an admin
+     * @param to - Enterprise email address
+     * @param jobTitle - Title of the job that has been reopened
+     * @param jobId - ID of the job that has been reopened
+     * @param enterpriseName - Name of the enterprise
+     */
+    async sendJobReopenedNotificationMail(
+        to: string,
+        jobTitle: string,
+        jobId: string,
+        enterpriseName: string
+    ): Promise<boolean> {
+        const mail = reopenJobMail
+            .replace(/--ProjectLink--/g, process.env.PROJECT_URL)
+            .replace(/--ProjectLogo--/g, process.env.PROJECT_LOGO_URL)
+            .replace(/--ProjectName--/g, process.env.PROJECT_NAME)
+            .replace(/--EnterpriseName--/g, enterpriseName)
+            .replace(/--JobTitle--/g, jobTitle)
+            .replace(/--JobID--/g, jobId)
+            .replace(/--DashboardLink--/g, process.env.CLIENT_URL + process.env.ENTERPRISE_JOB_DASHBOARD)
+            .replace(/--ProjectAddress--/g, process.env.PROJECT_ADDRESS)
+            .replace(/--Socials--/g, this.socials);
+
+        const mailOptions: Mail.Options = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: to,
+            subject: `Your job posting "${jobTitle}" has been reopened on ${process.env.PROJECT_NAME}`,
+            html: mail,
+        };
+
+        try {
+            await this.transporter.sendMail(mailOptions);
+            this.logger.log(`Job reopened notification sent to ${to} for job ${jobId}`);
+            return true;
+        } catch (error) {
+            this.logger.error(`Failed to send job reopened notification email: ${error.message}`);
+            return false;
+        }
     }
 
     /**

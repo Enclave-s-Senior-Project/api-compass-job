@@ -206,6 +206,7 @@ export class ApplyJobService {
 
             return new ApplyJobResponseDtoBuilder().success().build();
         } catch (error) {
+            console.error('Error in updateApplicationStatus:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

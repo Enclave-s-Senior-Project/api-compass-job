@@ -39,6 +39,10 @@ export class NotificationService {
     }
 
     public async sendNotification(token: string, payload: NotificationEntity) {
+        if (!token) {
+            return;
+        }
+
         try {
             const response = await this.messaging.send({
                 token: token,
@@ -54,6 +58,10 @@ export class NotificationService {
     }
 
     public async sendNotificationToMany(payload: NotificationEntity, tokens: string[]) {
+        if (tokens.length === 0) {
+            return;
+        }
+
         try {
             const response = await this.messaging.sendEachForMulticast({
                 tokens: tokens,
@@ -75,8 +83,6 @@ export class NotificationService {
                     failedTokens.push(tokens[idx]);
                 }
             });
-
-            // this.fcmTokenService.deleteTokenWithoutAccountId(failedTokens);
 
             return response;
         } catch (error) {

@@ -6,6 +6,7 @@ import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { ILike, IsNull, Not, In } from 'typeorm';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { TagErrorType } from '../../../common/errors/tag.errors';
+import { WarningException } from '@src/common/http/exceptions/warning.exception';
 
 @Injectable()
 export class TagService {
@@ -82,7 +83,12 @@ export class TagService {
 
     async remove(id: string): Promise<TagResponseDto> {
         try {
-            const tag = await this.tagRepository.findOneBy({ tagId: id });
+            let tag: TagEntity;
+            try {
+                tag = await this.tagRepository.findOneBy({ tagId: id });
+            } catch (error) {
+                throw new WarningException(TagErrorType.TAG_MAY_BE_IN_USE);
+            }
             if (!tag) {
                 throw new NotFoundException(TagErrorType.TAG_NOT_FOUND);
             }
@@ -119,7 +125,11 @@ export class TagService {
             }
 
             // Delete the tags
-            await this.tagRepository.remove(tags);
+            try {
+                await this.tagRepository.remove(tags);
+            } catch (error) {
+                throw new WarningException(TagErrorType.TAG_MAY_BE_IN_USE);
+            }
 
             return new TagResponseDtoBuilder().success().build();
         } catch (error) {

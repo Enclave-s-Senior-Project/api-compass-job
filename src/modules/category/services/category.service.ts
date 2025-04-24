@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, In, IsNull, Repository } from 'typeorm';
+import { DeleteResult, ILike, In, IsNull, Repository } from 'typeorm';
 import {
     CategoryResponseDto,
     CategoryResponseDtoBuilder,
@@ -12,6 +12,7 @@ import { PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { CategoryEntity } from '@database/entities';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { CategoryErrorType } from '@common/errors/category-error';
+import { WarningException } from '@src/common/http/exceptions/warning.exception';
 
 @Injectable()
 export class CategoryService {
@@ -160,7 +161,12 @@ export class CategoryService {
 
     async remove(id: string): Promise<CategoryResponseDto> {
         try {
-            const category = await this.categoryRepository.findOne({ where: { categoryId: id } });
+            let category: CategoryEntity;
+            try {
+                category = await this.categoryRepository.findOne({ where: { categoryId: id } });
+            } catch (error) {
+                throw new WarningException(CategoryErrorType.CATEGORY_MAY_BE_IN_USE);
+            }
             if (!category) {
                 throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
             }
@@ -173,7 +179,12 @@ export class CategoryService {
 
     async removeMany(ids: string[]): Promise<CategoryResponseDto> {
         try {
-            const result = await this.categoryRepository.delete({ categoryId: In(ids) });
+            let result: DeleteResult;
+            try {
+                result = await this.categoryRepository.delete({ categoryId: In(ids) });
+            } catch (error) {
+                throw new WarningException(CategoryErrorType.CATEGORY_MAY_BE_IN_USE);
+            }
             if (!result.affected) {
                 throw new NotFoundException(CategoryErrorType.CATEGORY_NOT_FOUND);
             }

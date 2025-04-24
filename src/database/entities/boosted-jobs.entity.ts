@@ -12,13 +12,13 @@ export class BoostedJobsEntity extends BaseEntity {
     boostedAt: Date;
 
     @OneToOne(() => JobEntity, (job) => job.boostedJob)
-    @JoinColumn()
+    @JoinColumn({ name: 'job_id' })
     job: JobEntity;
 
     @Column({ name: 'points_used', type: 'int', nullable: false, unique: true })
     pointsUsed: number;
 
     @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.boostedJobs, { nullable: false })
-    @JoinColumn()
+    @JoinColumn({ name: 'enterprise_id' })
     enterprise: EnterpriseEntity;
 }

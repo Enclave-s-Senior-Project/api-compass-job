@@ -49,6 +49,7 @@ export class FindJobsByEnterpriseDto extends PaginationDto {
         description: 'Filter by job boost status',
         type: Boolean,
     })
+    @Transform(({ value }) => value === 'true')
     @IsOptional()
     jobBoost?: Boolean;
 

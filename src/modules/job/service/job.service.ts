@@ -313,7 +313,7 @@ export class JobService {
                 .leftJoinAndSelect('jobs.enterprise', 'enterprise')
                 .leftJoinAndSelect('jobs.tags', 'tags')
                 .leftJoinAndSelect('jobs.categories', 'categories')
-                .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs')
+                .leftJoinAndSelect('jobs.boostedJob', 'boostedJob')
                 .where('enterprise.enterpriseId = :enterpriseId', { enterpriseId });
 
             // Search filter - search in job name and tags (fixed join issue)
@@ -375,9 +375,9 @@ export class JobService {
                 'enterprise.logoUrl',
                 'tags',
                 'categories',
-                'boosted_jobs.id',
-                'boosted_jobs.boostedAt',
-                'boosted_jobs.pointsUsed',
+                'boostedJob.id',
+                'boostedJob.boostedAt',
+                'boostedJob.pointsUsed',
             ]);
 
             // Apply sorting with consistent parameters
@@ -426,7 +426,6 @@ export class JobService {
 
             return new JobResponseDtoBuilder().setValue(result).success().build();
         } catch (error) {
-            console.error('Error fetching jobs of enterprise:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

@@ -3,6 +3,7 @@ import { JobFilterErrorType } from '@common/errors/class-validator-error-type';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { EducationJobLevel } from '@src/common/enums/education-job.enum';
 import { JobTypeEnum } from '@src/common/enums/job.enum';
+import { Transform } from 'class-transformer';
 import { IsOptional, IsString, IsInt, Min, IsBoolean, IsArray, ArrayNotEmpty, isInt, Matches } from 'class-validator';
 
 export class JobFilterDto extends PaginationDto {
@@ -33,13 +34,15 @@ export class JobFilterDto extends PaginationDto {
 
     @ApiPropertyOptional({ description: 'Filter by minimum wage' })
     @IsInt({ message: JobFilterErrorType.MIN_WAGE_NOT_INT })
+    @Transform(({ value }) => Number(value))
     @IsOptional()
-    readonly minWage?: string;
+    readonly minWage?: number;
 
     @ApiPropertyOptional({ description: 'Filter by maximum wage' })
     @IsInt({ message: JobFilterErrorType.MAX_WAGE_NOT_INT }) // Fixed incorrect error type
+    @Transform(({ value }) => Number(value))
     @IsOptional()
-    readonly maxWage?: string;
+    readonly maxWage?: number;
 
     @ApiPropertyOptional({ description: 'Filter by experience required (in years)' })
     @Matches(/^\d+\s*-\s*\d+$/, { message: JobFilterErrorType.EXPERIENCE_OUT_OF_RANGE })

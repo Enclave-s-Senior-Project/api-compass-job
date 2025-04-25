@@ -33,7 +33,8 @@ import { NotificationType } from '@src/database/entities/notification.entity';
 import { MailSenderService } from '@src/mail/mail.service';
 import { WarningException } from '@src/common/http/exceptions/warning.exception';
 import { UpdateStatusEnterpriseDto } from '../dtos/update-status-enterprise.dto';
-import { ILike, IsNull, Not } from 'typeorm';
+import { ILike, IsNull, Not, TreeLevelColumn } from 'typeorm';
+import { FindAllDto } from '../dtos/find-all.dto';
 
 @Injectable()
 export class EnterpriseService {
@@ -153,21 +154,75 @@ export class EnterpriseService {
         }
     }
 
-    async findAll(pagination: PaginationDto) {
+    async findAll(queries: FindAllDto) {
         try {
-            const [profiles, total] = await this.enterpriseRepository.findAndCount({
-                skip: (Number(pagination.page) - 1) * Number(pagination.take),
-                take: Number(pagination.take),
-                relations: ['addresses'],
-            });
+            const queryBuilder = this.enterpriseRepository
+                .createQueryBuilder('enterprise')
+                .leftJoinAndSelect('enterprise.addresses', 'addresses')
+                .select([
+                    'enterprise.enterpriseId',
+                    'enterprise.name',
+                    'enterprise.categories',
+                    'enterprise.status',
+                    'enterprise.email',
+                    'enterprise.phone',
+                    'enterprise.teamSize',
+                    'enterprise.organizationType',
+                    'enterprise.foundedIn',
+                    'enterprise.isPremium',
+                    'enterprise.logoUrl',
+                    'enterprise.createdAt',
+                    'enterprise.updatedAt',
+                    'addresses.addressId',
+                    'addresses.country',
+                    'addresses.city',
+                    'addresses.street',
+                    'addresses.zipCode',
+                    'addresses.mixedAddress',
+                ])
+                .take(queries.take)
+                .skip(queries.skip)
+                .orderBy('enterprise.createdAt', 'DESC');
+
+            if (queries.options) {
+                queryBuilder.andWhere('enterprise.name ILIKE :name', { name: `${queries.options}%` });
+            }
+
+            if (queries.status && queries.status !== EnterpriseStatus.PENDING) {
+                queryBuilder.andWhere('enterprise.status = :status', { status: queries.status });
+            } else {
+                queryBuilder.andWhere('enterprise.status != :status', { status: EnterpriseStatus.PENDING });
+            }
+
+            if (queries.organizationType) {
+                queryBuilder.andWhere('enterprise.organizationType = :organizationType', {
+                    organizationType: queries.organizationType,
+                });
+            }
+
+            if (queries.categoryId) {
+                queryBuilder.andWhere(':categoryId = ANY(enterprise.categories)', {
+                    categoryId: queries.categoryId,
+                });
+            }
+
+            if (queries.address) {
+                queryBuilder.andWhere('addresses.mixedAddress ILIKE :address', { address: `%${queries.address}%` });
+            }
+
+            const [profiles, total] = await queryBuilder.getManyAndCount();
+
+            let enterprisesWithCategories = [];
+
+            if (profiles?.length > 0) enterprisesWithCategories = await this.getCategoriesOfEnterprises(profiles);
+
             const meta = new PageMetaDto({
-                pageOptionsDto: pagination,
+                pageOptionsDto: queries,
                 itemCount: total,
             });
-            if (!profiles) {
-                throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
-            }
-            return new EnterpriseResponseDtoBuilder().setValue(new PageDto<EnterpriseEntity>(profiles, meta)).build();
+            return new EnterpriseResponseDtoBuilder()
+                .setValue(new PageDto<any>(enterprisesWithCategories, meta))
+                .build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -534,17 +589,7 @@ export class EnterpriseService {
                 order: { createdAt: 'ASC' },
             });
 
-            // Group categories and fetch once
-            const categoryIds = enterprises.map((enterprise) => enterprise.categories).flat();
-            const categories = await this.categoriesService.findByIds(categoryIds);
-
-            // Map categories to enterprises
-            const enterprisesWithCategories = enterprises.map((enterprise) => {
-                const fullyCategories = categories.filter((category) =>
-                    enterprise.categories.includes(category.categoryId)
-                );
-                return { ...enterprise, categories: fullyCategories };
-            });
+            const enterprisesWithCategories = await this.getCategoriesOfEnterprises(enterprises);
 
             const meta = new PageMetaDto({
                 pageOptionsDto: pagination,
@@ -682,6 +727,26 @@ export class EnterpriseService {
                     .slice(0, 5) || [];
             const result = { ...enterprise, totalJobs, totalBoostedJobs, totalCandidateFavorites, latestJobs };
             return new EnterpriseResponseDtoBuilder().setValue(result).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getCategoriesOfEnterprises(enterprises: EnterpriseEntity[]) {
+        try {
+            // Group categories and fetch once
+            const categoryIds = enterprises.map((enterprise) => enterprise.categories).flat();
+            const categories = await this.categoriesService.findByIds(categoryIds);
+
+            // Map categories to enterprises
+            const enterprisesWithCategories = enterprises.map((enterprise) => {
+                const fullyCategories = categories.filter((category) =>
+                    enterprise.categories.includes(category.categoryId)
+                );
+                return { ...enterprise, categories: fullyCategories };
+            });
+
+            return enterprisesWithCategories;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

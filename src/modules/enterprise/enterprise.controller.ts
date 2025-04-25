@@ -26,6 +26,7 @@ import { CreateCandidateWishListDto } from './dtos/create-candidate-wishlist.dto
 import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 import { FindJobsByEnterpriseDto } from './dtos/find-job-by-enterprise.dto';
 import { UpdateStatusEnterpriseDto } from './dtos/update-status-enterprise.dto';
+import { FindAllDto } from './dtos/find-all.dto';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -74,11 +75,11 @@ export class EnterpriseController {
         return this.enterpriseService.create(createEnterpriseDto, user);
     }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
     @Get()
     @ApiOperation({ summary: 'Retrieve all enterprises' })
     @ApiResponse({ status: 200, description: 'List of enterprises.' })
-    findAll(@Query() paginationDto: PaginationDto): Promise<EnterpriseResponseDto> {
+    findAll(@Query() paginationDto: FindAllDto): Promise<EnterpriseResponseDto> {
         return this.enterpriseService.findAll(paginationDto);
     }
 

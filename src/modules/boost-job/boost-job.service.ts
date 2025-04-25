@@ -7,6 +7,8 @@ import { CacheService } from '@src/cache/cache.service';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { BoostJobErrorType } from '@src/common/errors/boost-job-error-type';
 import { JobStatusEnum } from '@src/common/enums/job.enum';
+import { BoostedJobsEntity } from '@src/database/entities';
+import { Between } from 'typeorm';
 @Injectable()
 export class BoostJobService {
     constructor(
@@ -117,6 +119,34 @@ export class BoostJobService {
             }
             check = true;
             return new BoostJobJobResponseDtoBuilder().setValue(check).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public batchUnexpiredBoostJob(batchSize: number = 100, offset: number = 0): Promise<BoostedJobsEntity[]> {
+        try {
+            const now = new Date();
+            const sixDaysAgo = new Date();
+            sixDaysAgo.setDate(now.getDate() - 6);
+
+            const jobs = this.boostedJobRepo.find({
+                where: {
+                    boostedAt: Between(sixDaysAgo, now),
+                },
+                skip: offset,
+                take: batchSize,
+            });
+            return jobs;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async deleteBulkBoostedJobs(jobs: BoostedJobsEntity[]) {
+        try {
+            const result = await this.boostedJobRepo.remove(jobs);
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

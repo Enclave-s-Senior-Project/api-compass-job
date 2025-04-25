@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, ILike, In, IsNull, Repository } from 'typeorm';
+import { DeleteResult, ILike, In, Repository } from 'typeorm';
 import {
     CategoryResponseDto,
     CategoryResponseDtoBuilder,
@@ -95,7 +95,7 @@ export class CategoryService {
     async findChildren(parentId: string, pagination: PaginationDto): Promise<CategoryResponseDto> {
         try {
             const whereCondition = pagination.options
-                ? { parent: { categoryId: parentId }, categoryName: ILike(`${pagination.options}%`) } // use ILike to perform a case-insensitive search
+                ? { parent: { categoryId: parentId }, categoryName: ILike(`${pagination.options}%`) }
                 : { parent: { categoryId: parentId } };
 
             const children = await this.categoryRepository.find({
@@ -207,5 +207,41 @@ export class CategoryService {
 
     async checkFamilyCategory(parentId: string, childId: string): Promise<boolean> {
         return this.categoryRepository.exists({ where: { parent: { categoryId: parentId }, categoryId: childId } });
+    }
+
+    async findPrimaryCategoriesEnterprise(
+        pagination: PaginationDto,
+        enterpriseId: string
+    ): Promise<CategoryResponseDto> {
+        try {
+            const queryBuilder = this.categoryRepository
+                .createQueryBuilder('c')
+                .innerJoin('enterprises', 'e', 'e.enterprise_id = :enterpriseId', { enterpriseId })
+                .where('c.category_id = ANY(e.categories::uuid[])')
+                .andWhere('c.parent IS NULL');
+
+            if (pagination.options) {
+                queryBuilder.andWhere('c.categoryName ILIKE :categoryName', {
+                    categoryName: `${pagination.options}%`,
+                });
+            }
+
+            queryBuilder.orderBy('c.createdAt', pagination.order).skip(pagination.skip).take(pagination.take);
+
+            const [entities, total] = await queryBuilder.getManyAndCount();
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: pagination,
+                itemCount: total,
+            });
+
+            return new CategoryResponseDtoBuilder()
+                .setValue(new PageDto<CategoryEntity>(entities, meta))
+                .success()
+                .build();
+        } catch (error) {
+            console.log(error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 }

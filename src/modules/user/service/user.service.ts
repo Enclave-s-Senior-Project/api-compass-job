@@ -1,4 +1,4 @@
-import { isUUID, IsUUID } from 'class-validator';
+import { isUUID } from 'class-validator';
 import {
     BadRequestException,
     ForbiddenException,
@@ -14,7 +14,7 @@ import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
-import { Like } from 'typeorm';
+import { Like, Raw } from 'typeorm';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
@@ -25,8 +25,12 @@ import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
 import { WebsiteService } from '@src/modules/website/services';
 import { CvService } from '@src/modules/cv/services/cv.service';
-import { ApplyJobService } from '@src/modules/apply-job/services/apply-job.service';
 import { FilterCandidatesProfileDto } from '@src/modules/enterprise/dtos/filter-candidate.dto';
+import { UpdateStatusUserDto } from '../dtos/update-status-user.dto';
+import { WarningException } from '@src/common/http/exceptions/warning.exception';
+import { AuthService } from '@src/modules/auth';
+import { MailSenderService } from '@src/mail/mail.service';
+import { FindCandidateDto } from '@src/common/dtos/find-candidate.dto';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -37,7 +41,9 @@ export class UserService {
         private readonly categoryService: CategoryService,
         private readonly websiteService: WebsiteService,
         private readonly cvService: CvService,
-        @Inject(redisProviderName) private readonly redisCache: RedisCommander
+        private readonly mailService: MailSenderService,
+        @Inject(redisProviderName) private readonly redisCache: RedisCommander,
+        @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService
     ) {}
 
     /**
@@ -525,6 +531,150 @@ export class UserService {
             return new UserResponseDtoBuilder().setValue(temp).success().build();
         } catch (error) {
             console.error('Error in getInformationUser:', error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    // public async getAllCandidatesDashboard(options: PaginationDto): Promise<UserResponseDto> {
+    //     try {
+    //         const [profiles, total] = await this.profileRepository.findAndCount({
+    //             skip: options.skip,
+    //             take: options.take,
+    //             where: {
+    //                 account: {
+    //                     roles: Raw((alias) => `'USER' = ANY(${alias})`),
+    //                 },
+    //             },
+    //             relations: ['account'],
+    //         });
+
+    //         const meta = new PageMetaDto({
+    //             pageOptionsDto: options,
+    //             itemCount: total,
+    //         });
+
+    //         return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
+    //     } catch (error) {
+    //         console.error('Error fetching profiles:', error);
+    //         return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
+    //     }
+    // }
+    public async getAllCandidatesDashboard(queries: FindCandidateDto): Promise<UserResponseDto> {
+        try {
+            const queryBuilder = this.profileRepository
+                .createQueryBuilder('profile')
+                .leftJoinAndSelect('profile.account', 'account')
+                .select([
+                    'profile.profileId',
+                    'profile.fullName',
+                    'profile.profileUrl',
+                    'profile.pageUrl',
+                    'profile.introduction',
+                    'profile.phone',
+                    'profile.view',
+                    'profile.gender',
+                    'profile.education',
+                    'profile.nationality',
+                    'profile.dateOfBirth',
+                    'profile.maritalStatus',
+                    'profile.isPremium',
+                    'profile.expiredPremium',
+                    'profile.experience',
+                    'profile.createdAt',
+                    'account.accountId',
+                    'account.email',
+                    'account.roles',
+                    'account.status',
+                    'account.createdAt',
+                    'account.updatedAt',
+                ])
+                .where(`'USER' = ANY(account.roles)`)
+                .take(queries.take)
+                .skip(queries.skip);
+
+            if (queries.order) {
+                queryBuilder.orderBy('profile.createdAt', queries.order);
+            }
+
+            if (queries.options) {
+                queryBuilder.andWhere('(profile.fullName ILIKE :search OR account.email ILIKE :search)', {
+                    search: `%${queries.options}%`,
+                });
+            }
+
+            if (queries.status) {
+                queryBuilder.andWhere('account.status = :status', { status: queries.status });
+            }
+
+            if (queries.gender) {
+                queryBuilder.andWhere('profile.gender = :gender', {
+                    gender: queries.gender,
+                });
+            }
+
+            if (queries.maritalStatus) {
+                queryBuilder.andWhere('profile.maritalStatus = :maritalStatus', {
+                    maritalStatus: queries.maritalStatus,
+                });
+            }
+
+            if (queries.nationality) {
+                queryBuilder.andWhere('profile.nationality ILIKE :nationality', {
+                    nationality: `%${queries.nationality}%`,
+                });
+            }
+
+            const [profiles, total] = await queryBuilder.getManyAndCount();
+
+            const meta = new PageMetaDto({
+                pageOptionsDto: queries,
+                itemCount: total,
+            });
+
+            return new UserResponseDtoBuilder().setValue(new PageDto<ProfileEntity>(profiles, meta)).success().build();
+        } catch (error) {
+            console.error('Error fetching profiles:', error);
+            return new UserResponseDtoBuilder().setCode(400).setMessageCode(UserErrorType.FETCH_USER_FAILED).build();
+        }
+    }
+
+    public async updateUserStatus(profileId: string, payload: UpdateStatusUserDto) {
+        try {
+            const profile = await this.profileRepository.findOne({
+                where: { profileId: profileId },
+                relations: ['account'],
+            });
+
+            if (!profile) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
+
+            if (profile.account.status === payload.status) {
+                throw new WarningException(UserErrorType.USER_ALREADY_EXISTS);
+            }
+
+            // update the status of the enterprise
+            const temp = await this.authService.updateStatus(profile.account.accountId, payload.status);
+            // Send email to the enterprise about the status change
+            this.sendEmailEnterpriseStatusChange(profile, payload.status, payload.reason);
+
+            return new UserResponseDtoBuilder().success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    private async sendEmailEnterpriseStatusChange(user: ProfileEntity, status: UserStatus, reason?: string) {
+        try {
+            // Send email to the enterprise account
+            const emails = [];
+
+            if (user.account.email) emails.push(user.account.email);
+
+            if (emails.length > 0) {
+                this.mailService.sendUserStatusMail(emails, user.fullName, status, reason);
+            }
+        } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }

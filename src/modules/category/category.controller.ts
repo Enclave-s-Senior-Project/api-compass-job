@@ -24,8 +24,8 @@ import {
     ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CategoryResponseDto, CreateCategoryDto, CreateChildCategoriesDto, UpdateCategoryDto } from './dtos';
-import { SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { PaginationDto } from '@common/dtos';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { JwtPayload, PaginationDto } from '@common/dtos';
 import { RolesGuard } from '../auth/guards/role.guard';
 import { Role, Roles } from '../auth/decorators/roles.decorator';
 import { ChangeParentDto } from './dtos/change-parent.dto';
@@ -88,6 +88,23 @@ export class CategoryController {
     @ApiOkResponse({ description: 'Primary categories retrieved successfully.', type: [CategoryResponseDto] })
     async getPrimaryCategories(@Query() pagination: PaginationDto): Promise<CategoryResponseDto> {
         return this.categoryService.findPrimaryCategories(pagination);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.ENTERPRISE, Role.USER)
+    @Get('/primary-enterprise')
+    @HttpCode(200)
+    @ApiOperation({
+        summary: 'Get primary categories',
+        description: 'Retrieve all primary (industry) categories without pagination.',
+    })
+    @ApiOkResponse({ description: 'Primary categories retrieved successfully.', type: [CategoryResponseDto] })
+    async getPrimaryCategoriesEnterprise(
+        @CurrentUser() user: JwtPayload,
+        @Query() pagination: PaginationDto
+    ): Promise<CategoryResponseDto> {
+        return this.categoryService.findPrimaryCategoriesEnterprise(pagination, user.enterpriseId);
     }
 
     @SkipAuth()

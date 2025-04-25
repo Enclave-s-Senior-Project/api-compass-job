@@ -18,7 +18,7 @@ export class BoostedJobsEntity extends BaseEntity {
     @Column({ name: 'points_used', type: 'int', nullable: false, unique: true })
     pointsUsed: number;
 
-    @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.boostedJobs, { nullable: false })
+    @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.boostedJobs, { nullable: true })
     @JoinColumn({ name: 'enterprise_id' })
     enterprise: EnterpriseEntity;
 }

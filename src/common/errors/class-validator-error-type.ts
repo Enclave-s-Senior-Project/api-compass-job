@@ -164,3 +164,10 @@ export enum ChangeParentDtoErrorType {
     INVALID_ID = 'INVALID_ID',
     ID_REQUIRED = 'ID_REQUIRED',
 }
+
+// Message keys for UpdateStatusProfileDto
+export enum UpdateStatusProfileDtoErrorType {
+    STATUS_INVALID = 'STATUS_INVALID',
+    REASON_REQUIRED = 'REASON_REQUIRED',
+    REASON_NOT_STRING = 'REASON_NOT_STRING',
+}

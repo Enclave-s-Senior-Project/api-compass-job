@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './service/user.service';
 import {
     ApiBearerAuth,
     ApiInternalServerErrorResponse,
     ApiOperation,
     ApiParam,
+    ApiResponse,
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -13,8 +14,10 @@ import { JwtPayload, PaginationDto } from '@common/dtos';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
 import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
-import { RolesGuard } from '@modules/auth/guards/role.guard';
-import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/role.guard';
+import { Role, Roles } from '../auth/decorators/roles.decorator';
+import { UpdateStatusUserDto } from './dtos/update-status-user.dto';
+import { FindCandidateDto } from '@src/common/dtos/find-candidate.dto';
 
 @ApiTags('User')
 @Controller({
@@ -32,6 +35,16 @@ export class UserController {
     @Get()
     async getAllUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
         return this.userService.getAllUsers(pageOptionsDto);
+    }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @ApiOperation({ description: 'get all candidate' })
+    @Get('candidates')
+    async getAllCandidates(@Query() pageOptionsDto: FindCandidateDto): Promise<UserResponseDto> {
+        return this.userService.getAllCandidatesDashboard(pageOptionsDto);
     }
 
     @HttpCode(200)
@@ -104,5 +117,18 @@ export class UserController {
     @Get('/candidate/:id')
     async getUserInfoAndFavorite(@Param('id') profileId: string, @CurrentUser() user) {
         return this.userService.getUserByProfileIdAndFavorite(profileId, user.enterpriseId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @ApiOperation({ summary: 'Update the status of an enterprise' })
+    @ApiResponse({ status: 200, description: 'Status updated successfully.' })
+    @ApiResponse({ status: 404, description: 'User not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Patch('status/:id')
+    updateStatus(@Param('id') enterpriseId: string, @Body() body: UpdateStatusUserDto) {
+        return this.userService.updateUserStatus(enterpriseId, body);
     }
 }

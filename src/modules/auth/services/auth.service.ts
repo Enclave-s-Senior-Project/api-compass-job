@@ -439,4 +439,17 @@ export class AuthService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    public async updateStatus(accountId: string, status: UserStatus) {
+        try {
+            const account = await this.findOneById(accountId);
+            if (!account) {
+                throw new NotFoundUserException();
+            }
+            const temp = await this.accountRepository.update({ accountId }, { status });
+            return temp;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

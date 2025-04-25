@@ -4,6 +4,7 @@ import { JobModule } from '../job/job.module';
 import { JobCronService } from './job-cron.service';
 import { JobExpiredProcessor } from './processors/job-expired.processor';
 import { MailModule } from '@src/mail/mail.module';
+import { BoostJobModule } from '../boost-job/boost-job.module';
 
 @Module({
     imports: [

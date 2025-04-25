@@ -12,6 +12,8 @@ import { applicationStatusMail } from './templates/application-status.html';
 import { NotificationType } from '@src/database/entities/notification.entity';
 import { EnterpriseStatus } from '@src/common/enums';
 import { enterpriseStatusTemplate } from './templates/enterprise-status.html';
+import { UserStatus } from '@src/database/entities/account.entity';
+import { BoostJobExpiredData } from '@src/modules/boost-job-cron/boost-job-cron.service';
 
 @Injectable()
 export class MailSenderService {
@@ -316,5 +318,92 @@ export class MailSenderService {
             this.logger.warn(`Mail sending failed: ${error.message}`);
             return false;
         }
+    }
+
+    async sendUserStatusMail(
+        emails: string[],
+        userName: string,
+        status: UserStatus,
+        reason?: string
+    ): Promise<boolean> {
+        let subject = '';
+        let message = '';
+
+        switch (status) {
+            case UserStatus.ACTIVE:
+                subject = `Your Account is Approved`;
+                message = `Congratulations, ${userName}! Your Account has been approved. You can now access all features.`;
+                break;
+            case UserStatus.BLOCKED:
+                subject = `Your Account is Blocked`;
+                message = `Dear ${userName}, your Account has been blocked. Please contact support for more information.`;
+                break;
+        }
+
+        const html = enterpriseStatusTemplate(
+            process.env.PROJECT_NAME,
+            process.env.PROJECT_LOGO_URL,
+            process.env.PROJECT_URL,
+            process.env.PROJECT_ADDRESS,
+            this.socials,
+            userName,
+            subject,
+            message,
+            reason
+        );
+
+        const mailOptions: Mail.Options = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: emails,
+            subject,
+            html,
+        };
+
+        try {
+            await this.transporter.sendMail(mailOptions);
+            this.logger.log(`Account status email sent to ${emails.join(', ')}`);
+            return true;
+        } catch (error) {
+            this.logger.warn(`Mail sending failed: ${error.message}`);
+            return false;
+        }
+    }
+
+    async sendNotificationBoostJobExpiredMail(data: BoostJobExpiredData): Promise<boolean> {
+        const mail = jobExpirationMail
+            .replace(/--ProjectLink--/g, process.env.PROJECT_URL)
+            .replace(/--ProjectLogo--/g, process.env.PROJECT_LOGO_URL)
+            .replace(/--ProjectName--/g, process.env.PROJECT_NAME)
+            .replace(/--EnterpriseName--/g, data.enterprise.name)
+            .replace(/--JobTitle--/g, data.jobName)
+            .replace(/--JobID--/g, data.jobId)
+            .replace(/--DashboardLink--/g, '')
+            .replace(/--ProjectAddress--/g, process.env.PROJECT_ADDRESS)
+            .replace(/--Socials--/g, this.socials);
+
+        const mailOptions = {
+            from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
+            to: data.enterprise.email, // list of receivers (separated by ,)
+            subject: `Your ${process.env.PROJECT_NAME} Boost Job has Expired`,
+            html: mail,
+        };
+
+        return new Promise<boolean>((resolve) =>
+            this.transporter.sendMail(mailOptions, async (error) => {
+                if (error) {
+                    this.logger.warn('Mail sending failed, check your service credentials.');
+                    resolve(false);
+                }
+                resolve(true);
+            })
+        )
+            .then((result) => {
+                this.logger.log(`Job expired email sent to ${data.enterprise.email}`);
+                return result;
+            })
+            .catch((error) => {
+                this.logger.error(`Failed to send job expired email: ${error.message}`);
+                return false;
+            });
     }
 }

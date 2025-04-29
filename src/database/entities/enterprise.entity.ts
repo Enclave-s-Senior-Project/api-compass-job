@@ -107,7 +107,7 @@ export class EnterpriseEntity extends BaseEntity {
     isTrial: boolean;
 
     // Relationships
-    @OneToOne(() => AccountEntity, (account) => account.enterprise)
+    @OneToOne(() => AccountEntity, (account) => account.enterprise, { nullable: false })
     @JoinColumn({ name: 'account_id' })
     readonly account: AccountEntity;
 

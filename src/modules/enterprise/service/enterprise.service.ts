@@ -35,6 +35,7 @@ import { WarningException } from '@src/common/http/exceptions/warning.exception'
 import { UpdateStatusEnterpriseDto } from '../dtos/update-status-enterprise.dto';
 import { ILike, IsNull, Not, TreeLevelColumn } from 'typeorm';
 import { FindAllDto } from '../dtos/find-all.dto';
+import { Role } from '@src/modules/auth/decorators/roles.decorator';
 
 @Injectable()
 export class EnterpriseService {
@@ -639,6 +640,12 @@ export class EnterpriseService {
 
             // update the status of the enterprise
             await this.update(enterpriseId, { status: payload.status });
+
+            if (payload.status !== EnterpriseStatus.ACTIVE) {
+                await this.authService.updateRoles(enterprise.account.accountId, [Role.USER]);
+            } else {
+                await this.authService.updateRoles(enterprise.account.accountId, [Role.USER, Role.ENTERPRISE]);
+            }
 
             // Notify the enterprise about the status change
             await this.notifyEnterpriseStatusChange(enterprise, payload.status);

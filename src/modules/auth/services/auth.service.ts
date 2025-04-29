@@ -63,13 +63,13 @@ export class AuthService {
     }
 
     protected getDisabledAccountRestriction(account: AccountEntity) {
-        if (account.status === UserStatus.BLOCKED) {
+        if (account?.status === UserStatus.BLOCKED) {
             return new DisabledUserException(ErrorType.BlockedUser);
         }
-        if (account.status === UserStatus.PENDING) {
+        if (account?.status === UserStatus.PENDING) {
             return new DisabledUserException(ErrorType.PendingUSer);
         }
-        if (account.status === UserStatus.INACTIVE) {
+        if (account?.status === UserStatus.INACTIVE) {
             return new DisabledUserException(ErrorType.InactiveUser);
         }
         return null;
@@ -415,6 +415,26 @@ export class AuthService {
                 return true;
             }
             return false;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async updateRoles(accountId: string, roles: Role[]) {
+        try {
+            const account = await this.findOneById(accountId);
+            if (!account) {
+                throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
+            }
+
+            // restrict disabled user
+            const restriction = this.getDisabledAccountRestriction(account);
+            if (restriction) {
+                throw restriction;
+            }
+
+            await this.accountRepository.update({ accountId }, { roles });
+            return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

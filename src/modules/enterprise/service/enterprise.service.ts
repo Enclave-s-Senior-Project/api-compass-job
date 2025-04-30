@@ -60,8 +60,8 @@ export class EnterpriseService {
                 throw new BadRequestException(EnterpriseErrorType.ENTERPRISE_ALREADY_EXISTS);
             }
             const checkEmail = await this.enterpriseRepository.findOne({ where: { email: createEnterpriseDto.email } });
-            const checkEmailAccount = await this.authService.checkEmail(createEnterpriseDto.email);
-            if (checkEmail || checkEmailAccount) {
+            const checkEmailAccount = await this.authService.checkEmail(createEnterpriseDto.email, user.accountId);
+            if (checkEmail || !checkEmailAccount) {
                 throw new BadRequestException(EnterpriseErrorType.EMAIL_ALREADY_EXISTS);
             }
             const enterprise = await this.enterpriseRepository.create({

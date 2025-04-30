@@ -60,5 +60,6 @@ export class UpdatePersonalProfileDto {
     })
     @IsOptional()
     @Matches(/^\+?[0-9]{7,15}$/, { message: UpdatePersonalProfileDtoErrorType.PHONE_NUMBER_INVALID })
+    @Transform(({ value }) => (value === '' ? undefined : value))
     readonly phone?: string;
 }

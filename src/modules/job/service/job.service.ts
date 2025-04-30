@@ -450,13 +450,13 @@ export class JobService {
         }
     }
 
-    async filter(query: JobFilterDto, urlQuery: string) {
+    async filter(query: JobFilterDto) {
         try {
-            const resultCache = await this.cacheService.getCacheJobFilter(urlQuery);
+            const resultCache = await this.cacheService.getCacheJobFilter(JSON.stringify(query));
 
-            if (resultCache) {
-                return new JobResponseDtoBuilder().setValue(resultCache).build();
-            }
+            // if (resultCache) {
+            //     return new JobResponseDtoBuilder().setValue(resultCache).build();
+            // }
 
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
@@ -467,42 +467,36 @@ export class JobService {
                 .leftJoinAndSelect('jobs.tags', 'tags')
                 .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs');
 
+            // Job status
+            if (query.status) {
+                queryBuilder.andWhere('jobs.status = :status', { status: JobStatusEnum.OPEN });
+            }
+
             // Full-Text Search
             if (query.name) {
                 queryBuilder.andWhere(
-                    "to_tsvector('english', jobs.name) @@ plainto_tsquery(:name) OR jobs.name ILIKE :namePattern",
+                    "to_tsvector('english', jobs.name) @@ plainto_tsquery(:name) OR jobs.name ILIKE :namePattern OR tags.name ILIKE :namePattern",
                     {
                         name: query.name.trim(),
-                        namePattern: `%${query.name.trim()}%`,
+                        namePattern: `${query.name.trim()}%`,
                     }
                 );
             }
 
             // Location Filters
-            if (query.country) {
-                queryBuilder.andWhere('unaccent(addresses.country) ILIKE unaccent(:country)', {
-                    country: `%${query.country}%`,
+            if (query.location) {
+                queryBuilder.andWhere('addresses.mixedAddress ILIKE :addressPattern', {
+                    addressPattern: `%${query.location.trim()}%`,
                 });
-            }
-            if (query.city) {
-                queryBuilder.andWhere(
-                    'addresses.mixed_address % :address OR addresses.mixed_address ILIKE :addressPattern',
-                    {
-                        address: query.city.trim(),
-                        addressPattern: `%${query.city.trim()}%`,
-                    }
-                );
             }
 
             // Category Filters
             if (query.industryCategoryId) {
-                console.log('industryCategoryId', query.industryCategoryId);
                 queryBuilder.andWhere('industries.categoryId = :industryId', {
                     industryId: query.industryCategoryId,
                 });
             }
             if (query.majorityCategoryId) {
-                console.log('majorityCategoryId', query.majorityCategoryId);
                 queryBuilder.andWhere('majorities.categoryId = :majorityId', {
                     majorityId: query.majorityCategoryId,
                 });
@@ -539,11 +533,6 @@ export class JobService {
                 queryBuilder.andWhere('enterprise.enterpriseId = :enterpriseId', {
                     enterpriseId: query.enterpriseId,
                 });
-            }
-
-            // Tag Filter
-            if (query.tagId) {
-                queryBuilder.andWhere('tags.tagId = :tagId', { tagId: query.tagId });
             }
 
             // Status and Deadline
@@ -610,7 +599,7 @@ export class JobService {
                     take: query.take,
                 },
             });
-            this.cacheService.cacheJobFilterData(urlQuery, new PageDto(jobs, meta));
+            this.cacheService.cacheJobFilterData(JSON.stringify(query), new PageDto(jobs, meta));
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
             console.error('Filter Query Error:', error);

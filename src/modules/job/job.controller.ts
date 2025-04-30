@@ -27,6 +27,7 @@ import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
 import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, UpdateJobDto } from './dtos';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
+import { JobStatusEnum } from '@src/common/enums/job.enum';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -40,7 +41,9 @@ export class JobController {
         return this.jobService.create(createJobDto, user.accountId, user.enterpriseId);
     }
 
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
     @HttpCode(200)
     @ApiOperation({ description: 'Get all jobs with pagination' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
@@ -83,8 +86,8 @@ export class JobController {
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('search')
-    filter(@Query() query: JobFilterDto, @Req() req: Request) {
-        return this.jobService.filter(query, req.url);
+    filter(@Query() query: JobFilterDto) {
+        return this.jobService.filter(query);
     }
     @SkipAuth()
     @HttpCode(200)

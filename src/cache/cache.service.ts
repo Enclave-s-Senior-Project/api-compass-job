@@ -9,6 +9,11 @@ export class CacheService {
     private fcmTokenKey: string;
     private enterpriseInfoKey: string;
     private enterpriseTotalJobKey: string;
+    private userProfileKey: string;
+    private candidateFilterKey: string;
+    private verifyEmailKey: string;
+    private refreshTokenKey: string;
+    private forgetPasswordKey: string;
 
     constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {
         this.filterJobKey = 'jobfilter:';
@@ -16,6 +21,11 @@ export class CacheService {
         this.fcmTokenKey = 'fcmtoken:';
         this.enterpriseInfoKey = 'enterprise:info:';
         this.enterpriseTotalJobKey = 'enterprise:totaljob:';
+        this.userProfileKey = 'user-information:';
+        this.candidateFilterKey = 'candidateFilter:';
+        this.verifyEmailKey = 'verify:';
+        this.refreshTokenKey = 'refreshtoken:';
+        this.forgetPasswordKey = 'forget-password:';
     }
 
     async deleteCache(extraExcludePatterns: string[] = []) {
@@ -208,5 +218,160 @@ export class CacheService {
 
     public async removeAllEnterpriseTotalJobs() {
         return await this.removeMultipleCacheWithPrefix(this.enterpriseTotalJobKey);
+    }
+
+    public async cacheUserProfile(accountId: string, profile: any, expireTime: number = 432000) {
+        try {
+            const cacheKey = this.userProfileKey + accountId;
+            await this.redisClient.set(cacheKey, JSON.stringify(profile), 'EX', expireTime);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async getUserProfile(accountId: string) {
+        try {
+            const cacheKey = this.userProfileKey + accountId;
+            const cacheResult = await this.redisClient.get(cacheKey);
+            return cacheResult ? JSON.parse(cacheResult) : null;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeUserProfile(accountId: string) {
+        try {
+            const cacheKey = this.userProfileKey + accountId;
+            await this.redisClient.del(cacheKey);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeAllUserProfiles() {
+        return await this.removeMultipleCacheWithPrefix(this.userProfileKey);
+    }
+
+    public async getCandidateFilterResults(key: string) {
+        try {
+            const cacheKey = this.candidateFilterKey + key;
+            const cacheResult = await this.redisClient.get(cacheKey);
+            return cacheResult ? JSON.parse(cacheResult) : null;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async cacheCandidateFilterResults(key: string, results: any, expireTime: number = 60 * 60 * 24) {
+        try {
+            const cacheKey = this.candidateFilterKey + key;
+            await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', expireTime);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeCandidateFilterResults(key: string) {
+        try {
+            const cacheKey = this.candidateFilterKey + key;
+            await this.redisClient.del(cacheKey);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeAllCandidateFilterResults() {
+        return await this.removeMultipleCacheWithPrefix(this.candidateFilterKey);
+    }
+
+    // Auth-related cache methods
+    public async storeVerifyEmailCode(email: string, code: number, expiresInSeconds: number = 300) {
+        try {
+            const cacheKey = this.verifyEmailKey + email;
+            await this.redisClient.set(cacheKey, code, 'EX', expiresInSeconds);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async getVerifyEmailCode(email: string) {
+        try {
+            const cacheKey = this.verifyEmailKey + email;
+            return await this.redisClient.get(cacheKey);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async deleteVerifyEmailCode(email: string) {
+        try {
+            const cacheKey = this.verifyEmailKey + email;
+            await this.redisClient.del(cacheKey);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async storeRefreshToken(accountId: string, jti: string, expiresInSeconds: number) {
+        try {
+            const cacheKey = `${this.refreshTokenKey}${accountId}:${jti}`;
+            await this.redisClient.set(cacheKey, 1, 'EX', expiresInSeconds);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async checkRefreshToken(accountId: string, jti: string) {
+        try {
+            const cacheKey = `${this.refreshTokenKey}${accountId}:${jti}`;
+            return await this.redisClient.get(cacheKey);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async deleteRefreshToken(accountId: string, jti: string) {
+        try {
+            const cacheKey = `${this.refreshTokenKey}${accountId}:${jti}`;
+            return await this.redisClient.del(cacheKey);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async storeForgetPasswordToken(email: string, token: string, expiresInSeconds: number) {
+        try {
+            const cacheKey = this.forgetPasswordKey + email;
+            await this.redisClient.set(cacheKey, token, 'EX', expiresInSeconds);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async getForgetPasswordToken(email: string) {
+        try {
+            const cacheKey = this.forgetPasswordKey + email;
+            return await this.redisClient.get(cacheKey);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async deleteForgetPasswordToken(email: string) {
+        try {
+            const cacheKey = this.forgetPasswordKey + email;
+            await this.redisClient.del(cacheKey);
+            return true;
+        } catch (error) {
+            throw error;
+        }
     }
 }

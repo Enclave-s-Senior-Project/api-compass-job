@@ -1,22 +1,13 @@
 import { isUUID } from 'class-validator';
-import {
-    BadRequestException,
-    ForbiddenException,
-    forwardRef,
-    Inject,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ProfileRepository } from '../repositories';
 import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { AccountEntity, GenderType, ProfileEntity } from '@database/entities';
-import { RedisCommander } from 'ioredis';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
 import { Like, Raw } from 'typeorm';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
-import { redisProviderName } from '@cache/cache.provider';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
@@ -31,6 +22,7 @@ import { WarningException } from '@src/common/http/exceptions/warning.exception'
 import { AuthService } from '@src/modules/auth';
 import { MailSenderService } from '@src/mail/mail.service';
 import { FindCandidateDto } from '@src/common/dtos/find-candidate.dto';
+import { CacheService } from '@src/cache/cache.service';
 
 type ProfileAndRoles = ProfileEntity & Pick<AccountEntity, 'roles'>;
 
@@ -42,7 +34,7 @@ export class UserService {
         private readonly websiteService: WebsiteService,
         private readonly cvService: CvService,
         private readonly mailService: MailSenderService,
-        @Inject(redisProviderName) private readonly redisCache: RedisCommander,
+        private readonly cacheService: CacheService,
         @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService
     ) {}
 
@@ -112,10 +104,10 @@ export class UserService {
      */
     public async getUserByAccountId(accountId: string, useCache: boolean = true): Promise<ProfileAndRoles> | null {
         try {
-            // if (useCache) {
-            //     const cachedProfile = await this.getProfileOnRedis(accountId);
-            //     if (cachedProfile) return cachedProfile;
-            // }
+            if (useCache) {
+                const cachedProfile = await this.cacheService.getUserProfile(accountId);
+                if (cachedProfile) return cachedProfile;
+            }
 
             const profile = await this.profileRepository.findOne({
                 where: { account: { accountId: accountId } },
@@ -131,7 +123,7 @@ export class UserService {
             const result = { ...profile, roles: profile.account.roles };
             delete result.account;
 
-            this.setProfileOnRedis(accountId, result);
+            this.cacheService.cacheUserProfile(accountId, result);
             return result;
         } catch (error) {
             return null;
@@ -251,7 +243,7 @@ export class UserService {
 
             const result: ProfileAndRoles = { ...(updatedProfile as ProfileEntity), roles: account.roles };
 
-            await this.setProfileOnRedis(account.accountId, result);
+            await this.cacheService.cacheUserProfile(account.accountId, result);
             return new UserResponseDtoBuilder().setCode(200).setValue(updatedProfile).success().build();
         } catch (error) {
             console.error('Error updating user:', error);
@@ -260,12 +252,6 @@ export class UserService {
             }
             throw new BadRequestException('UPDATE_USER_FAILED');
         }
-    }
-    private async setProfileOnRedis(accountId: string, payload: ProfileAndRoles) {
-        await this.redisCache.set(`user-information:${accountId}`, JSON.stringify(payload), 'EX', 432000);
-    }
-    private async getProfileOnRedis(accountId: string) {
-        return JSON.parse(await this.redisCache.get(`user-information:${accountId}`));
     }
 
     public async updatePersonalProfile(payload: UpdatePersonalProfileDto, user: JwtPayload) {
@@ -293,7 +279,7 @@ export class UserService {
 
             const finalResult = { ...updatedProfile, roles: user.roles };
 
-            this.setProfileOnRedis(user.accountId, finalResult);
+            await this.cacheService.cacheUserProfile(user.accountId, finalResult);
 
             return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
@@ -338,7 +324,7 @@ export class UserService {
 
             const finalResult = { ...updatedProfile, roles: user.roles };
 
-            this.setProfileOnRedis(user.accountId, finalResult);
+            this.cacheService.cacheUserProfile(user.accountId, finalResult);
 
             return new UserResponseDtoBuilder().setValue(finalResult).success().build();
         } catch (error) {
@@ -373,15 +359,6 @@ export class UserService {
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
-    }
-    protected async getFilterResultOnCache(key: string): Promise<ProfileEntity[] | null> {
-        const cacheResult = await this.redisCache.get(`candidateFilter:${key}`);
-        return JSON.parse(cacheResult) || null;
-    }
-
-    protected async storeFilterResultOnCache(key: string, results: ProfileEntity[]) {
-        const cacheKey = `candidateFilter:${key}`;
-        await this.redisCache.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24);
     }
 
     public async getAllCandidate(

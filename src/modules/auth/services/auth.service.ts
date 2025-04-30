@@ -19,7 +19,6 @@ import { UserService } from '@modules/user/service/user.service';
 import { RedisCommander } from 'ioredis';
 import { LoginResponseDtoBuilder } from '../dtos/login-response.dto';
 import { AccountEntity, UserStatus } from '@database/entities/account.entity';
-import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
 import { MailSenderService } from '@src/mail/mail.service';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
@@ -27,6 +26,8 @@ import { JwtPayload } from '@common/dtos';
 import { AuthErrorType, UserErrorType } from '@common/errors';
 import { Role } from '../decorators/roles.decorator';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { CacheService } from '@src/cache/cache.service';
+import { RefreshTokenResponseDtoBuilder } from '../dtos/refresh-token-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -35,7 +36,8 @@ export class AuthService {
         protected readonly accountRepository: AccountRepository,
         protected readonly userService: UserService,
         protected readonly mailService: MailSenderService,
-        @Inject('CACHE_INSTANCE') protected readonly redisCache: RedisCommander
+        @Inject('CACHE_INSTANCE') protected readonly redisCache: RedisCommander,
+        protected readonly cacheService: CacheService
     ) {}
 
     protected async findOne(
@@ -103,9 +105,10 @@ export class AuthService {
             };
 
             const token = await this.tokenService.generateAuthToken(payload);
-            await this.storeRefreshTokenOnCache(
+            const tokenPayload = this.tokenService.decodeToken(token.refreshToken);
+            await this.cacheService.storeRefreshToken(
                 userPayload.accountId,
-                token.refreshToken,
+                tokenPayload.jit,
                 token.refreshTokenExpires / 1000
             );
 
@@ -155,7 +158,7 @@ export class AuthService {
             Promise.allSettled([
                 this.userService.createUser({ fullName: full_name, account: account.accountId }),
                 this.sendVerificationEmail(username, email, verificationCode),
-                this.redisCache.set(`verify:${email}`, verificationCode, 'EX', 300),
+                this.cacheService.storeVerifyEmailCode(email, verificationCode, 300),
             ]);
 
             return new RegisterResponseDtoBuilder().setValue(account).success().build();
@@ -191,10 +194,14 @@ export class AuthService {
                 enterpriseId: enterprise?.enterpriseId,
             });
 
-            // store new fresh token to redis
-            await this.storeRefreshTokenOnCache(payload.accountId, newRefreshToken, refreshTokenExpires / 1000); // convert to seconds
-            // delete old refresh token from redis
-            await this.deleteRefreshTokenOnCache(payload.accountId, refreshToken);
+            // Store new refresh token and delete old one
+            const oldTokenPayload = this.tokenService.decodeToken(refreshToken);
+            const newTokenPayload = this.tokenService.decodeToken(newRefreshToken);
+
+            await Promise.all([
+                this.cacheService.storeRefreshToken(payload.accountId, newTokenPayload.jit, refreshTokenExpires / 1000),
+                this.cacheService.deleteRefreshToken(payload.accountId, oldTokenPayload.jit),
+            ]);
 
             return {
                 builder: new RefreshTokenResponseDtoBuilder()
@@ -218,7 +225,7 @@ export class AuthService {
     protected async storeRefreshTokenOnCache(accountId: string, refreshToken: string, expiresInSeconds: number) {
         try {
             const payload = this.tokenService.decodeToken(refreshToken);
-            await this.redisCache.set(`refreshtoken:${accountId}:${payload.jit}`, 1, 'EX', expiresInSeconds);
+            await this.cacheService.storeRefreshToken(accountId, payload.jit, expiresInSeconds);
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -227,7 +234,7 @@ export class AuthService {
     protected async deleteRefreshTokenOnCache(accountId: string, refreshToken: string) {
         try {
             const payload = this.tokenService.decodeToken(refreshToken);
-            return await this.redisCache.del(`refreshtoken:${accountId}:${payload.jit}`);
+            return await this.cacheService.deleteRefreshToken(accountId, payload.jit);
         } catch (error) {
             throw new InternalServerErrorException();
         }
@@ -246,12 +253,12 @@ export class AuthService {
         try {
             let account = await this.accountRepository.findOne({ where: { email, status: UserStatus.PENDING } });
 
-            const verifyCode = await this.redisCache.get(`verify:${email}`);
+            const verifyCode = await this.cacheService.getVerifyEmailCode(email);
             if (+verifyCode === +code) {
                 await this.accountRepository.update({ email }, { isActive: true });
                 await this.accountRepository.update({ email }, { status: UserStatus.ACTIVE });
                 await this.userService.activeProfile(account.accountId);
-                await this.redisCache.del(`verify:${email}`);
+                await this.cacheService.deleteVerifyEmailCode(email);
                 return new RegisterResponseDtoBuilder().success().build();
             }
             return new RegisterResponseDtoBuilder().setMessageCode('AUTH_VERIFY_CODE_INVALID').setCode(400).build();
@@ -262,7 +269,7 @@ export class AuthService {
 
     public async resendEmailCode({ email }: { email: string }) {
         try {
-            await this.redisCache.del(`verify:${email}`);
+            await this.cacheService.deleteVerifyEmailCode(email);
             const account = await this.accountRepository.findOne({ where: { email } });
             if (!account) {
                 return new RegisterResponseDtoBuilder()
@@ -289,7 +296,7 @@ export class AuthService {
             const verificationCode = this.generateVerificationCode();
             await Promise.allSettled([
                 this.sendCodeToVerifyEmail({ username: profile.fullName, email, code: verificationCode }),
-                this.redisCache.set(`verify:${email}`, verificationCode, 'EX', 300),
+                this.cacheService.storeVerifyEmailCode(email, verificationCode, 300),
             ]);
 
             return new RegisterResponseDtoBuilder().success().build();
@@ -298,9 +305,11 @@ export class AuthService {
             throw new RegisterResponseDtoBuilder().badRequest().build();
         }
     }
+
     protected generateVerificationCode(): number {
         return Math.floor(100000 + Math.random() * 900000);
     }
+
     protected async sendVerificationEmail(username: string, email: string, code: number) {
         try {
             await this.mailService.sendVerifyEmailMail(username, email, code);
@@ -308,10 +317,11 @@ export class AuthService {
             throw new InternalServerErrorException('Email sending failed');
         }
     }
+
     public async validateAndDelRefreshToken(accountId: string, refreshToken: string): Promise<boolean> {
         const payload = this.tokenService.decodeToken(refreshToken);
-        const exists = await this.redisCache.get(`refreshtoken:${accountId}:${payload.jit}`);
-        if (exists) await this.redisCache.del(`refreshtoken:${accountId}:${payload.jit}`);
+        const exists = await this.cacheService.checkRefreshToken(accountId, payload.jit);
+        if (exists) await this.cacheService.deleteRefreshToken(accountId, payload.jit);
         return !!exists;
     }
 
@@ -333,7 +343,7 @@ export class AuthService {
             const user = await this.accountRepository
                 .createQueryBuilder('account')
                 .leftJoin('account.profile', 'profile')
-                .select(['account.email', 'profile.fullName', 'account.status']) // Chỉ lấy email và fullName
+                .select(['account.email', 'profile.fullName', 'account.status'])
                 .where('account.email = :email', { email })
                 .getOne();
 
@@ -352,7 +362,7 @@ export class AuthService {
             const { encryptedData: resetToken, iv } = HashHelper.encode([token, expired].join(','));
 
             Promise.allSettled([
-                this.redisCache.set(`forget-password:${email}`, token, 'EX', expiredInMilliseconds / 1000),
+                this.cacheService.storeForgetPasswordToken(email, token, expiredInMilliseconds / 1000),
                 this.mailService.sendResetPasswordMail(user.profile.fullName, email, resetToken, iv),
             ]);
 
@@ -378,13 +388,13 @@ export class AuthService {
             }
 
             // check token is valid on cache
-            const storedToken = await this.redisCache.get(`forget-password:${email}`);
+            const storedToken = await this.cacheService.getForgetPasswordToken(email);
             if (!storedToken || storedToken !== baseToken) {
                 throw new NotAcceptableException(AuthErrorType.NOT_ALLOW_RESET_PW);
             }
 
             // delete cache after comparing
-            this.redisCache.del(`forget-password:${email}`);
+            this.cacheService.deleteForgetPasswordToken(email);
 
             const hashedPassword = await HashHelper.encrypt(newPassword);
             await this.accountRepository.update({ email: email }, { password: hashedPassword });
@@ -397,7 +407,8 @@ export class AuthService {
 
     public async logout(refreshToken: string, accountId: string) {
         try {
-            const isDeleted = await this.deleteRefreshTokenOnCache(refreshToken, accountId);
+            const payload = this.tokenService.decodeToken(refreshToken);
+            const isDeleted = await this.cacheService.deleteRefreshToken(accountId, payload.jit);
             if (isDeleted) {
                 return new RegisterResponseDtoBuilder().setValue(true).success().build();
             } else {
@@ -408,9 +419,9 @@ export class AuthService {
         }
     }
 
-    public async checkEmail(email: string): Promise<Boolean> {
+    public async checkEmail(email: string, accountId: string): Promise<Boolean> {
         try {
-            const temp = await this.accountRepository.exists({ where: { email: email } });
+            const temp = await this.accountRepository.exists({ where: { email: email, accountId: accountId } });
             if (temp) {
                 return true;
             }
@@ -434,6 +445,10 @@ export class AuthService {
             }
 
             await this.accountRepository.update({ accountId }, { roles });
+
+            // clear old profile cache
+            await this.cacheService.removeUserProfile(accountId);
+
             return new RegisterResponseDtoBuilder().success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

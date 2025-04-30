@@ -2,9 +2,20 @@ import { PaginationDto } from '@common/dtos';
 import { JobFilterErrorType } from '@common/errors/class-validator-error-type';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { EducationJobLevel } from '@src/common/enums/education-job.enum';
-import { JobTypeEnum } from '@src/common/enums/job.enum';
+import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsInt, Min, IsBoolean, IsArray, ArrayNotEmpty, isInt, Matches } from 'class-validator';
+import {
+    IsOptional,
+    IsString,
+    IsInt,
+    Min,
+    IsBoolean,
+    IsArray,
+    ArrayNotEmpty,
+    isInt,
+    Matches,
+    IsEnum,
+} from 'class-validator';
 
 export class JobFilterDto extends PaginationDto {
     @ApiPropertyOptional({ description: 'Filter by job name' })
@@ -12,15 +23,10 @@ export class JobFilterDto extends PaginationDto {
     @IsOptional()
     readonly name?: string;
 
-    @ApiPropertyOptional({ description: 'Filter by country' })
-    @IsString({ message: JobFilterErrorType.COUNTRY_NOT_STRING })
+    @ApiPropertyOptional({ description: 'Filter by location' })
+    @IsString({ message: JobFilterErrorType.LOCATION_NOT_STRING })
     @IsOptional()
-    readonly country?: string;
-
-    @ApiPropertyOptional({ description: 'Filter by city/province' })
-    @IsString({ message: JobFilterErrorType.CITY_NOT_STRING })
-    @IsOptional()
-    readonly city?: string;
+    readonly location?: string;
 
     @ApiPropertyOptional({ description: 'Filter by industry category' })
     @IsString({ message: JobFilterErrorType.INDUSTRY_CATEGORY_ID_NOT_STRING })
@@ -68,15 +74,10 @@ export class JobFilterDto extends PaginationDto {
     @IsOptional()
     readonly enterpriseId?: string;
 
-    @ApiPropertyOptional({ description: 'Filter by tag ID' })
-    @IsString({ message: JobFilterErrorType.TAG_ID_NOT_STRING })
-    @IsOptional()
-    readonly tagId?: string;
-
     @ApiPropertyOptional({ description: 'Filter by status (active or not)' })
-    @IsBoolean({ message: JobFilterErrorType.STATUS_NOT_BOOLEAN })
+    @IsEnum(JobStatusEnum, { message: JobFilterErrorType.INVALID_JOB_STATUS })
     @IsOptional()
-    readonly status?: boolean;
+    readonly status?: JobStatusEnum;
 
     @ApiPropertyOptional({ description: 'Filter by premium enterprises only' })
     @IsBoolean({ message: JobFilterErrorType.IS_PREMIUM_NOT_BOOLEAN })

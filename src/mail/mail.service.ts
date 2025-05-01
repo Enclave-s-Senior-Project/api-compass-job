@@ -221,19 +221,21 @@ export class MailSenderService {
     }
 
     /**
-     * Sends a notification to the enterprise when their job posting has been reopened by an admin
+     * Sends a notification to the enterprise when their job posting status has changed (e.g., reopened)
      * @param to - Enterprise email address
-     * @param jobTitle - Title of the job that has been reopened
-     * @param jobId - ID of the job that has been reopened
+     * @param jobTitle - Title of the job
+     * @param jobId - ID of the job
      * @param enterpriseName - Name of the enterprise
+     * @param reason - Optional reason for status change
      */
-    async sendJobReopenedNotificationMail(
+    async sendJobChangeStatusNotificationMail(
         to: string,
         jobTitle: string,
         jobId: string,
-        enterpriseName: string
+        enterpriseName: string,
+        reason?: string
     ): Promise<boolean> {
-        const mail = reopenJobMail
+        let mail = reopenJobMail
             .replace(/--ProjectLink--/g, process.env.PROJECT_URL)
             .replace(/--ProjectLogo--/g, process.env.PROJECT_LOGO_URL)
             .replace(/--ProjectName--/g, process.env.PROJECT_NAME)
@@ -244,19 +246,31 @@ export class MailSenderService {
             .replace(/--ProjectAddress--/g, process.env.PROJECT_ADDRESS)
             .replace(/--Socials--/g, this.socials);
 
+        // Add a visible section for the reason if provided
+        if (reason) {
+            mail = mail.replace(
+                /--ReopenReason--/g,
+                `<div style="margin-top:16px;padding:12px;background:#f8f9fa;border-left:4px solid #007bff;">
+                    <strong>Reason for status change:</strong><br>${reason}
+                </div>`
+            );
+        } else {
+            mail = mail.replace(/--ReopenReason--/g, '');
+        }
+
         const mailOptions: Mail.Options = {
             from: `"${process.env.MAILER_DEFAULT_NAME}" <${process.env.MAILER_DEFAULT_EMAIL}>`,
             to: to,
-            subject: `Your job posting "${jobTitle}" has been reopened on ${process.env.PROJECT_NAME}`,
+            subject: `Status Update: Your job posting "${jobTitle}" on ${process.env.PROJECT_NAME}`,
             html: mail,
         };
 
         try {
             await this.transporter.sendMail(mailOptions);
-            this.logger.log(`Job reopened notification sent to ${to} for job ${jobId}`);
+            this.logger.log(`Job status change notification sent to ${to} for job ${jobId}`);
             return true;
         } catch (error) {
-            this.logger.error(`Failed to send job reopened notification email: ${error.message}`);
+            this.logger.error(`Failed to send job status change notification email: ${error.message}`);
             return false;
         }
     }

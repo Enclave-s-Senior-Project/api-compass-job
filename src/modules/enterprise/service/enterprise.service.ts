@@ -758,4 +758,25 @@ export class EnterpriseService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    async getOverviewEnterprises(name: string) {
+        try {
+            const enterprises = await this.enterpriseRepository.find({
+                where: {
+                    name: ILike(`%${name}%`),
+                },
+                select: {
+                    enterpriseId: true,
+                    name: true,
+                    logoUrl: true,
+                    status: true,
+                },
+                take: 20,
+            });
+
+            return new EnterpriseResponseDtoBuilder().setValue(enterprises).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

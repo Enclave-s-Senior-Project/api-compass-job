@@ -1,5 +1,12 @@
 import { isUUID } from 'class-validator';
-import { BadRequestException, ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    ForbiddenException,
+    forwardRef,
+    Inject,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { ProfileRepository } from '../repositories';
 import { CreateUserDto, UserResponseDtoBuilder } from '../dtos';
 import { AccountEntity, GenderType, ProfileEntity } from '@database/entities';

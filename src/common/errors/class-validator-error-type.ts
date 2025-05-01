@@ -170,3 +170,7 @@ export enum UpdateStatusProfileDtoErrorType {
     REASON_REQUIRED = 'REASON_REQUIRED',
     REASON_NOT_STRING = 'REASON_NOT_STRING',
 }
+
+export enum GetOverviewEnterpriseDtoErrorType {
+    NAME_NOT_STRING = 'NAME_NOT_STRING',
+}

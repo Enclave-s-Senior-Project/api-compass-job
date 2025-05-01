@@ -28,6 +28,7 @@ import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, Updat
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
 import { JobStatusEnum } from '@src/common/enums/job.enum';
+import { UpdateJobStatusDto } from './dtos/update-job-status';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
@@ -49,8 +50,8 @@ export class JobController {
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get()
-    async findAll(@Query() PaginationDto: PaginationDto): Promise<JobResponseDto> {
-        return this.jobService.getAllJobs(PaginationDto);
+    async findAll(@Query() queries: JobFilterDto): Promise<JobResponseDto> {
+        return this.jobService.filter(queries);
     }
 
     @ApiBearerAuth(TOKEN_NAME)
@@ -87,7 +88,7 @@ export class JobController {
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Get('search')
     filter(@Query() query: JobFilterDto) {
-        return this.jobService.filter(query);
+        return this.jobService.filter({ ...query, status: JobStatusEnum.OPEN, skip: query.skip });
     }
     @SkipAuth()
     @HttpCode(200)
@@ -135,10 +136,9 @@ export class JobController {
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ADMIN)
-    @Patch(':id/open')
-    @ApiOperation({ description: 'Reopen a previously closed job. This action is restricted to admin users only.' })
-    openJob(@Param('id') id: string, @Body() body: { reason?: string }): Promise<JobResponseDto> {
-        return this.jobService.openJob(id, body.reason);
+    @Patch(':id/status')
+    changeStatus(@Param('id') id: string, @Body() body: UpdateJobStatusDto): Promise<JobResponseDto> {
+        return this.jobService.changeStatus(id, body);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

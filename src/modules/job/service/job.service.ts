@@ -4,7 +4,7 @@ import { JobRepository } from '../repositories';
 import Redis, { RedisCommander } from 'ioredis';
 import { BoostedJobsEntity, JobEntity } from '@database/entities';
 import { JobErrorType } from '@common/errors/';
-import { ErrorType } from '@common/enums';
+import { EnterpriseStatus, ErrorType } from '@common/enums';
 import {
     CreateJobWishListDto,
     CreateJobDto,
@@ -30,6 +30,7 @@ import { BoostJobService } from '@src/modules/boost-job/boost-job.service';
 import { Role } from '@src/modules/auth/decorators/roles.decorator';
 import { MailSenderService } from '@src/mail/mail.service';
 import { WarningException } from '@src/common/http/exceptions/warning.exception';
+import { UpdateJobStatusDto } from '../dtos/update-job-status';
 @Injectable()
 export class JobService {
     constructor(
@@ -454,9 +455,9 @@ export class JobService {
         try {
             const resultCache = await this.cacheService.getCacheJobFilter(JSON.stringify(query));
 
-            // if (resultCache) {
-            //     return new JobResponseDtoBuilder().setValue(resultCache).build();
-            // }
+            if (resultCache) {
+                return new JobResponseDtoBuilder().setValue(resultCache).build();
+            }
 
             const queryBuilder = this.jobRepository
                 .createQueryBuilder('jobs')
@@ -469,18 +470,7 @@ export class JobService {
 
             // Job status
             if (query.status) {
-                queryBuilder.andWhere('jobs.status = :status', { status: JobStatusEnum.OPEN });
-            }
-
-            // Full-Text Search
-            if (query.name) {
-                queryBuilder.andWhere(
-                    "to_tsvector('english', jobs.name) @@ plainto_tsquery(:name) OR jobs.name ILIKE :namePattern OR tags.name ILIKE :namePattern",
-                    {
-                        name: query.name.trim(),
-                        namePattern: `${query.name.trim()}%`,
-                    }
-                );
+                queryBuilder.andWhere('jobs.status = :status', { status: query.status });
             }
 
             // Location Filters
@@ -490,12 +480,26 @@ export class JobService {
                 });
             }
 
+            // Full-Text Search
+            if (query.name) {
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        qb.where("to_tsvector('english', jobs.name) @@ plainto_tsquery(:name)", {
+                            name: query.name.trim(),
+                        }).orWhere('jobs.name ILIKE :namePattern', {
+                            namePattern: `%${query.name.trim()}%`,
+                        });
+                    })
+                );
+            }
+
             // Category Filters
             if (query.industryCategoryId) {
                 queryBuilder.andWhere('industries.categoryId = :industryId', {
                     industryId: query.industryCategoryId,
                 });
             }
+
             if (query.majorityCategoryId) {
                 queryBuilder.andWhere('majorities.categoryId = :majorityId', {
                     majorityId: query.majorityCategoryId,
@@ -527,6 +531,16 @@ export class JobService {
                     education: query.education,
                 });
             }
+            if (query.minDeadline) {
+                queryBuilder.andWhere('CAST(jobs.deadline AS date) >= CAST(:minDeadline AS date)', {
+                    minDeadline: query.minDeadline,
+                });
+            }
+            if (query.maxDeadline) {
+                queryBuilder.andWhere('CAST(jobs.deadline AS date) <= CAST(:maxDeadline AS date)', {
+                    maxDeadline: query.maxDeadline,
+                });
+            }
 
             // Enterprise Filter
             if (query.enterpriseId) {
@@ -535,8 +549,7 @@ export class JobService {
                 });
             }
 
-            // Status and Deadline
-            queryBuilder.andWhere('jobs.status = :status', { status: JobStatusEnum.OPEN });
+            // Deadline filter - only show jobs with future deadlines
             queryBuilder.andWhere('jobs.deadline > CURRENT_DATE');
 
             // Select fields
@@ -549,6 +562,10 @@ export class JobService {
                 'jobs.deadline',
                 'jobs.status',
                 'jobs.updatedAt',
+                'jobs.createdAt',
+                'jobs.education',
+                'jobs.highestWage',
+                'jobs.lowestWage',
                 'addresses.addressId',
                 'addresses.country',
                 'addresses.city',
@@ -562,7 +579,6 @@ export class JobService {
                 'enterprise.name',
                 'enterprise.email',
                 'enterprise.phone',
-                'enterprise.description',
                 'enterprise.logoUrl',
                 'enterprise.backgroundImageUrl',
                 'enterprise.foundedIn',
@@ -573,12 +589,21 @@ export class JobService {
                 'tags.tagId',
                 'tags.name',
                 'tags.color',
-                'tags.backgroundColor',
                 'boosted_jobs.id',
                 'boosted_jobs.boostedAt',
                 'boosted_jobs.pointsUsed',
             ]);
 
+            // Add proper group by to avoid duplicates from joins
+            // queryBuilder.groupBy('jobs.jobId')
+            //     .addGroupBy('addresses.addressId')
+            //     .addGroupBy('industries.categoryId')
+            //     .addGroupBy('majorities.categoryId')
+            //     .addGroupBy('enterprise.enterpriseId')
+            //     .addGroupBy('tags.tagId')
+            //     .addGroupBy('boosted_jobs.id');
+
+            // Apply ordering with NULLS handling
             queryBuilder
                 .addOrderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
                 .addOrderBy('boosted_jobs.boostedAt', 'ASC', 'NULLS LAST')
@@ -587,6 +612,8 @@ export class JobService {
                 .skip(query.skip)
                 .take(query.take);
 
+            // Execute query with proper logging for debugging
+            console.log('Generated SQL:', queryBuilder.getSql());
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
             const meta = new PageMetaDto({
@@ -805,7 +832,7 @@ export class JobService {
         }
     }
 
-    public async openJob(jobId: string, reason?: string) {
+    public async changeStatus(jobId: string, payload: UpdateJobStatusDto) {
         try {
             // Validate UUID
             if (!ValidationHelper.isValidateUUIDv4(jobId)) {
@@ -829,25 +856,25 @@ export class JobService {
                 throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
             }
 
-            // Check if job is in CLOSED status
-            if (existingJob.status !== JobStatusEnum.CLOSED) {
-                throw new WarningException(JobErrorType.JOB_IS_OPENED);
+            if (existingJob.status === payload.status) {
+                throw new WarningException(JobErrorType.JOB_SAME_STATUS);
             }
 
             // Update job status to OPEN with new deadline
             await this.jobRepository.update(
                 { jobId },
                 {
-                    status: JobStatusEnum.OPEN,
+                    status: payload.status,
                 }
             );
 
             // Send email notification to enterprise about reopened job
-            this.mailService.sendJobReopenedNotificationMail(
+            this.mailService.sendJobChangeStatusNotificationMail(
                 existingJob.enterprise.email,
                 existingJob.name,
                 existingJob.jobId,
-                existingJob.enterprise.name
+                existingJob.enterprise.name,
+                payload.reason
             );
 
             // Clear cache to reflect changes

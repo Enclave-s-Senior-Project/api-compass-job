@@ -27,6 +27,7 @@ import { FilterCandidatesProfileDto } from './dtos/filter-candidate.dto';
 import { FindJobsByEnterpriseDto } from './dtos/find-job-by-enterprise.dto';
 import { UpdateStatusEnterpriseDto } from './dtos/update-status-enterprise.dto';
 import { FindAllDto } from './dtos/find-all.dto';
+import { GetOverviewEnterpriseDto } from './dtos/get-overview-enterprise.dto';
 
 @ApiTags('Enterprise')
 @Controller({
@@ -35,6 +36,18 @@ import { FindAllDto } from './dtos/find-all.dto';
 })
 export class EnterpriseController {
     constructor(private readonly enterpriseService: EnterpriseService) {}
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({
+        summary: 'Get overview of enterprises',
+        description:
+            'Retrieve an overview of enterprises. Optionally filter by enterprise name using the "name" query parameter.',
+    })
+    @ApiResponse({ status: 200, description: 'Overview of enterprises.' })
+    @Get('overview')
+    getOverviewEnterprise(@Query() queries: GetOverviewEnterpriseDto) {
+        return this.enterpriseService.getOverviewEnterprises(queries.name);
+    }
 
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)

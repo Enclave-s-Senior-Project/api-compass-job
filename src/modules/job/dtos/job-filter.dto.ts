@@ -81,6 +81,7 @@ export class JobFilterDto extends PaginationDto {
 
     @ApiPropertyOptional({ description: 'Filter by premium enterprises only' })
     @IsBoolean({ message: JobFilterErrorType.IS_PREMIUM_NOT_BOOLEAN })
+    @Transform(({ value }) => value === 'true' || value === true)
     @IsOptional()
     readonly isPremium?: boolean;
 

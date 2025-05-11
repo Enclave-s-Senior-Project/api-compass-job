@@ -4,6 +4,7 @@ import { JobRepository } from '../repositories';
 import Redis, { RedisCommander } from 'ioredis';
 import { BoostedJobsEntity, JobEntity } from '@database/entities';
 import { JobErrorType } from '@common/errors/';
+import { AppliedJobErrorType } from '@common/errors/applied-job-error-type';
 import { EnterpriseStatus, ErrorType } from '@common/enums';
 import {
     CreateJobWishListDto,
@@ -21,7 +22,7 @@ import { redisProviderName } from '@cache/cache.provider';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
-import { Brackets, LessThan, Not } from 'typeorm';
+import { Brackets, LessThan, Not, MoreThan } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
@@ -121,7 +122,6 @@ export class JobService {
 
             return new JobResponseDtoBuilder().setValue(new PageDto<JobEntity>(profiles, meta)).success().build();
         } catch (error) {
-            console.error('Error fetching profiles of list jobs:', error);
             return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
         }
     }
@@ -144,7 +144,6 @@ export class JobService {
 
             return new JobResponseDtoBuilder().setValue(new PageDto<JobEntity>(profiles, meta)).success().build();
         } catch (error) {
-            console.error('Error fetching profiles:', error);
             return new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
         }
     }
@@ -177,7 +176,6 @@ export class JobService {
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
-            console.error(error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -214,7 +212,6 @@ export class JobService {
             });
             return new JobResponseDtoBuilder().setValue(new PageDto<JobEntity>(result, meta)).success().build();
         } catch (error) {
-            console.error('Error get jobs wish list: ', error);
             return new JobResponseDtoBuilder().setCode(500).setMessageCode(ErrorType.InternalErrorServer).build();
         }
     }
@@ -234,7 +231,6 @@ export class JobService {
             });
             return job;
         } catch (err) {
-            console.log('Error getting job by id: ', err);
             return null;
         }
     }
@@ -446,7 +442,6 @@ export class JobService {
         try {
             return this.jobRepository.count({ where: { enterprise: { enterpriseId } } });
         } catch (error) {
-            console.error('Error get total jobs by enterprise: ', error);
             return 0;
         }
     }
@@ -613,7 +608,6 @@ export class JobService {
                 .take(query.take);
 
             // Execute query with proper logging for debugging
-            console.log('Generated SQL:', queryBuilder.getSql());
             const [jobs, total] = await queryBuilder.getManyAndCount();
 
             const meta = new PageMetaDto({
@@ -629,7 +623,6 @@ export class JobService {
             this.cacheService.cacheJobFilterData(JSON.stringify(query), new PageDto(jobs, meta));
             return new JobResponseDtoBuilder().setValue(new PageDto(jobs, meta)).build();
         } catch (error) {
-            console.error('Filter Query Error:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -721,7 +714,6 @@ export class JobService {
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
-            console.error('Error updating job:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -1026,6 +1018,224 @@ export class JobService {
     public async updateBoostJob(jobId: string, point: number) {
         try {
             return await this.jobRepository.update({ jobId }, { isBoost: true });
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async applyJob(
+        jobId: string,
+        accountId: string,
+        body: { cvId: string; coverLetter?: string }
+    ): Promise<JobResponseDto> {
+        try {
+            // Validate UUID
+            if (!ValidationHelper.isValidateUUIDv4(jobId)) {
+                throw new BadRequestException(GlobalErrorType.INVALID_ID);
+            }
+
+            // Check if job exists and is open
+            const job = await this.jobRepository.findOne({
+                where: {
+                    jobId,
+                    status: JobStatusEnum.OPEN,
+                    deadline: MoreThan(new Date()),
+                },
+                relations: ['enterprise'],
+                select: {
+                    enterprise: {
+                        enterpriseId: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            });
+
+            if (!job) {
+                throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
+            }
+
+            // Check if user is trying to apply to their own job
+            if (job.enterprise.enterpriseId === accountId) {
+                throw new BadRequestException(JobErrorType.CAN_NOT_APPLY_OWN_JOB);
+            }
+
+            // Check if user has already applied
+            const existingApplication = await this.jobRepository
+                .createQueryBuilder('jobs')
+                .innerJoin('jobs.appliedJob', 'appliedJobs')
+                .where('jobs.jobId = :jobId', { jobId })
+                .andWhere('appliedJobs.accountId = :accountId', { accountId })
+                .getOne();
+
+            if (existingApplication) {
+                throw new BadRequestException(AppliedJobErrorType.ALREADY_APPLIED);
+            }
+
+            // Create application with CV and cover letter
+            await this.jobRepository.createQueryBuilder().relation(JobEntity, 'appliedJob').of(jobId).add({
+                accountId,
+                cvId: body.cvId,
+                coverLetter: body.coverLetter,
+                appliedAt: new Date(),
+                status: 'PENDING',
+            });
+
+            // Clear cache
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
+
+            return new JobResponseDtoBuilder().setValue(null).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async getDetailJob(id: string) {
+        try {
+            const job = await this.jobRepository.findOne({
+                where: { jobId: id },
+            });
+            return job;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async searchJobs(query) {
+        try {
+            const {
+                tags,
+                location,
+                lowestWage,
+                highestWage,
+                type,
+                education,
+                name,
+                status = JobStatusEnum.OPEN,
+            } = query;
+
+            // Build base query with all needed relations
+            const queryBuilder = this.jobRepository
+                .createQueryBuilder('jobs')
+                .leftJoinAndSelect('jobs.addresses', 'addresses')
+                .leftJoinAndSelect('jobs.categories', 'categories')
+                .leftJoinAndSelect('jobs.specializations', 'specializations')
+                .leftJoinAndSelect('jobs.enterprise', 'enterprise')
+                .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs')
+                .leftJoinAndSelect('jobs.tags', 'tags');
+
+            // Apply filters
+            if (name?.trim()) {
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        qb.where("to_tsvector('english', jobs.name) @@ plainto_tsquery(:name)", {
+                            name: name.trim(),
+                        })
+                            .orWhere('jobs.name ILIKE :namePattern', {
+                                namePattern: `%${name.trim()}%`,
+                            })
+                            .orWhere('jobs.description ILIKE :namePattern', {
+                                namePattern: `%${name.trim()}%`,
+                            });
+                    })
+                );
+            }
+
+            if (location?.trim()) {
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        qb.where('addresses.country ILIKE :locationPattern', {
+                            locationPattern: `%${location.trim()}%`,
+                        })
+                            .orWhere('addresses.city ILIKE :locationPattern', {
+                                locationPattern: `%${location.trim()}%`,
+                            })
+                            .orWhere('addresses.street ILIKE :locationPattern', {
+                                locationPattern: `%${location.trim()}%`,
+                            });
+                    })
+                );
+            }
+
+            if (tags?.length > 0) {
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        qb.where('categories.categoryName = ANY(:tags)', { tags })
+                            .orWhere('specializations.categoryName = ANY(:tags)', { tags })
+                            .orWhere('tags.name = ANY(:tags)', { tags });
+                    })
+                );
+            }
+
+            if (lowestWage !== undefined) {
+                queryBuilder.andWhere('jobs.lowestWage >= :lowestWage', {
+                    lowestWage: Number(lowestWage),
+                });
+            }
+
+            if (highestWage !== undefined) {
+                queryBuilder.andWhere('jobs.highestWage <= :highestWage', {
+                    highestWage: Number(highestWage),
+                });
+            }
+
+            if (type?.length > 0) {
+                queryBuilder.andWhere('jobs.type = ANY(:type)', { type });
+            }
+
+            if (education?.length > 0) {
+                queryBuilder.andWhere('jobs.education = ANY(:education)', { education });
+            }
+
+            // Only show jobs with future deadlines and specified status
+            queryBuilder.andWhere('jobs.deadline > CURRENT_DATE').andWhere('jobs.status = :status', { status });
+
+            // Select fields
+            queryBuilder.select([
+                'jobs.jobId',
+                'jobs.name',
+                'jobs.description',
+                'jobs.introImg',
+                'jobs.type',
+                'jobs.experience',
+                'jobs.deadline',
+                'jobs.status',
+                'jobs.updatedAt',
+                'jobs.createdAt',
+                'jobs.education',
+                'jobs.highestWage',
+                'jobs.lowestWage',
+                'addresses.addressId',
+                'addresses.country',
+                'addresses.city',
+                'addresses.street',
+                'addresses.zipCode',
+                'categories.categoryId',
+                'categories.categoryName',
+                'specializations.categoryId',
+                'specializations.categoryName',
+                'enterprise.enterpriseId',
+                'enterprise.name',
+                'enterprise.logoUrl',
+                'enterprise.status',
+                'tags.tagId',
+                'tags.name',
+                'tags.color',
+                'boosted_jobs.id',
+                'boosted_jobs.boostedAt',
+                'boosted_jobs.pointsUsed',
+            ]);
+
+            // Apply ordering with NULLS handling
+            queryBuilder
+                .addOrderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
+                .addOrderBy('boosted_jobs.boostedAt', 'ASC', 'NULLS LAST')
+                .addOrderBy('jobs.deadline', 'ASC')
+                .addOrderBy('jobs.updatedAt', 'DESC');
+
+            const jobs = await queryBuilder.getMany();
+            return jobs;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

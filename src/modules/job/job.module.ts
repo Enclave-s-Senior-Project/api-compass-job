@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { JobService } from './service/job.service';
 import { JobController } from './job.controller';
+import { JobToolsController } from './job-tools.controller';
 import { CacheModule } from 'src/cache/cache.module';
 import { JobRepository } from './repositories';
 import { TmpModule } from '@modules/tmp/tmp.module';
@@ -22,7 +23,7 @@ import { MailModule } from '@src/mail/mail.module';
         forwardRef(() => BoostJobModule),
         MailModule,
     ],
-    controllers: [JobController],
+    controllers: [JobController, JobToolsController],
     providers: [JobService, JobRepository],
     exports: [JobService],
 })

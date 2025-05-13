@@ -13,7 +13,7 @@ import { AccountEntity, GenderType, ProfileEntity } from '@database/entities';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { UserErrorType } from '@common/errors/user-error-type';
-import { Like, Raw } from 'typeorm';
+import { Like } from 'typeorm';
 import { UpdatePersonalProfileDto } from '@modules/user/dtos/update-personal-profile.dto';
 import { UserStatus } from '@database/entities/account.entity';
 import { UpdateCandidateProfileDto } from '../dtos/update-candidate-profile.dto';
@@ -122,12 +122,13 @@ export class UserService {
                 select: {
                     account: {
                         roles: true,
+                        email: true,
                     },
                 },
             });
             if (!profile) return null;
 
-            const result = { ...profile, roles: profile.account.roles };
+            const result = { ...profile, roles: profile.account.roles, email: profile.account.email };
             delete result.account;
 
             this.cacheService.cacheUserProfile(accountId, result);
@@ -343,7 +344,7 @@ export class UserService {
         return this.profileRepository.findOne({ where: { profileId: id } });
     }
 
-    public async getUserByProfileId(profileId: string) {
+    public async getUserByProfileId(profileId: string, enterpriseId: string) {
         if (!ValidationHelper.isValidateUUIDv4(profileId)) {
             throw new BadRequestException(GlobalErrorType.INVALID_ID);
         }
@@ -353,16 +354,24 @@ export class UserService {
                 where: { profileId: profileId, account: { status: UserStatus.ACTIVE } },
                 relations: ['account'],
                 select: {
-                    account: {
-                        accountId: true,
-                    },
+                    account: true,
                 },
             });
+            const isFavorite =
+                (await this.profileRepository
+                    .createQueryBuilder('profile')
+                    .innerJoin('profile.enterprises', 'enterprise')
+                    .where('profile.profileId = :profileId', { profileId })
+                    .andWhere('enterprise.enterpriseId = :enterpriseId', { enterpriseId })
+                    .getCount()) > 0;
             if (!profile?.account?.accountId) {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
             const profileInfo = await this.getUserByAccountId(profile.account.accountId, true);
-            return new UserResponseDtoBuilder().setValue(profileInfo).success().build();
+            return new UserResponseDtoBuilder()
+                .setValue({ ...profileInfo, isFavorite })
+                .success()
+                .build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

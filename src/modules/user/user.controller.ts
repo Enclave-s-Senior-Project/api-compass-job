@@ -83,13 +83,15 @@ export class UserController {
     async informationUSer(@CurrentUser() user: JwtPayload) {
         return this.userService.getProfileUserDashboard(user.profileId);
     }
-    @SkipAuth()
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.ENTERPRISE)
     @HttpCode(200)
     @ApiOperation({ description: 'Get user information by ID profile' })
     @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
     @Get(':id')
-    async getUserInfo(@Param('id') profileId: string) {
-        return this.userService.getUserByProfileId(profileId);
+    async getUserInfo(@Param('id') profileId: string, @CurrentUser() user: JwtPayload) {
+        return this.userService.getUserByProfileId(profileId, user.enterpriseId);
     }
 
     @SkipAuth()

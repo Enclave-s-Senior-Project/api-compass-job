@@ -1102,16 +1102,16 @@ export class JobService {
         }
     }
 
-    public async searchJobs(query) {
+    public async searchJobs(query: any, page: number = 1, pageSize: number = 20) {
         try {
             const {
                 tags,
                 location,
                 lowestWage,
                 highestWage,
-                type,
+                job_type: type, // Map job_type to type
                 education,
-                name,
+                name_job: name, // Map name_job to name
                 status = JobStatusEnum.OPEN,
             } = query;
 
@@ -1125,12 +1125,13 @@ export class JobService {
                 .leftJoinAndSelect('jobs.boostedJob', 'boosted_jobs')
                 .leftJoinAndSelect('jobs.tags', 'tags');
 
-            // Apply filters
+            // Fuzzy search for job name and description
             if (name?.trim()) {
                 queryBuilder.andWhere(
                     new Brackets((qb) => {
-                        qb.where("to_tsvector('english', jobs.name) @@ plainto_tsquery(:name)", {
-                            name: name.trim(),
+                        const cleanName = name.trim().replace(/[^a-zA-Z0-9\s]/g, ' '); // Sanitize for to_tsquery
+                        qb.where("to_tsvector('english', jobs.name || ' ' || jobs.description) @@ to_tsquery(:name)", {
+                            name: cleanName.replace(/\s+/g, ' & '),
                         })
                             .orWhere('jobs.name ILIKE :namePattern', {
                                 namePattern: `%${name.trim()}%`,
@@ -1142,68 +1143,90 @@ export class JobService {
                 );
             }
 
+            // Fuzzy search for location
             if (location?.trim()) {
                 queryBuilder.andWhere(
                     new Brackets((qb) => {
+                        const cleanLocation = location.trim();
                         qb.where('addresses.country ILIKE :locationPattern', {
-                            locationPattern: `%${location.trim()}%`,
+                            locationPattern: `%${cleanLocation}%`,
                         })
                             .orWhere('addresses.city ILIKE :locationPattern', {
-                                locationPattern: `%${location.trim()}%`,
+                                locationPattern: `%${cleanLocation}%`,
                             })
                             .orWhere('addresses.street ILIKE :locationPattern', {
-                                locationPattern: `%${location.trim()}%`,
+                                locationPattern: `%${cleanLocation}%`,
                             });
                     })
                 );
             }
 
+            // Unified tag search across categories, specializations, and tags
             if (tags?.length > 0) {
-                queryBuilder.andWhere(
+                const tagPatterns = Array.isArray(tags) ? tags : [tags]; // Handle single tag or array
+                queryBuilder.orWhere(
                     new Brackets((qb) => {
-                        qb.where('categories.categoryName = ANY(:tags)', { tags })
-                            .orWhere('specializations.categoryName = ANY(:tags)', { tags })
-                            .orWhere('tags.name = ANY(:tags)', { tags });
+                        tagPatterns.forEach((tag: string, index: number) => {
+                            qb.orWhere(`categories.categoryName ILIKE :tag${index}`, { [`tag${index}`]: `%${tag}%` })
+                                .orWhere(`specializations.categoryName ILIKE :tag${index}`, {
+                                    [`tag${index}`]: `%${tag}%`,
+                                })
+                                .orWhere(`tags.name ILIKE :tag${index}`, { [`tag${index}`]: `%${tag}%` });
+                        });
                     })
                 );
             }
 
-            if (lowestWage !== undefined) {
-                queryBuilder.andWhere('jobs.lowestWage >= :lowestWage', {
+            // Wage range filters
+            if (lowestWage !== undefined && !isNaN(Number(lowestWage))) {
+                queryBuilder.orWhere('jobs.lowestWage >= :lowestWage', {
                     lowestWage: Number(lowestWage),
                 });
             }
 
-            if (highestWage !== undefined) {
-                queryBuilder.andWhere('jobs.highestWage <= :highestWage', {
+            if (highestWage !== undefined && !isNaN(Number(highestWage))) {
+                queryBuilder.orWhere('jobs.highestWage <= :highestWage', {
                     highestWage: Number(highestWage),
                 });
             }
 
+            // Job type filter
             if (type?.length > 0) {
-                queryBuilder.andWhere('jobs.type = ANY(:type)', { type });
+                const typePatterns = Array.isArray(type) ? type : [type]; // Handle single type or array
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        typePatterns.forEach((t: string, index: number) => {
+                            qb.orWhere(`jobs.type ILIKE :type${index}`, { [`type${index}`]: `%${t}%` });
+                        });
+                    })
+                );
             }
 
+            // Education filter
             if (education?.length > 0) {
-                queryBuilder.andWhere('jobs.education = ANY(:education)', { education });
+                const educationPatterns = Array.isArray(education) ? education : [education];
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        educationPatterns.forEach((edu: string, index: number) => {
+                            qb.orWhere(`jobs.education ILIKE :edu${index}`, { [`edu${index}`]: `%${edu}%` });
+                        });
+                    })
+                );
             }
 
-            // Only show jobs with future deadlines and specified status
-            queryBuilder.andWhere('jobs.deadline > CURRENT_DATE').andWhere('jobs.status = :status', { status });
+            // Core filters for active jobs
+            queryBuilder.andWhere('jobs.status = :status', { status });
 
             // Select fields
             queryBuilder.select([
                 'jobs.jobId',
                 'jobs.name',
-                'jobs.description',
                 'jobs.introImg',
                 'jobs.type',
-                'jobs.experience',
                 'jobs.deadline',
                 'jobs.status',
                 'jobs.updatedAt',
                 'jobs.createdAt',
-                'jobs.education',
                 'jobs.highestWage',
                 'jobs.lowestWage',
                 'addresses.addressId',
@@ -1227,7 +1250,7 @@ export class JobService {
                 'boosted_jobs.pointsUsed',
             ]);
 
-            // Apply ordering with NULLS handling
+            // Apply ordering and pagination
             queryBuilder
                 .addOrderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
                 .addOrderBy('boosted_jobs.boostedAt', 'ASC', 'NULLS LAST')
@@ -1235,7 +1258,12 @@ export class JobService {
                 .addOrderBy('jobs.updatedAt', 'DESC');
 
             const jobs = await queryBuilder.getMany();
-            return jobs;
+            console.log(queryBuilder.getQueryAndParameters());
+            const jobs1 = await this.jobRepository.find({});
+            console.log(jobs);
+            return {
+                jobs,
+            };
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

@@ -1,17 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { EnterpriseService } from '../enterprise/service/enterprise.service';
 import { CacheService } from '@src/cache/cache.service';
 import { TransactionRepository } from './repositories/transaction.repository';
 import { PAYMENT_STATUS, PREMIUM_TYPE } from '@src/database/entities/transaction.entity';
 import { TransactionResponseDtoBuilder } from './dtos/transaction-response.dto';
+import { HistoryTransactionService } from '../history-transaction/history-transaction.service';
 
 @Injectable()
 export class TransactionService {
     constructor(
         private readonly enterpriseService: EnterpriseService,
         private readonly transactionRepo: TransactionRepository,
-        private readonly cacheService: CacheService
+        private readonly cacheService: CacheService,
+        @Inject(forwardRef(() => HistoryTransactionService))
+        private readonly historyTransactionService: HistoryTransactionService
     ) {}
     private async generateAccessToken(): Promise<string> {
         try {
@@ -153,35 +156,60 @@ export class TransactionService {
             if (!enterprise) {
                 throw new Error('Enterprise not found');
             }
+
+            // STANDARD
             if (premiumName === PREMIUM_TYPE.STANDARD) {
                 await this.enterpriseService.updateEnterprisePayment(
                     enterpriseId,
                     true,
-                    30,
-                    true,
+                    50,
+                    false,
                     enterprise.totalPoints
                 );
                 const transaction = this.transactionRepo.create({
-                    pointsPurchased: 100,
-                    amountPaid: 0,
+                    pointsPurchased: 50,
+                    amountPaid: 30,
                     paymentMethod: 'PayPal',
                     paymentStatus: PAYMENT_STATUS.COMPLETED,
                     premiumType: PREMIUM_TYPE.STANDARD,
                     enterprise,
                 });
                 await this.transactionRepo.save(transaction);
+                await this.historyTransactionService.create(
+                    50,
+                    30,
+                    'Paypal',
+                    PAYMENT_STATUS.COMPLETED,
+                    PREMIUM_TYPE.STANDARD,
+                    enterprise
+                );
                 return new TransactionResponseDtoBuilder().setValue(transaction).success().build();
             }
-            await this.enterpriseService.updateEnterprisePayment(enterpriseId, true, 50, true, enterprise.totalPoints);
+            //PREMIUM
+            await this.enterpriseService.updateEnterprisePayment(
+                enterpriseId,
+                true,
+                100,
+                false,
+                enterprise.totalPoints
+            );
             const transaction = this.transactionRepo.create({
                 pointsPurchased: 100,
-                amountPaid: 0,
+                amountPaid: 50,
                 paymentMethod: 'PayPal',
                 paymentStatus: PAYMENT_STATUS.COMPLETED,
                 premiumType: PREMIUM_TYPE.PREMIUM,
                 enterprise,
             });
             await this.transactionRepo.save(transaction);
+            await this.historyTransactionService.create(
+                100,
+                350,
+                'Paypal',
+                PAYMENT_STATUS.COMPLETED,
+                PREMIUM_TYPE.PREMIUM,
+                enterprise
+            );
             return new TransactionResponseDtoBuilder().setValue(transaction).success().build();
         } catch (error) {
             throw new Error(`Error fetching payment status for order `);

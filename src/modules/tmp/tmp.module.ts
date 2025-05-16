@@ -20,6 +20,7 @@ import {
     FCMTokenEntity,
 } from '@database/entities';
 import { TransactionEntity } from '@src/database/entities/transaction.entity';
+import { HistoryTransactionEntity } from '@src/database/entities/history-transaction.entity';
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import { TransactionEntity } from '@src/database/entities/transaction.entity';
             NotificationEntity,
             FCMTokenEntity,
             TransactionEntity,
+            HistoryTransactionEntity,
         ]),
     ],
     controllers: [TmpController],

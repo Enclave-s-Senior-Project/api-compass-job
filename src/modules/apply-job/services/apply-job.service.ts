@@ -1,3 +1,4 @@
+import { Job } from 'bullmq';
 import { JobService } from './../../job/service/job.service';
 import { BadRequestException, Injectable, MethodNotAllowedException, NotFoundException } from '@nestjs/common';
 import { CreateApplyJobDto } from '../dtos/create-apply-job.dto';
@@ -21,6 +22,7 @@ import { NotificationService } from '@src/modules/notification/notification.serv
 import { CreateNotificationDto } from '@src/modules/notification/dto/create-notification.dto';
 import { NotificationType } from '@src/database/entities/notification.entity';
 import { MailSenderService } from '@src/mail/mail.service';
+import { CacheService } from '@src/cache/cache.service';
 
 @Injectable()
 export class ApplyJobService {
@@ -30,7 +32,8 @@ export class ApplyJobService {
         private readonly cvService: CvService,
         private readonly userService: UserService,
         private readonly notificationService: NotificationService,
-        private readonly mailService: MailSenderService
+        private readonly mailService: MailSenderService,
+        private readonly cacheService: CacheService
     ) {}
     async applyJob(createApplyJobDto: CreateApplyJobDto, user: JwtPayload) {
         try {
@@ -76,6 +79,7 @@ export class ApplyJobService {
             });
 
             await this.applyJobRepository.save(applyJob);
+            await this.cacheService.removeEnterpriseJobFilterData();
             return new ApplyJobResponseDtoBuilder().success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -412,6 +416,74 @@ export class ApplyJobService {
             const notification = await this.notificationService.create(notificationPayload);
 
             return notification;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getListCandidateApplyDashboard(company: string) {
+        try {
+            if (!company) {
+                const candidates = await this.applyJobRepository.find({
+                    relations: {
+                        profile: { account: true },
+                        job: { enterprise: true },
+                    },
+                    select: {
+                        profile: {
+                            fullName: true,
+                            account: { email: true },
+                            profileUrl: true,
+                        },
+                        job: {
+                            name: true,
+                            enterprise: { name: true },
+                        },
+                    },
+                });
+                return candidates;
+            }
+            const candidates = await this.applyJobRepository.find({
+                relations: {
+                    profile: { account: true },
+                    job: { enterprise: true },
+                },
+                select: {
+                    profile: {
+                        fullName: true,
+                        profileUrl: true,
+                        account: { email: true },
+                    },
+                    job: {
+                        name: true,
+                        enterprise: { name: true },
+                    },
+                },
+                where: { job: { enterprise: { name: company } } },
+            });
+            return candidates;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async getTopAppliedJobs() {
+        const responseBuilder = new ApplyJobResponseDtoBuilder();
+        try {
+            const topJobs = await this.applyJobRepository
+                .createQueryBuilder('appliedJob')
+                .select('job.name', 'jobName')
+                .addSelect('COUNT(appliedJob.appliedJobId)', 'applyCount')
+                .innerJoin('appliedJob.job', 'job')
+                .groupBy('job.jobId, job.name')
+                .orderBy('COUNT(appliedJob.appliedJobId)', 'DESC')
+                .limit(5)
+                .getRawMany();
+
+            const result = topJobs.map((job) => ({
+                jobName: job.jobName,
+                applyCount: parseInt(job.applyCount, 10),
+            }));
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

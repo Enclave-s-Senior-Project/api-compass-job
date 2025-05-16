@@ -8,9 +8,18 @@ import { JobModule } from '@modules/job/job.module';
 import { UserModule } from '../user/user.module';
 import { NotificationModule } from '../notification/notification.module';
 import { MailModule } from '@src/mail/mail.module';
+import { CacheModule } from '@src/cache/cache.module';
 
 @Module({
-    imports: [TmpModule, CvModule, JobModule, forwardRef(() => UserModule), NotificationModule, MailModule],
+    imports: [
+        TmpModule,
+        CvModule,
+        JobModule,
+        forwardRef(() => UserModule),
+        NotificationModule,
+        MailModule,
+        CacheModule,
+    ],
     controllers: [ApplyJobController],
     providers: [ApplyJobService, ApplyJobRepository],
     exports: [ApplyJobService],

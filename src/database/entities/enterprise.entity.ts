@@ -20,6 +20,7 @@ import {
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
 import { TransactionEntity } from './transaction.entity';
+import { HistoryTransactionEntity } from './history-transaction.entity';
 
 export enum OrganizationType {
     PRIVATE = 'PRIVATE',
@@ -129,6 +130,10 @@ export class EnterpriseEntity extends BaseEntity {
     @OneToMany(() => TransactionEntity, (transaction) => transaction.enterprise, { nullable: true })
     transactions: TransactionEntity[];
 
+    @OneToMany(() => HistoryTransactionEntity, (historyTransaction) => historyTransaction.enterprise, {
+        nullable: true,
+    })
+    historyTransactions: HistoryTransactionEntity[];
     @BeforeUpdate()
     checkPremiumStatus(): void {
         if (this.totalPoints === 0) {

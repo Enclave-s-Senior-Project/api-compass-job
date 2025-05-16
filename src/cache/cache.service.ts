@@ -374,4 +374,8 @@ export class CacheService {
             throw error;
         }
     }
+
+    public async removeEnterpriseJobFilterData() {
+        return await this.removeMultipleCacheWithPrefix(this.enterpriseFilterJobKey);
+    }
 }

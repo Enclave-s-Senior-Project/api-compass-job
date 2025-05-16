@@ -1254,4 +1254,12 @@ export class JobService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    public async getTotalJob() {
+        try {
+            return this.jobRepository.count();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

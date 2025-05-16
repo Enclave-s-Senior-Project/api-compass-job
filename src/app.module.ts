@@ -23,6 +23,8 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { FcmTokenModule } from './modules/fcm-token/fcm-token.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { BoostJobCronModule } from './modules/boost-job-cron/boost-job-cron.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HistoryTransactionModule } from './modules/history-transaction/history-transaction.module';
 
 @Module({
     imports: [
@@ -59,6 +61,8 @@ import { BoostJobCronModule } from './modules/boost-job-cron/boost-job-cron.modu
         FcmTokenModule,
         TransactionModule,
         BoostJobCronModule,
+        DashboardModule,
+        HistoryTransactionModule,
     ],
 })
 export class AppModule {

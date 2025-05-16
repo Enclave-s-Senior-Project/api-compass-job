@@ -123,12 +123,18 @@ export class UserService {
                     account: {
                         roles: true,
                         email: true,
+                        status: true,
                     },
                 },
             });
             if (!profile) return null;
 
-            const result = { ...profile, roles: profile.account.roles, email: profile.account.email };
+            const result = {
+                ...profile,
+                roles: profile.account.roles,
+                email: profile.account.email,
+                status: profile.account.status,
+            };
             delete result.account;
 
             this.cacheService.cacheUserProfile(accountId, result);
@@ -664,6 +670,14 @@ export class UserService {
             if (emails.length > 0) {
                 this.mailService.sendUserStatusMail(emails, user.fullName, status, reason);
             }
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    private async totalUser() {
+        try {
+            return this.profileRepository.count();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

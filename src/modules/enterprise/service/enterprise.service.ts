@@ -779,4 +779,12 @@ export class EnterpriseService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    async getTotalEnterprise() {
+        try {
+            return this.enterpriseRepository.count();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

@@ -467,4 +467,12 @@ export class AuthService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    public async totalUser() {
+        try {
+            return await this.accountRepository.count();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

@@ -239,7 +239,15 @@ export class JobService {
         try {
             const job = await this.jobRepository.findOne({
                 where: { jobId: id },
-                relations: ['tags', 'enterprise', 'addresses', 'categories', 'specializations', 'profiles'],
+                relations: [
+                    'tags',
+                    'enterprise',
+                    'addresses',
+                    'categories',
+                    'specializations',
+                    'profiles',
+                    'boostedJob',
+                ],
                 select: {
                     tags: true,
                     enterprise: {
@@ -256,12 +264,18 @@ export class JobService {
                         websites: true,
                         organizationType: true,
                         categories: true,
+                        status: true,
+                        isTrial: true,
                     },
                     addresses: true,
                     categories: true,
                     specializations: true,
                     profiles: {
                         profileId: true,
+                    },
+                    boostedJob: {
+                        id: true,
+                        pointsUsed: true,
                     },
                 },
             });

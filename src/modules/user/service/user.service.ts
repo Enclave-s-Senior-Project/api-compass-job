@@ -353,9 +353,6 @@ export class UserService {
             const profile = await this.profileRepository.findOne({
                 where: { profileId: profileId, account: { status: UserStatus.ACTIVE } },
                 relations: ['account'],
-                select: {
-                    account: true,
-                },
             });
             const isFavorite =
                 (await this.profileRepository

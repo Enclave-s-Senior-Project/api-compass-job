@@ -24,7 +24,7 @@ import { JwtPayload, PaginationDto } from '@common/dtos';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
-import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, UpdateJobDto } from './dtos';
+import { CreateJobDto, CreateJobWishListDto, JobFilterDto, JobResponseDto, ListJobIdsDto, UpdateJobDto } from './dtos';
 import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
 import { JobStatusEnum } from '@src/common/enums/job.enum';
@@ -63,6 +63,15 @@ export class JobController {
         return this.jobService.createJobWishList(body, user);
     }
 
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get related jobs by job ids' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('related-jobs')
+    getRelatedJobs(@Body() body: ListJobIdsDto ) {
+        return this.jobService.getRelatedJobsByJobId(body.related_jobs);
+    }
+
     @ApiBearerAuth(TOKEN_NAME)
     @ApiOperation({ description: 'Delete job from wishlist' })
     @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
@@ -71,6 +80,7 @@ export class JobController {
     deleteJobWishlist(@CurrentUser() user, @Param('id') id: string): Promise<JobResponseDto> {
         return this.jobService.deleteJobWishList(id, user);
     }
+
     @ApiBearerAuth(TOKEN_NAME)
     @HttpCode(200)
     @ApiOperation({ description: 'Get jobs from wishlist' })

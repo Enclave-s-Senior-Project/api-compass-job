@@ -22,7 +22,7 @@ import { redisProviderName } from '@cache/cache.provider';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { ValidationHelper } from '@src/helpers/validation.helper';
 import { GlobalErrorType } from '@src/common/errors/global-error';
-import { Brackets, LessThan, Not, MoreThan } from 'typeorm';
+import { Brackets, LessThan, Not, MoreThan, In } from 'typeorm';
 import { CacheService } from '@src/cache/cache.service';
 import * as _ from 'lodash';
 import { JobStatusEnum, JobTypeEnum } from '@src/common/enums/job.enum';
@@ -1258,6 +1258,66 @@ export class JobService {
     public async getTotalJob() {
         try {
             return this.jobRepository.count();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async getRelatedJobsByJobId(ids: string[]) {
+        try {
+            const jobs = await this.jobRepository.find({
+                where: { jobId: In(ids) },
+                select: {
+                    jobId: true,
+                    name: true,
+                    description: true,
+                    responsibility: true,
+                    type: true,
+                    experience: true,
+                    deadline: true,
+                    introImg: true,
+                    status: true,
+                    education: true,
+                    lowestWage: true,
+                    highestWage: true,
+                    isBoost: true,
+                    requirements: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    enterprise: {
+                        enterpriseId: true,
+                        name: true,
+                        logoUrl: true,
+                        status: true,
+                    },
+                    categories: {
+                        categoryId: true,
+                        categoryName: true,
+                    },
+                    specializations: {
+                        categoryId: true,
+                        categoryName: true,
+                    },
+                    tags: {
+                        tagId: true,
+                        name: true,
+                        color: true,
+                    },
+                    addresses: {
+                        addressId: true,
+                        country: true,
+                        city: true,
+                        street: true,
+                        zipCode: true,
+                    },
+                    boostedJob: {
+                        id: true,
+                        boostedAt: true,
+                        pointsUsed: true,
+                    },
+                },
+                relations: ['enterprise', 'categories', 'specializations', 'tags', 'addresses', 'boostedJob'],
+            });
+            return jobs;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

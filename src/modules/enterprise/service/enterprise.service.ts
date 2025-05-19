@@ -36,6 +36,7 @@ import { UpdateStatusEnterpriseDto } from '../dtos/update-status-enterprise.dto'
 import { ILike, IsNull, Not, TreeLevelColumn } from 'typeorm';
 import { FindAllDto } from '../dtos/find-all.dto';
 import { Role } from '@src/modules/auth/decorators/roles.decorator';
+import { EmbeddingService } from '@src/modules/embedding/embedding.service';
 
 @Injectable()
 export class EnterpriseService {
@@ -48,7 +49,9 @@ export class EnterpriseService {
         private readonly addressService: AddressService,
         private readonly cacheService: CacheService,
         private readonly notificationService: NotificationService,
-        private readonly mailService: MailSenderService
+        private readonly mailService: MailSenderService,
+        @Inject(forwardRef(() => EmbeddingService))
+        private readonly embeddingService: EmbeddingService
     ) {}
 
     async create(createEnterpriseDto: CreateEnterpriseDto, user: JwtPayload): Promise<EnterpriseResponseDto> {
@@ -69,6 +72,10 @@ export class EnterpriseService {
                 account: { accountId: user.accountId },
             });
             await this.enterpriseRepository.save(enterprise);
+
+            // create embedding
+            await this.embeddingService.createEnterpriseEmbedding(enterprise.enterpriseId);
+
             return new EnterpriseResponseDtoBuilder().setValue(enterprise).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -255,13 +262,28 @@ export class EnterpriseService {
         payload: UpdateCompanyInfoDto | UpdateFoundingInfoDto
     ): Promise<EnterpriseEntity> {
         try {
+            let result = null;
             if (typeof arg1 === 'string') {
                 const enterprise = await this.findOne(arg1);
-                this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
-                return this.enterpriseRepository.save({ ...enterprise, ...payload });
+
+                result = await this.enterpriseRepository.save({ ...enterprise, ...payload });
+            } else {
+                // create embedding
+                await this.embeddingService.createEnterpriseEmbedding(arg1.enterpriseId);
+
+                result = await this.enterpriseRepository.save({ ...arg1, ...payload });
             }
-            this.cacheService.deleteEnterpriseInfo(arg1.enterpriseId);
-            return this.enterpriseRepository.save({ ...arg1, ...payload });
+
+            this.cacheService.deleteEnterpriseInfo(result.enterpriseId);
+
+            // create embedding
+            if (result.status === EnterpriseStatus.ACTIVE) {
+                await this.embeddingService.createEnterpriseEmbedding(result.enterpriseId);
+            } else {
+                await this.embeddingService.deleteOneEnterpriseEmbedding(result.enterpriseId);
+            }
+
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -271,6 +293,10 @@ export class EnterpriseService {
         try {
             const enterprise = await this.findOne(id);
             this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
+
+            // delete embedding
+            await this.embeddingService.deleteOneEnterpriseEmbedding(enterprise.enterpriseId);
+
             return this.enterpriseRepository.remove(enterprise);
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -351,6 +377,14 @@ export class EnterpriseService {
             }
             if (temp.status === 'PENDING') {
                 const updateEnterprise = await this.enterpriseRepository.save({ ...temp, ...enterprise });
+
+                // create embedding
+                if (updateEnterprise.status === EnterpriseStatus.ACTIVE) {
+                    await this.embeddingService.createEnterpriseEmbedding(temp.enterpriseId);
+                } else {
+                    await this.embeddingService.deleteOneEnterpriseEmbedding(temp.enterpriseId);
+                }
+
                 return new EnterpriseResponseDtoBuilder().setValue(updateEnterprise).success().build();
             } else {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_PERMITTION);
@@ -482,6 +516,11 @@ export class EnterpriseService {
             const enterprise = await this.enterpriseRepository.findOne({
                 where: { enterpriseId: id },
                 relations: ['account', 'websites', 'addresses'],
+                select: {
+                    account: {
+                        accountId: true,
+                    },
+                },
             });
 
             if (!enterprise) {
@@ -557,6 +596,9 @@ export class EnterpriseService {
                 where: { enterpriseId: id },
                 relations: ['addresses'],
             });
+
+            // create embedding
+            await this.embeddingService.createEnterpriseEmbedding(enterprise.enterpriseId);
 
             await this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
 

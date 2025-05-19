@@ -11,6 +11,7 @@ import { AddressModule } from '@modules/address/address.module';
 import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { BoostJobModule } from '../boost-job/boost-job.module';
 import { MailModule } from '@src/mail/mail.module';
+import { EmbeddingModule } from '../embedding/embedding.module';
 
 @Module({
     imports: [
@@ -21,6 +22,7 @@ import { MailModule } from '@src/mail/mail.module';
         AddressModule,
         forwardRef(() => EnterpriseModule),
         forwardRef(() => BoostJobModule),
+        forwardRef(() => EmbeddingModule),
         MailModule,
     ],
     controllers: [JobController, JobToolsController],

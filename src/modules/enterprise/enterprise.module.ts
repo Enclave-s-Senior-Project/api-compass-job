@@ -11,6 +11,7 @@ import { CategoryModule } from '../category/category.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationModule } from '../notification/notification.module';
 import { MailModule } from '@src/mail/mail.module';
+import { EmbeddingModule } from '../embedding/embedding.module';
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { MailModule } from '@src/mail/mail.module';
         forwardRef(() => AuthModule),
         NotificationModule,
         MailModule,
+        forwardRef(() => EmbeddingModule),
     ],
     controllers: [EnterpriseController],
     providers: [EnterpriseService, EnterpriseRepository],

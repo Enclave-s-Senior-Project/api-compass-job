@@ -32,6 +32,7 @@ import { Role } from '@src/modules/auth/decorators/roles.decorator';
 import { MailSenderService } from '@src/mail/mail.service';
 import { WarningException } from '@src/common/http/exceptions/warning.exception';
 import { UpdateJobStatusDto } from '../dtos/update-job-status';
+import { EmbeddingService } from '@src/modules/embedding/embedding.service';
 @Injectable()
 export class JobService {
     constructor(
@@ -43,6 +44,7 @@ export class JobService {
         private readonly cacheService: CacheService,
         private readonly boostJobService: BoostJobService,
         private readonly mailService: MailSenderService,
+        private readonly embeddingService: EmbeddingService,
         @Inject(redisProviderName) private readonly redisCache: Redis
     ) {}
 
@@ -84,6 +86,9 @@ export class JobService {
             this.cacheService.removeEnterpriseSearchJobsCache();
 
             await this.jobRepository.save(newJob);
+
+            await this.embeddingService.createJobEmbedding(newJob.jobId);
+
             return new JobResponseDtoBuilder().setValue(newJob).success().build();
         } catch (error) {
             throw new JobResponseDtoBuilder().setCode(400).setMessageCode(JobErrorType.FETCH_JOB_FAILED).build();
@@ -722,6 +727,9 @@ export class JobService {
                 specializations,
             });
 
+            // Update embedding
+            await this.embeddingService.createJobEmbedding(jobId);
+
             // Clear cache
             this.cacheService.removeSearchJobsCache();
             this.cacheService.removeEnterpriseSearchJobsCache();
@@ -756,6 +764,9 @@ export class JobService {
 
             // delete job
             await this.jobRepository.delete({ jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } });
+
+            // delete embedding
+            await this.embeddingService.deleteOneJobEmbedding(jobId);
 
             // clear filter search cache
             this.cacheService.removeSearchJobsCache();
@@ -828,6 +839,9 @@ export class JobService {
                 );
             }
 
+            // Update embedding
+            await this.embeddingService.deleteOneJobEmbedding(jobId);
+
             // clear filter search cache
             this.cacheService.removeSearchJobsCache();
             this.cacheService.removeEnterpriseSearchJobsCache();
@@ -882,6 +896,9 @@ export class JobService {
                 existingJob.enterprise.name,
                 payload.reason
             );
+
+            // Update embedding
+            await this.embeddingService.createJobEmbedding(jobId);
 
             // Clear cache to reflect changes
             this.cacheService.removeSearchJobsCache();
@@ -966,6 +983,8 @@ export class JobService {
                 .set({ status: JobStatusEnum.EXPIRED })
                 .where('job_id IN (:...jobIds)', { jobIds: jobs.map((job) => job.jobId) })
                 .execute();
+
+            await this.embeddingService.deleteManyJobEmbedding(jobs.map((job) => job.jobId));
             return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -1031,7 +1050,12 @@ export class JobService {
 
     public async updateBoostJob(jobId: string, point: number) {
         try {
-            return await this.jobRepository.update({ jobId }, { isBoost: true });
+            const result = await this.jobRepository.update({ jobId }, { isBoost: true });
+
+            // Update embedding
+            await this.embeddingService.createJobEmbedding(jobId);
+
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

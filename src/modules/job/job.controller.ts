@@ -68,7 +68,7 @@ export class JobController {
     @ApiOperation({ description: 'Get related jobs by job ids' })
     @ApiInternalServerErrorResponse({ description: 'Server error' })
     @Post('related-jobs')
-    getRelatedJobs(@Body() body: ListJobIdsDto ) {
+    getRelatedJobs(@Body() body: ListJobIdsDto) {
         return this.jobService.getRelatedJobsByJobId(body.related_jobs);
     }
 

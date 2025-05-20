@@ -49,7 +49,7 @@ export class BoostJobCronService {
             // Add expired jobs to the BullMQ queue
             await this.boostJobExpiredQueue.addBulk(
                 expiredJobs.map<{ name: string; data: BoostJobExpiredData }>((temp) => ({
-                    name: `expired-boost-job-${temp.job.jobId}`,
+                    name: `expired-boost-job-${temp.job?.jobId}`,
                     data: {
                         jobId: temp.job.jobId,
                         jobName: temp.job.name,

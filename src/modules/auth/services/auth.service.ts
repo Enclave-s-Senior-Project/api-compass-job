@@ -421,11 +421,15 @@ export class AuthService {
 
     public async checkEmail(email: string, accountId: string): Promise<Boolean> {
         try {
-            const temp = await this.accountRepository.exists({ where: { email: email, accountId: accountId } });
-            if (temp) {
+            const temp = await this.accountRepository.findOne({
+                where: { email: email },
+                select: { accountId: true, email: true },
+            });
+            if (temp?.accountId === accountId) {
                 return true;
+            } else {
+                return false;
             }
-            return false;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

@@ -6,6 +6,13 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class FindAllDto extends PaginationDto {
     @ApiProperty({
+        description: 'Filter enterprises by their name',
+        required: false,
+    })
+    @IsOptional()
+    readonly name?: string;
+
+    @ApiProperty({
         description: 'Filter enterprises by their status',
         enum: EnterpriseStatus,
         required: false,
@@ -19,9 +26,9 @@ export class FindAllDto extends PaginationDto {
         enum: OrganizationType,
         required: false,
     })
-    @IsEnum(OrganizationType)
+    @IsEnum(OrganizationType, { each: true })
     @IsOptional()
-    readonly organizationType?: OrganizationType;
+    organizationType?: OrganizationType[];
 
     @ApiProperty({
         description: 'Filter enterprises by category ID',
@@ -34,11 +41,13 @@ export class FindAllDto extends PaginationDto {
     readonly categoryId?: string;
 
     @ApiProperty({
-        description: 'Filter enterprises by address',
+        description: 'Filter enterprises by one or more addresses',
         required: false,
-        example: 'New York',
+        example: ['New York', 'San Francisco'],
+        isArray: true,
+        type: String,
     })
-    @IsString()
+    @IsString({ each: true })
     @IsOptional()
-    readonly address?: string;
+    readonly address?: string[];
 }

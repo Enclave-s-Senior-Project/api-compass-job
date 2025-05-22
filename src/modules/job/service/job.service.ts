@@ -1027,7 +1027,7 @@ export class JobService {
     public async getJobByIdEnterprise(id: string, take: number) {
         try {
             const jobs = await this.jobRepository.find({
-                where: { enterprise: { enterpriseId: id } },
+                where: { enterprise: { enterpriseId: id }, status: JobStatusEnum.OPEN },
                 take: take,
                 order: { createdAt: 'DESC' },
             });

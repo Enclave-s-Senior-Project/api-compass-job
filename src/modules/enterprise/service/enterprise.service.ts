@@ -528,9 +528,11 @@ export class EnterpriseService {
             if (!enterprise) {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
             }
-            const categories = await this.categoriesService.findByIds(enterprise.categories);
 
-            (enterprise as any).categories = categories;
+            if (enterprise?.categories?.length > 0) {
+                const categories = await this.categoriesService.findByIds(enterprise.categories);
+                (enterprise as any).categories = categories;
+            }
 
             const jobs = await this.jobService.getJobByIdEnterprise(id, 5);
             (enterprise as any).jobs = jobs;

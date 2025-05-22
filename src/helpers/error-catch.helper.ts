@@ -5,7 +5,8 @@ export class ErrorCatchHelper {
     private static logger = new Logger(ErrorCatchHelper.name);
     public static serviceCatch(error: any) {
         // Only log error in non-production environments
-        if (process.env.NODE_ENV !== 'production') this.logger.error('Error in service:', { ...error });
+        this.logger.error('Error in service:', { ...error });
+        console.table(error);
 
         if (error instanceof HttpException) {
             return error;

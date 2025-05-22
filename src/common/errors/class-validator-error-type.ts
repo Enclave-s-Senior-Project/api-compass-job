@@ -174,3 +174,10 @@ export enum UpdateStatusProfileDtoErrorType {
 export enum GetOverviewEnterpriseDtoErrorType {
     NAME_NOT_STRING = 'NAME_NOT_STRING',
 }
+
+export enum CreateJobDtoErrorType {
+    JOB_ID_REQUIRED = 'JOB_ID_REQUIRED',
+    JOB_ID_NOT_STRING = 'JOB_ID_NOT_STRING',
+    PROFILE_ID_REQUIRED = 'PROFILE_ID_REQUIRED',
+    PROFILE_ID_NOT_STRING = 'PROFILE_ID_NOT_STRING',
+}

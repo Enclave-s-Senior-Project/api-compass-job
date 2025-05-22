@@ -7,6 +7,7 @@ export class ErrorCatchHelper {
         // Only log error in non-production environments
         this.logger.error('Error in service:', { ...error });
         console.table(error);
+        console.log(error);
 
         if (error instanceof HttpException) {
             return error;

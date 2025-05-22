@@ -29,11 +29,16 @@ import { Request } from 'express';
 import { JobWishlistDto } from './dtos/job-wishlist.dto';
 import { JobStatusEnum } from '@src/common/enums/job.enum';
 import { UpdateJobStatusDto } from './dtos/update-job-status';
+import { RecentJobService } from './service/recent-job.service';
+import { CreateRecentJobDto } from './dtos/create-recent-job';
 
 @ApiTags('Job')
 @Controller({ path: 'job', version: '1' })
 export class JobController {
-    constructor(private readonly jobService: JobService) {}
+    constructor(
+        private readonly jobService: JobService,
+        private readonly recentJobService: RecentJobService
+    ) {}
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)
@@ -70,6 +75,15 @@ export class JobController {
     @Post('related-jobs')
     getRelatedJobs(@Body() body: ListJobIdsDto) {
         return this.jobService.getRelatedJobsByJobId(body.related_jobs);
+    }
+
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Create recent job by job id and profile id' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Post('recent')
+    createRecentJob(@Body() body: CreateRecentJobDto) {
+        return this.recentJobService.createRecentJob(body);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

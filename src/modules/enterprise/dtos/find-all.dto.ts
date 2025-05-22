@@ -6,6 +6,13 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class FindAllDto extends PaginationDto {
     @ApiProperty({
+        description: 'Filter enterprises by their name',
+        required: false,
+    })
+    @IsOptional()
+    readonly name?: string;
+
+    @ApiProperty({
         description: 'Filter enterprises by their status',
         enum: EnterpriseStatus,
         required: false,

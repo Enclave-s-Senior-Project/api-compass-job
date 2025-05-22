@@ -185,8 +185,18 @@ export class EnterpriseService {
                 .skip(queries.skip)
                 .orderBy('enterprise.createdAt', 'DESC');
 
-            if (queries.options) {
-                queryBuilder.andWhere('enterprise.name ILIKE :name', { name: `${queries.options}%` });
+            if (queries.name) {
+                console.log('queries.name', queries.name);
+                queryBuilder.andWhere(
+                    `(
+                    to_tsvector('english', enterprise.name) @@ plainto_tsquery('english', :name)
+                    OR enterprise.name ILIKE :partialName
+                )`,
+                    {
+                        name: queries.name,
+                        partialName: `%${queries.name}%`,
+                    }
+                );
             }
 
             if (queries.status && queries.status !== EnterpriseStatus.PENDING) {
@@ -215,7 +225,9 @@ export class EnterpriseService {
 
             let enterprisesWithCategories = [];
 
-            if (profiles?.length > 0) enterprisesWithCategories = await this.getCategoriesOfEnterprises(profiles);
+            if (profiles?.length > 0) {
+                enterprisesWithCategories = await this.getCategoriesOfEnterprises(profiles);
+            }
 
             const meta = new PageMetaDto({
                 pageOptionsDto: queries,

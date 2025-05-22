@@ -14,6 +14,8 @@ export class CacheService {
     private verifyEmailKey: string;
     private refreshTokenKey: string;
     private forgetPasswordKey: string;
+    private listEnterprise: string;
+    private listCandidate: string;
 
     constructor(@Inject(redisProviderName) private readonly redisClient: Redis) {
         this.filterJobKey = 'jobfilter:';
@@ -26,6 +28,8 @@ export class CacheService {
         this.verifyEmailKey = 'verify:';
         this.refreshTokenKey = 'refreshtoken:';
         this.forgetPasswordKey = 'forget-password:';
+        this.listEnterprise = 'list-enterprise:';
+        this.listCandidate = 'list-candidate:';
     }
 
     async deleteCache(extraExcludePatterns: string[] = []) {
@@ -377,5 +381,28 @@ export class CacheService {
 
     public async removeEnterpriseJobFilterData() {
         return await this.removeMultipleCacheWithPrefix(this.enterpriseFilterJobKey);
+    }
+
+    public async cacheListEnterprise(key: string, results: any) {
+        try {
+            const cacheKey = this.listEnterprise + key;
+            await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async getListEnterprise(key: string) {
+        try {
+            const cacheKey = this.listEnterprise + key;
+            const cacheResult = await this.redisClient.get(cacheKey);
+            return cacheResult ? JSON.parse(cacheResult) : null;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeListEnterprise() {
+        return await this.removeMultipleCacheWithPrefix(this.listEnterprise);
     }
 }

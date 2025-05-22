@@ -1,23 +1,15 @@
-import { BadRequestException, forwardRef, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EnterpriseRepository } from '../repositories';
 import { CreateEnterpriseDto } from '../dtos/create-enterprise.dto';
 import { UpdateEnterpriseDto } from '../dtos/update-enterprise.dto';
-import {
-    EnterpriseResponseDto,
-    EnterpriseResponseDtoBuilder,
-    RegisterPremiumEnterpriseDto,
-    UpdateCompanyAddressDto,
-} from '../dtos';
+import { EnterpriseResponseDto, EnterpriseResponseDtoBuilder, UpdateCompanyAddressDto } from '../dtos';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
 import { EnterpriseErrorType } from '@common/errors/enterprises-error-type';
 import { UpdateCompanyInfoDto } from '../dtos/update-company-info.dto';
 import { EnterpriseEntity } from '@database/entities';
-import { redisProviderName } from '@cache/cache.provider';
-import { RedisCommander } from 'ioredis';
 import { EnterpriseStatus } from '@common/enums';
 import { UpdateFoundingInfoDto } from '../dtos/update-founding-dto';
 import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
-import { JobResponseDtoBuilder } from '@modules/job/dtos';
 import { JobService } from '@modules/job/service/job.service';
 import { CreateCandidateWishListDto } from '../dtos/create-candidate-wishlist.dto';
 import { UserService } from '@src/modules/user/service';
@@ -33,7 +25,7 @@ import { NotificationType } from '@src/database/entities/notification.entity';
 import { MailSenderService } from '@src/mail/mail.service';
 import { WarningException } from '@src/common/http/exceptions/warning.exception';
 import { UpdateStatusEnterpriseDto } from '../dtos/update-status-enterprise.dto';
-import { ILike, IsNull, Not, TreeLevelColumn } from 'typeorm';
+import { ILike, IsNull, Not } from 'typeorm';
 import { FindAllDto } from '../dtos/find-all.dto';
 import { Role } from '@src/modules/auth/decorators/roles.decorator';
 import { EmbeddingService } from '@src/modules/embedding/embedding.service';
@@ -74,6 +66,7 @@ export class EnterpriseService {
                 account: { accountId: user.accountId },
             });
             await this.enterpriseRepository.save(enterprise);
+            this.cacheService.removeListEnterprise();
 
             // create embedding
             await this.embeddingService.createEnterpriseEmbedding(enterprise.enterpriseId);
@@ -166,6 +159,11 @@ export class EnterpriseService {
 
     async findAll(queries: FindAllDto) {
         try {
+            const resultCache = await this.cacheService.getListEnterprise(JSON.stringify(queries));
+
+            if (resultCache) {
+                return new EnterpriseResponseDtoBuilder().setValue(resultCache).build();
+            }
             const queryBuilder = this.enterpriseRepository
                 .createQueryBuilder('enterprise')
                 .leftJoinAndSelect('enterprise.addresses', 'addresses')
@@ -189,13 +187,24 @@ export class EnterpriseService {
                     'addresses.street',
                     'addresses.zipCode',
                     'addresses.mixedAddress',
+                    'enterprise.bio',
                 ])
                 .take(queries.take)
                 .skip(queries.skip)
                 .orderBy('enterprise.createdAt', 'DESC');
 
-            if (queries.options) {
-                queryBuilder.andWhere('enterprise.name ILIKE :name', { name: `${queries.options}%` });
+            if (queries.name) {
+                console.log('queries.name', queries.name);
+                queryBuilder.andWhere(
+                    `(
+                    to_tsvector('english', enterprise.name) @@ plainto_tsquery('english', :name)
+                    OR enterprise.name ILIKE :partialName
+                )`,
+                    {
+                        name: queries.name,
+                        partialName: `%${queries.name}%`,
+                    }
+                );
             }
 
             if (queries.status && queries.status !== EnterpriseStatus.PENDING) {
@@ -204,9 +213,9 @@ export class EnterpriseService {
                 queryBuilder.andWhere('enterprise.status != :status', { status: EnterpriseStatus.PENDING });
             }
 
-            if (queries.organizationType) {
-                queryBuilder.andWhere('enterprise.organizationType = :organizationType', {
-                    organizationType: queries.organizationType,
+            if (queries.organizationType && queries.organizationType.length > 0) {
+                queryBuilder.andWhere('enterprise.organizationType IN (:...organizationTypes)', {
+                    organizationTypes: queries.organizationType,
                 });
             }
 
@@ -224,12 +233,15 @@ export class EnterpriseService {
 
             let enterprisesWithCategories = [];
 
-            if (profiles?.length > 0) enterprisesWithCategories = await this.getCategoriesOfEnterprises(profiles);
+            if (profiles?.length > 0) {
+                enterprisesWithCategories = await this.getCategoriesOfEnterprises(profiles);
+            }
 
             const meta = new PageMetaDto({
                 pageOptionsDto: queries,
                 itemCount: total,
             });
+            this.cacheService.cacheListEnterprise(JSON.stringify(queries), new PageDto(profiles, meta));
             return new EnterpriseResponseDtoBuilder()
                 .setValue(new PageDto<any>(enterprisesWithCategories, meta))
                 .build();
@@ -284,7 +296,7 @@ export class EnterpriseService {
             } else {
                 await this.embeddingService.deleteOneEnterpriseEmbedding(result.enterpriseId);
             }
-
+            this.cacheService.removeListEnterprise();
             return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -295,6 +307,7 @@ export class EnterpriseService {
         try {
             const enterprise = await this.findOne(id);
             this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
+            await this.cacheService.removeListEnterprise();
 
             // delete embedding
             await this.embeddingService.deleteOneEnterpriseEmbedding(enterprise.enterpriseId);
@@ -350,7 +363,7 @@ export class EnterpriseService {
                 status: EnterpriseStatus.ACTIVE,
             },
         });
-
+        await this.cacheService.removeListEnterprise();
         if (!enterprise) {
             throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_ACTIVE);
         }
@@ -379,6 +392,7 @@ export class EnterpriseService {
             }
             if (temp.status === 'PENDING') {
                 const updateEnterprise = await this.enterpriseRepository.save({ ...temp, ...enterprise });
+                await this.cacheService.removeListEnterprise();
 
                 // create embedding
                 if (updateEnterprise.status === EnterpriseStatus.ACTIVE) {
@@ -559,7 +573,7 @@ export class EnterpriseService {
             enterprise.isPremium = isPremium;
             enterprise.isTrial = isTrial;
             enterprise.totalPoints = totalPoints + currentPoint;
-
+            this.cacheService.removeListEnterprise();
             return this.enterpriseRepository.save(enterprise);
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
@@ -684,6 +698,7 @@ export class EnterpriseService {
 
             // Send email to the enterprise about the status change
             this.sendEmailEnterpriseStatusChange(enterprise, payload.status, payload.reason);
+            this.cacheService.removeListEnterprise();
 
             return new EnterpriseResponseDtoBuilder().success().build();
         } catch (error) {

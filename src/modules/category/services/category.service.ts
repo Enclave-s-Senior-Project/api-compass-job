@@ -195,14 +195,23 @@ export class CategoryService {
     }
 
     async findByIds(ids: string[]): Promise<CategoryEntity[]> {
-        return this.categoryRepository.find({
-            where: { categoryId: In(ids), isActive: true },
-            select: {
-                categoryId: true,
-                categoryName: true,
-                isActive: true,
-            },
-        });
+        if (!ids || ids.length === 0) {
+            return [];
+        }
+        try {
+            const result = await this.categoryRepository.find({
+                where: { categoryId: In(ids) },
+                select: {
+                    categoryId: true,
+                    categoryName: true,
+                    isActive: true,
+                },
+            });
+
+            return result;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
     }
 
     async checkFamilyCategory(parentId: string, childId: string): Promise<boolean> {

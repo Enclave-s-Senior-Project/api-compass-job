@@ -56,7 +56,6 @@ export class EnterpriseController {
     @ApiResponse({ status: 200, description: 'Enterprise updated successfully.' })
     @Get('status')
     getStatusEnterprise(@CurrentUser() user: JwtPayload) {
-        console.log('user', user);
         return this.enterpriseService.getStatusEnterprises(user.enterpriseId);
     }
     @HttpCode(200)
@@ -93,7 +92,24 @@ export class EnterpriseController {
     @ApiOperation({ summary: 'Retrieve all enterprises' })
     @ApiResponse({ status: 200, description: 'List of enterprises.' })
     findAll(@Query() paginationDto: FindAllDto): Promise<EnterpriseResponseDto> {
-        return this.enterpriseService.findAll(paginationDto);
+        const safePaginationDto: FindAllDto = {
+            ...paginationDto,
+            organizationType: Array.isArray(paginationDto.organizationType)
+                ? paginationDto.organizationType
+                : paginationDto.organizationType
+                  ? [paginationDto.organizationType]
+                  : undefined,
+
+            address: Array.isArray(paginationDto.address)
+                ? paginationDto.address
+                : paginationDto.address
+                  ? [paginationDto.address]
+                  : undefined,
+
+            skip: paginationDto.skip ?? 0,
+            take: paginationDto.take ?? 10,
+        };
+        return this.enterpriseService.findAll(safePaginationDto);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

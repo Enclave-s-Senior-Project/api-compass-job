@@ -157,6 +157,11 @@ export class EnterpriseService {
 
     async findAll(queries: FindAllDto) {
         try {
+            const resultCache = await this.cacheService.getListEnterprise(JSON.stringify(queries));
+
+            if (resultCache) {
+                return new EnterpriseResponseDtoBuilder().setValue(resultCache).build();
+            }
             const queryBuilder = this.enterpriseRepository
                 .createQueryBuilder('enterprise')
                 .leftJoinAndSelect('enterprise.addresses', 'addresses')
@@ -180,6 +185,7 @@ export class EnterpriseService {
                     'addresses.street',
                     'addresses.zipCode',
                     'addresses.mixedAddress',
+                    'enterprise.bio',
                 ])
                 .take(queries.take)
                 .skip(queries.skip)
@@ -205,9 +211,9 @@ export class EnterpriseService {
                 queryBuilder.andWhere('enterprise.status != :status', { status: EnterpriseStatus.PENDING });
             }
 
-            if (queries.organizationType) {
-                queryBuilder.andWhere('enterprise.organizationType = :organizationType', {
-                    organizationType: queries.organizationType,
+            if (queries.organizationType && queries.organizationType.length > 0) {
+                queryBuilder.andWhere('enterprise.organizationType IN (:...organizationTypes)', {
+                    organizationTypes: queries.organizationType,
                 });
             }
 
@@ -233,6 +239,7 @@ export class EnterpriseService {
                 pageOptionsDto: queries,
                 itemCount: total,
             });
+            this.cacheService.cacheListEnterprise(JSON.stringify(queries), new PageDto(profiles, meta));
             return new EnterpriseResponseDtoBuilder()
                 .setValue(new PageDto<any>(enterprisesWithCategories, meta))
                 .build();

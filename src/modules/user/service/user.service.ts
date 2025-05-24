@@ -109,7 +109,7 @@ export class UserService {
      * @param accountId {string}
      * @returns {Promise<ProfileEntity | null>}
      */
-    public async getUserByAccountId(accountId: string, useCache: boolean = true): Promise<ProfileAndRoles> | null {
+    public async getUserByAccountId(accountId: string, useCache: boolean = true): Promise<any> {
         try {
             if (useCache) {
                 const cachedProfile = await this.cacheService.getUserProfile(accountId);

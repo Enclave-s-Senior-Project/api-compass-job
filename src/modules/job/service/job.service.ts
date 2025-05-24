@@ -229,6 +229,8 @@ export class JobService {
                 select: {
                     enterprise: {
                         enterpriseId: true,
+                        email: true,
+                        name: true,
                     },
                     jobId: true,
                     status: true,

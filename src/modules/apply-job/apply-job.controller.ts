@@ -36,6 +36,14 @@ export class ApplyJobController {
         return this.applyJobService.getAppliedJobByProfileId(user?.profileId, pagination);
     }
 
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Get totals applicants' })
+    @Get('/total')
+    async getTotalAppliedJob(@CurrentUser() user) {
+        return this.applyJobService.getTotalAppliedJob(user?.enterpriseId);
+    }
+
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
     @Roles(Role.ENTERPRISE, Role.ADMIN)

@@ -1,53 +1,76 @@
 version: '3.8'
 
 services:
-  api:
-    container_name: api-job-compass
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: pnpm run start:dev
-    depends_on:
-      - boilerplate_db
-      - redis
-    env_file:
-      - .env
-    ports:
-      - '3001:3001'
-    volumes:
-      - .:/app
-      - /app/node_modules
-
-  redis:
-    container_name: redis_cache
-    image: redis:latest
-    restart: always
-    env_file:
-      - .env
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    ports:
-      - '${REDIS_PORT}:6379'
-    volumes:
-      - redis_data:/data
-
-  boilerplate_db:
-    container_name: boilerplate_db
-    image: postgres:12.3-alpine
-    restart: always
-    env_file:
+  postgres-vector:
+    image: ankane/pgvector:latest
+    container_name: postgres-vector
+    env_file: 
       - .env
     environment:
-      - POSTGRES_USER=${TYPEORM_USERNAME}
-      - POSTGRES_PASSWORD=${TYPEORM_PASSWORD}
-      - POSTGRES_DB=${TYPEORM_DATABASE}
-      - PG_DATA=/var/lib/postgresql/data
-    ports:
-      - '${TYPEORM_PORT}:5432'
+      - POSTGRES_USER=${VECTOR_DB_USERNAME}
+      - POSTGRES_PASSWORD=${VECTOR_DB_PASSWORD}
+      - POSTGRES_DB=${VECTOR_DB_DATABASE}
+      - VECTOR_DB_CONNECTION=${VECTOR_DB_CONNECTION}
+      - VECTOR_DB_HOST=postgres-vector
+      - VECTOR_DB_USERNAME=${VECTOR_DB_USERNAME}
+      - VECTOR_DB_PASSWORD=${VECTOR_DB_PASSWORD}
+      - VECTOR_DB_DATABASE=${VECTOR_DB_DATABASE}
+      - VECTOR_DB_PORT=${VECTOR_DB_PORT}
+      - VECTOR_DB_SYNCHRONIZE=${VECTOR_DB_SYNCHRONIZE}
+      - VECTOR_DB_LOGGING=${VECTOR_DB_LOGGING}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - /mnt/mydata/docker/postgres-vector:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - capstone-network
+    restart: unless-stopped
 
-volumes:
-  redis_data:
-    driver: local
-  pgdata:
-    driver: local
+  postgres-main:
+    image: postgres
+    container_name: postgres-main
+    env_file: 
+      - .env
+    environment:
+      - POSTGRES_USER=${MAIN_DB_USERNAME}
+      - POSTGRES_PASSWORD=${MAIN_DB_PASSWORD}
+      - POSTGRES_DB=${MAIN_DB_DATABASE}
+      - MAIN_DB_CONNECTION=${MAIN_DB_CONNECTION}
+      - MAIN_DB_HOST=postgres-main
+      - MAIN_DB_USERNAME=${MAIN_DB_USERNAME}
+      - MAIN_DB_PASSWORD=${MAIN_DB_PASSWORD}
+      - MAIN_DB_DATABASE=${MAIN_DB_DATABASE}
+      - MAIN_DB_PORT=${MAIN_DB_PORT}
+      - MAIN_DB_AUTOLOAD=${MAIN_DB_AUTOLOAD}
+      - MAIN_DB_SYNCHRONIZE=${MAIN_DB_SYNCHRONIZE}
+      - MAIN_DB_LOGGING=${MAIN_DB_LOGGING}
+    volumes:
+      - /mnt/mydata/docker/postgres-main:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - capstone-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD} --user ${REDIS_USER} on >${REDIS_PASSWORD}
+    env_file: 
+      - .env
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_HOST=redis
+    volumes:
+      - /mnt/mydata/docker/redis:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - capstone-network
+    restart: unless-stopped
+
+networks:
+  capstone-network:
+    driver: bridge

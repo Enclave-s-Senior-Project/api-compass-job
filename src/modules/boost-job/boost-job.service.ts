@@ -9,13 +9,15 @@ import { BoostJobErrorType } from '@src/common/errors/boost-job-error-type';
 import { JobStatusEnum } from '@src/common/enums/job.enum';
 import { BoostedJobsEntity } from '@src/database/entities';
 import { Between } from 'typeorm';
+import { EmbeddingService } from '../embedding/embedding.service';
 @Injectable()
 export class BoostJobService {
     constructor(
         @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
         private readonly enterpriseService: EnterpriseService,
         private readonly boostedJobRepo: BoostJobRepository,
-        private readonly cacheService: CacheService
+        private readonly cacheService: CacheService,
+        private readonly embeddingService: EmbeddingService
     ) {}
 
     async create(data: CreateBoostJobDto, enterpriseId: string) {
@@ -49,7 +51,7 @@ export class BoostJobService {
                 throw new BadRequestException(BoostJobErrorType.BOOST_JOB_LIMIT_EXCEEDED);
             }
 
-            const boostedJob = await this.boostedJobRepo.create({
+            const boostedJob = this.boostedJobRepo.create({
                 ...data,
                 job,
                 enterprise,
@@ -58,6 +60,9 @@ export class BoostJobService {
                 this.jobService.updateBoostJob(data.jobId, data.pointsUsed),
                 this.boostedJobRepo.save(boostedJob),
             ]);
+
+            await this.embeddingService.createJobEmbedding(data.jobId);
+
             this.cacheService.removeEnterpriseSearchJobsCache();
             this.cacheService.removeSearchJobsCache();
             this.enterpriseService.updateBoostLimit(enterpriseId, -data.pointsUsed);

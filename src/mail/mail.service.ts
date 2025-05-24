@@ -431,7 +431,6 @@ export class MailSenderService {
         coverLetter: string,
         email: string
     ): Promise<boolean> {
-
         // Sanitize inputs to prevent XSS or invalid data
         const sanitizedCoverLetter = coverLetter ? this.sanitizeHtml(coverLetter) : 'No cover letter provided';
         const sanitizedEnterpriseContactName = enterpriseContactName || 'Hiring Manager';

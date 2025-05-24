@@ -6,9 +6,10 @@ import { EnterpriseModule } from '@modules/enterprise/enterprise.module';
 import { BoostJobRepository } from './repositories/boost-job.repository';
 import { TmpModule } from '@modules/tmp/tmp.module';
 import { CacheModule } from '@src/cache/cache.module';
+import { EmbeddingModule } from '../embedding/embedding.module';
 
 @Module({
-    imports: [EnterpriseModule, TmpModule, CacheModule, forwardRef(() => JobModule)],
+    imports: [EnterpriseModule, TmpModule, CacheModule, forwardRef(() => JobModule), EmbeddingModule],
     controllers: [BoostJobController],
     providers: [BoostJobService, BoostJobRepository],
     exports: [BoostJobService],

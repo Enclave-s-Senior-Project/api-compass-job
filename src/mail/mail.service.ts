@@ -14,6 +14,7 @@ import { EnterpriseStatus } from '@src/common/enums';
 import { enterpriseStatusTemplate } from './templates/enterprise-status.html';
 import { UserStatus } from '@src/database/entities/account.entity';
 import { BoostJobExpiredData } from '@src/modules/boost-job-cron/boost-job-cron.service';
+import { applyJobToEnterprise } from './templates/apply-job-to-enterprise.html';
 
 @Injectable()
 export class MailSenderService {
@@ -65,7 +66,7 @@ export class MailSenderService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            this.transporter.sendMail(mailOptions);
             this.logger.log(`Verification email sent to ${email}`);
             return true;
         } catch (error) {
@@ -133,7 +134,7 @@ export class MailSenderService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            this.transporter.sendMail(mailOptions);
             this.logger.log(`Application status email sent to ${email}`);
             return true;
         } catch (error) {
@@ -211,7 +212,7 @@ export class MailSenderService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            this.transporter.sendMail(mailOptions);
             this.logger.log(`Job closure email sent to ${email}`);
             return true;
         } catch (error) {
@@ -266,7 +267,7 @@ export class MailSenderService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            this.transporter.sendMail(mailOptions);
             this.logger.log(`Job status change notification sent to ${to} for job ${jobId}`);
             return true;
         } catch (error) {
@@ -325,7 +326,7 @@ export class MailSenderService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            this.transporter.sendMail(mailOptions);
             this.logger.log(`Enterprise status email sent to ${emails.join(', ')}`);
             return true;
         } catch (error) {
@@ -374,7 +375,7 @@ export class MailSenderService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            this.transporter.sendMail(mailOptions);
             this.logger.log(`Account status email sent to ${emails.join(', ')}`);
             return true;
         } catch (error) {
@@ -419,5 +420,92 @@ export class MailSenderService {
                 this.logger.error(`Failed to send job expired email: ${error.message}`);
                 return false;
             });
+    }
+    async sendEmailToEnterpriseWhenUserApplyJob(
+        enterpriseContactName: string,
+        jobTitle: string,
+        companyName: string,
+        applicantName: string,
+        applicantEmail: string,
+        cvLink: string,
+        coverLetter: string,
+        email: string
+    ): Promise<boolean> {
+
+        // Sanitize inputs to prevent XSS or invalid data
+        const sanitizedCoverLetter = coverLetter ? this.sanitizeHtml(coverLetter) : 'No cover letter provided';
+        const sanitizedEnterpriseContactName = enterpriseContactName || 'Hiring Manager';
+        const sanitizedApplicantName = applicantName || 'Applicant';
+        const sanitizedApplicantEmail = applicantEmail || 'N/A';
+        const sanitizedJobTitle = jobTitle || 'Unknown Position';
+        const sanitizedCompanyName = companyName || 'Your Company';
+        const sanitizedCvLink = cvLink || '#'; // Fallback to '#' if CV link is missing
+        const sanitizedSupportEmail = process.env.SUPPORT_EMAIL || 'support@yourcompany.com';
+
+        // Replace placeholders in the email template
+        const mail = applyJobToEnterprise
+            .replace(/{{enterpriseContactName}}/g, sanitizedEnterpriseContactName)
+            .replace(/{{jobTitle}}/g, sanitizedJobTitle)
+            .replace(/{{companyName}}/g, sanitizedCompanyName)
+            .replace(/{{applicantName}}/g, sanitizedApplicantName)
+            .replace(/{{applicantEmail}}/g, sanitizedApplicantEmail)
+            .replace(/{{cvLink}}/g, sanitizedCvLink)
+            .replace(/{{coverLetter}}/g, sanitizedCoverLetter)
+            .replace(/{{supportEmail}}/g, sanitizedSupportEmail);
+
+        const mailOptions: Mail.Options = {
+            from: `"${process.env.MAILER_NAME || 'Recruitment Team'}" <${process.env.MAILER_USER}>`,
+            to: email,
+            subject: `New Application for ${sanitizedJobTitle} at ${sanitizedCompanyName}`,
+            html: mail,
+        };
+
+        try {
+            // Validate email and CV link
+            if (!this.isValidEmail(email)) {
+                throw new Error('Invalid recipient email address');
+            }
+            if (cvLink && !this.isValidUrl(cvLink)) {
+                throw new Error('Invalid CV link provided');
+            }
+
+            await this.transporter.sendMail(mailOptions);
+            this.logger.log(`Application email sent to ${email} for job ${sanitizedJobTitle}`);
+            return true;
+        } catch (error) {
+            this.logger.error(`Failed to send email to ${email}: ${error.message}`, error.stack);
+            return false; // Fixed: Return false on failure to match Promise<boolean>
+        }
+    }
+
+    // Helper method to validate email
+    private isValidEmail(email: string): boolean {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Helper method to validate URL
+    private isValidUrl(url: string): boolean {
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    // Helper method to sanitize HTML input
+    private sanitizeHtml(input: string): string {
+        // Basic sanitization to prevent XSS; consider using a library like 'sanitize-html' for production
+        return input.replace(/[<>&"']/g, (match) => {
+            const escape: { [key: string]: string } = {
+                '<': '&lt;',
+                '>': '&gt;',
+                '&': '&amp;',
+                '"': '&quot;',
+                "'": '&#x27;',
+            };
+            return escape[match];
+        });
     }
 }

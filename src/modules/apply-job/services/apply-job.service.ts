@@ -4,7 +4,7 @@ import { BadRequestException, Injectable, MethodNotAllowedException, NotFoundExc
 import { CreateApplyJobDto } from '../dtos/create-apply-job.dto';
 import { ApplyJobRepository } from '../repositories/apply-job.repository';
 import { JwtPayload, PageDto, PageMetaDto, PaginationDto } from '@common/dtos';
-import { ApplyJobResponseDtoBuilder } from '../dtos';
+import { ApplyJobResponseDto, ApplyJobResponseDtoBuilder } from '../dtos';
 import { JobErrorType, UserErrorType } from '@common/errors';
 import { CvService } from '@modules/cv/services/cv.service';
 import { CvErrorType } from '@common/errors/cv-error-type';
@@ -35,7 +35,7 @@ export class ApplyJobService {
         private readonly mailService: MailSenderService,
         private readonly cacheService: CacheService
     ) {}
-    async applyJob(createApplyJobDto: CreateApplyJobDto, user: JwtPayload) {
+    async applyJob(createApplyJobDto: CreateApplyJobDto, user: JwtPayload): Promise<ApplyJobResponseDto> {
         try {
             const { cvId, coverLetter, jobId } = createApplyJobDto;
 
@@ -56,18 +56,19 @@ export class ApplyJobService {
             }
 
             if (job?.enterprise?.enterpriseId === user.enterpriseId) {
-                throw new NotFoundException(JobErrorType.CAN_NOT_APPLY_OWN_JOB);
+                throw new BadRequestException(JobErrorType.CAN_NOT_APPLY_OWN_JOB);
             }
 
             if (!cv) {
                 throw new NotFoundException(CvErrorType.CV_NOT_FOUND);
             }
+
             if (!profile) {
                 throw new NotFoundException(UserErrorType.USER_NOT_FOUND);
             }
 
             if (existingApply) {
-                throw new NotFoundException(AppliedJobErrorType.ALREADY_APPLIED);
+                throw new BadRequestException(AppliedJobErrorType.ALREADY_APPLIED);
             }
 
             const applyJob = this.applyJobRepository.create({
@@ -79,9 +80,21 @@ export class ApplyJobService {
             });
 
             await this.applyJobRepository.save(applyJob);
+
+            this.mailService.sendEmailToEnterpriseWhenUserApplyJob(
+                'Hiring Manager',
+                job.name || job.name,
+                job.enterprise.name || job.enterprise.name,
+                profile.fullName || profile.fullName || 'Applicant',
+                profile.email,
+                cv.cvUrl,
+                coverLetter,
+                job.enterprise.email
+            );
             await this.cacheService.removeEnterpriseJobFilterData();
             return new ApplyJobResponseDtoBuilder().success().build();
         } catch (error) {
+            console.error('Error in applyJob:', error);
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
@@ -484,6 +497,16 @@ export class ApplyJobService {
                 applyCount: parseInt(job.applyCount, 10),
             }));
             return result;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async getTotalAppliedJob(enterpriseId: string) {
+        try {
+            const total = await this.applyJobRepository.count({
+                where: { job: { enterprise: { enterpriseId } } },
+            });
+            return new ApplyJobResponseDtoBuilder().setValue(total).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

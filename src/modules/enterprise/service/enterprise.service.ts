@@ -575,38 +575,24 @@ export class EnterpriseService {
                 throw new NotFoundException(EnterpriseErrorType.ENTERPRISE_NOT_FOUND);
             }
 
-            const addressIds = (enterprise.addresses || []).map((a) => a.addressId);
-
-            if (addressIds.length > 0) {
-                await Promise.all([
-                    this.enterpriseRepository
-                        .createQueryBuilder()
-                        .relation(EnterpriseEntity, 'addresses')
-                        .of(enterprise)
-                        .remove(addressIds),
-                    this.addressService.remove(addressIds),
-                ]);
+            if (enterprise.addresses.length === 0) {
+                const newAddress = await this.addressService.create({
+                    ...payload,
+                });
+                await this.enterpriseRepository.save({
+                    ...enterprise,
+                    addresses: [newAddress.value],
+                });
+            } else {
+                await this.addressService.update(enterprise.addresses[0].addressId, payload);
             }
-
-            const address = await this.addressService.create(payload);
-
-            await this.enterpriseRepository
-                .createQueryBuilder()
-                .relation(EnterpriseEntity, 'addresses')
-                .of(enterprise)
-                .add(address.value.addressId);
-
-            const updatedEnterprise = await this.enterpriseRepository.findOne({
-                where: { enterpriseId: id },
-                relations: ['addresses'],
-            });
 
             // create embedding
             await this.embeddingService.createEnterpriseEmbedding(enterprise.enterpriseId);
 
             await this.cacheService.deleteEnterpriseInfo(enterprise.enterpriseId);
 
-            return new EnterpriseResponseDtoBuilder().setValue(updatedEnterprise).build();
+            return new EnterpriseResponseDtoBuilder().setValue(enterprise.enterpriseId).build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

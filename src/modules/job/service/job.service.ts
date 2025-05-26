@@ -1028,6 +1028,7 @@ export class JobService {
         try {
             const jobs = await this.jobRepository.find({
                 where: { enterprise: { enterpriseId: id }, status: JobStatusEnum.OPEN },
+                relations: ['addresses'],
                 take: take,
                 order: { createdAt: 'DESC' },
             });

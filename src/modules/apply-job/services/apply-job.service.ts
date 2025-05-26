@@ -511,4 +511,79 @@ export class ApplyJobService {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
+
+    async getDetails(applyJobId: string, user: JwtPayload, role: 'candidate' | 'enterprise') {
+        try {
+            const additionalCondition =
+                role === 'enterprise' && user?.enterpriseId
+                    ? {
+                          job: {
+                              enterprise: {
+                                  enterpriseId: user?.enterpriseId,
+                              },
+                          },
+                      }
+                    : role === 'candidate'
+                      ? { profile: { profileId: user.profileId } }
+                      : null;
+
+            if (additionalCondition === null) {
+                throw new BadRequestException(AppliedJobErrorType.APPLIED_JOB_NOT_FOUND);
+            }
+
+            const appliedDetails = await this.applyJobRepository.findOne({
+                where: {
+                    appliedJobId: applyJobId,
+                    ...additionalCondition,
+                },
+                relations: {
+                    profile: {
+                        industry: true,
+                        majority: true,
+                    },
+                    job: {
+                        enterprise: true,
+                    },
+                    cv: true,
+                },
+                select: {
+                    appliedJobId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    coverLetter: true,
+                    status: true,
+                    job: {},
+                    profile: {
+                        profileId: true,
+                        fullName: true,
+                        profileUrl: true,
+                        industry: {
+                            categoryId: true,
+                            categoryName: true,
+                        },
+                        majority: {
+                            categoryId: true,
+                            categoryName: true,
+                        },
+                        nationality: true,
+                        gender: true,
+                    },
+                    cv: {
+                        cvId: true,
+                        cvName: true,
+                        cvUrl: true,
+                        size: true,
+                    },
+                },
+            });
+
+            if (!appliedDetails) {
+                throw new NotFoundException(AppliedJobErrorType.APPLIED_JOB_NOT_FOUND);
+            }
+
+            return new ApplyJobResponseDtoBuilder().setValue(appliedDetails).build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
 }

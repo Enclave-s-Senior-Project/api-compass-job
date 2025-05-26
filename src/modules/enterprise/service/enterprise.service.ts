@@ -194,7 +194,6 @@ export class EnterpriseService {
                 .orderBy('enterprise.createdAt', 'DESC');
 
             if (queries.name) {
-                console.log('queries.name', queries.name);
                 queryBuilder.andWhere(
                     `(
                     to_tsvector('english', enterprise.name) @@ plainto_tsquery('english', :name)

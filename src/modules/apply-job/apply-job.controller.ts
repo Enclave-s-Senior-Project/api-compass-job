@@ -1,16 +1,14 @@
-import { FilterCandidatesDto } from './dtos/filter-candidate-applied-job.dto';
-import { Pagination } from './../../libs/pagination/pagination.helper';
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { ApplyJobService } from './services/apply-job.service';
 import { CreateApplyJobDto } from './dtos/create-apply-job.dto';
-import { UpdateApplyJobDto } from './dtos/update-apply-job.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { CurrentUser, TOKEN_NAME } from '@modules/auth';
 import { RolesGuard } from '@modules/auth/guards/role.guard';
 import { Role, Roles } from '@modules/auth/decorators/roles.decorator';
 import { JwtPayload, PaginationDto } from '@common/dtos';
 import { ApplyJobResponseDto } from './dtos';
 import { UpdateApplicationStatusDto } from './dtos/update-application-status.dto';
+import { GetDetailsApplicationDto } from './dtos/get-details-application';
 
 @ApiTags('Apply-job')
 @Controller({ path: 'apply-job', version: '1' })
@@ -42,6 +40,16 @@ export class ApplyJobController {
     @Get('/total')
     async getTotalAppliedJob(@CurrentUser() user) {
         return this.applyJobService.getTotalAppliedJob(user?.enterpriseId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({
+        summary: 'Get details of a job application',
+        description: 'Allows candidates and enterprises to retrieve details of a specific job application',
+    })
+    @Get(':id/details')
+    getAppliedJobsDetails(@CurrentUser() user, @Query() queries: GetDetailsApplicationDto, @Param('id') id: string) {
+        return this.applyJobService.getDetails(id, user, queries.role);
     }
 
     @ApiBearerAuth(TOKEN_NAME)

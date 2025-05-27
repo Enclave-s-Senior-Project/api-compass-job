@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeleteResult, ILike, In, Repository } from 'typeorm';
+import { DeleteResult, ILike, In, IsNull, Not, Repository } from 'typeorm';
 import {
     CategoryResponseDto,
     CategoryResponseDtoBuilder,
@@ -248,6 +248,37 @@ export class CategoryService {
                 .setValue(new PageDto<CategoryEntity>(entities, meta))
                 .success()
                 .build();
+        } catch (error) {
+            console.log(error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async findChildrenHomePage(): Promise<string[]> {
+        try {
+            const children = await this.categoryRepository.find({
+                where: { parent: Not(IsNull()) },
+                take: 12,
+                order: { createdAt: 'DESC' },
+                select: ['categoryName'],
+            });
+
+            return children.map((category) => category.categoryName);
+        } catch (error) {
+            console.log(error);
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async findParentCategories() {
+        try {
+            const parents = await this.categoryRepository.find({
+                where: { parent: IsNull() },
+                take: 8,
+                order: { createdAt: 'DESC' },
+            });
+
+            return parents;
         } catch (error) {
             console.log(error);
             throw ErrorCatchHelper.serviceCatch(error);

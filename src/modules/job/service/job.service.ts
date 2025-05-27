@@ -1030,7 +1030,7 @@ export class JobService {
         try {
             const jobs = await this.jobRepository.find({
                 where: { enterprise: { enterpriseId: id }, status: JobStatusEnum.OPEN },
-                relations: ['addresses'],
+                relations: ['addresses', 'enterprise'],
                 take: take,
                 order: { createdAt: 'DESC' },
             });
@@ -1345,6 +1345,58 @@ export class JobService {
                 relations: ['enterprise', 'categories', 'specializations', 'tags', 'addresses', 'boostedJob'],
             });
             return jobs;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    public async getTotalJobActive() {
+        try {
+            return this.jobRepository.count({
+                where: {
+                    status: JobStatusEnum.OPEN,
+                },
+            });
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    public async getJobHomePage() {
+        try {
+            const jobs = await this.jobRepository
+                .createQueryBuilder('job')
+                .leftJoinAndSelect('job.enterprise', 'enterprise')
+                .leftJoinAndSelect('job.boostedJob', 'boosted_jobs')
+                .select([
+                    'job.jobId',
+                    'job.name',
+                    'job.highestWage',
+                    'job.lowestWage',
+                    'job.introImg',
+                    'job.type',
+                    'enterprise.name',
+                    'enterprise.logoUrl',
+                    'boosted_jobs.id',
+                    'boosted_jobs.boostedAt',
+                    'boosted_jobs.pointsUsed',
+                ])
+                .addOrderBy('boosted_jobs.pointsUsed', 'DESC', 'NULLS LAST')
+                .addOrderBy('boosted_jobs.boostedAt', 'ASC', 'NULLS LAST')
+                .take(3)
+                .getMany();
+
+            return jobs.map((job) => ({
+                jobId: job.jobId,
+                jobName: job.name,
+                highestWage: job.highestWage,
+                lowestWage: job.lowestWage,
+                introImg: job.introImg,
+                type: job.type,
+                enterprise: {
+                    name: job.enterprise?.name || null,
+                    logoUrl: job.enterprise?.logoUrl || null,
+                },
+            }));
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

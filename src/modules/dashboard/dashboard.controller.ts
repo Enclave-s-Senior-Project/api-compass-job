@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { ApiBearerAuth, ApiInternalServerErrorResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { TOKEN_NAME } from '../auth';
+import { SkipAuth, TOKEN_NAME } from '../auth';
 import { RolesGuard } from '../auth/guards/role.guard';
 import { Role, Roles } from '../auth/decorators/roles.decorator';
 import { ApplyJobFilter } from './dtos/list-apply-job-filter.dto';
@@ -64,5 +64,49 @@ export class DashboardController {
     @Get('revenue')
     getDataRevenue() {
         return this.dashboardService.getDataRevenue();
+    }
+
+    @SkipAuth()
+    @ApiOperation({ summary: 'Count user' })
+    @ApiResponse({ status: 200, description: 'Status successfully.' })
+    @ApiResponse({ status: 404, description: 'User not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('total-home-page')
+    Count() {
+        return this.dashboardService.totalHomePage();
+    }
+
+    @SkipAuth()
+    @ApiOperation({ summary: 'Category child' })
+    @ApiResponse({ status: 200, description: 'Status successfully.' })
+    @ApiResponse({ status: 404, description: 'Categories child not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('categories-child-home-page')
+    CountCategoriesChild() {
+        return this.dashboardService.getListCategoryChildrenHomePage();
+    }
+
+    @SkipAuth()
+    @ApiOperation({ summary: 'Count categories' })
+    @ApiResponse({ status: 200, description: 'Status successfully.' })
+    @ApiResponse({ status: 404, description: 'Categories not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('categories-home-page')
+    CountCategories() {
+        return this.dashboardService.getListCategoryParentHomePage();
+    }
+
+    @SkipAuth()
+    @ApiOperation({ summary: 'List enterprise' })
+    @ApiResponse({ status: 200, description: 'Status successfully.' })
+    @ApiResponse({ status: 404, description: 'Enterprise not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('job-home-page')
+    getEnterpriseHomePage() {
+        return this.dashboardService.getJobHomePage();
     }
 }

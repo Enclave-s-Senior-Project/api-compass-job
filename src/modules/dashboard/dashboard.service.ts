@@ -8,6 +8,7 @@ import { JobService } from '../job/service/job.service';
 import { ApplyJobService } from '../apply-job/services/apply-job.service';
 import { ApplyJobResponseDtoBuilder } from '../apply-job/dtos';
 import { HistoryTransactionService } from '../history-transaction/history-transaction.service';
+import { CategoryService } from '../category/services';
 
 @Injectable()
 export class DashboardService {
@@ -18,7 +19,8 @@ export class DashboardService {
         @Inject(forwardRef(() => JobService)) private readonly jobService: JobService,
         @Inject(forwardRef(() => ApplyJobService)) private readonly applyJobService: ApplyJobService,
         @Inject(forwardRef(() => HistoryTransactionService))
-        private readonly historyTransactionService: HistoryTransactionService
+        private readonly historyTransactionService: HistoryTransactionService,
+        @Inject(forwardRef(() => CategoryService)) private readonly categoryService: CategoryService
     ) {}
 
     async total() {
@@ -62,6 +64,49 @@ export class DashboardService {
     async getDataRevenue() {
         try {
             const result = await this.historyTransactionService.getMonthlyRevenue();
+            return new DashboardResponseDtoBuilder().setValue(result).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async totalHomePage() {
+        try {
+            const [totalUser, totalEnterprise, totalJobActive, totalJob] = await Promise.all([
+                this.authService.totalUser(),
+                this.enterpriseService.getTotalEnterprise(),
+                this.jobService.getTotalJobActive(),
+                this.jobService.getTotalJob(),
+            ]);
+
+            const result = { totalUser, totalEnterprise, totalJob, totalJobActive };
+            return new DashboardResponseDtoBuilder().setValue(result).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getListCategoryChildrenHomePage() {
+        try {
+            const result = await this.categoryService.findChildrenHomePage();
+            return new DashboardResponseDtoBuilder().setValue(result).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getListCategoryParentHomePage() {
+        try {
+            const result = await this.categoryService.findParentCategories();
+            return new DashboardResponseDtoBuilder().setValue(result).success().build();
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+
+    async getJobHomePage() {
+        try {
+            const result = await this.jobService.getJobHomePage();
             return new DashboardResponseDtoBuilder().setValue(result).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

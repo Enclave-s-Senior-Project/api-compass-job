@@ -240,7 +240,10 @@ export class EnterpriseService {
                 pageOptionsDto: queries,
                 itemCount: total,
             });
-            this.cacheService.cacheListEnterprise(JSON.stringify(queries), new PageDto(profiles, meta));
+            this.cacheService.cacheListEnterprise(
+                JSON.stringify(queries),
+                new PageDto(enterprisesWithCategories, meta)
+            );
             return new EnterpriseResponseDtoBuilder()
                 .setValue(new PageDto<any>(enterprisesWithCategories, meta))
                 .build();

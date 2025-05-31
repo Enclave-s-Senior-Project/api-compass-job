@@ -51,12 +51,12 @@ export class BoostJobCronService {
                 expiredJobs.map<{ name: string; data: BoostJobExpiredData }>((temp) => ({
                     name: `expired-boost-job-${temp.job?.jobId}`,
                     data: {
-                        jobId: temp.job.jobId,
-                        jobName: temp.job.name,
+                        jobId: temp.job?.jobId,
+                        jobName: temp.job?.name,
                         enterprise: {
-                            enterpriseId: temp.job.enterprise.enterpriseId,
-                            email: temp.job.enterprise.email,
-                            name: temp.job.enterprise.name,
+                            enterpriseId: temp.job?.enterprise?.enterpriseId,
+                            email: temp.job?.enterprise?.email,
+                            name: temp.job?.enterprise?.name,
                         },
                     },
                 }))

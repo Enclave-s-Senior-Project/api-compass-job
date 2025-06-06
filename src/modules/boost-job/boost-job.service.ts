@@ -8,7 +8,7 @@ import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
 import { BoostJobErrorType } from '@src/common/errors/boost-job-error-type';
 import { JobStatusEnum } from '@src/common/enums/job.enum';
 import { BoostedJobsEntity } from '@src/database/entities';
-import { Between } from 'typeorm';
+import { Between, LessThanOrEqual } from 'typeorm';
 import { EmbeddingService } from '../embedding/embedding.service';
 @Injectable()
 export class BoostJobService {
@@ -110,39 +110,47 @@ export class BoostJobService {
 
     async checkBoostJob(jobId: string) {
         try {
-            let check = false;
-            const boostJob = await this.boostedJobRepo.findOne({
-                where: {
-                    job: { jobId },
-                },
-            });
-            if (!boostJob) {
-                return new BoostJobJobResponseDtoBuilder().setValue(check).build();
-            }
-            if (boostJob.boostedAt > new Date()) {
-                return new BoostJobJobResponseDtoBuilder().setValue(check).build();
-            }
-            check = true;
-            return new BoostJobJobResponseDtoBuilder().setValue(check).build();
+            const boostJob = await this.jobService.checkJobByIdWithBoost(jobId);
+            return new BoostJobJobResponseDtoBuilder()
+                .setValue({
+                    boostJob,
+                })
+                .build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
 
-    public batchUnexpiredBoostJob(batchSize: number = 100, offset: number = 0): Promise<BoostedJobsEntity[]> {
+    public batchExpiredBoostJobs(batchSize: number = 100, offset: number = 0): Promise<BoostedJobsEntity[]> {
         try {
             const now = new Date();
-            const sixDaysAgo = new Date();
-            sixDaysAgo.setDate(now.getDate() - 6);
+            const expiredTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-            const jobs = this.boostedJobRepo.find({
+            return this.boostedJobRepo.find({
                 where: {
-                    boostedAt: Between(sixDaysAgo, now),
+                    boostedAt: LessThanOrEqual(expiredTime),
+                },
+                relations: {
+                    job: {
+                        enterprise: true,
+                    },
+                },
+                select: {
+                    id: true,
+                    boostedAt: true,
+                    job: {
+                        jobId: true,
+                        name: true,
+                        enterprise: {
+                            enterpriseId: true,
+                            email: true,
+                            name: true,
+                        },
+                    },
                 },
                 skip: offset,
                 take: batchSize,
             });
-            return jobs;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -151,6 +159,14 @@ export class BoostJobService {
     public async deleteBulkBoostedJobs(jobs: BoostedJobsEntity[]) {
         try {
             const result = await this.boostedJobRepo.remove(jobs);
+            return result;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    public async changeJobsIsBoostStatus(jobs: BoostedJobsEntity[]) {
+        try {
+            const result = this.jobService.changeJobsIsBoostStatus(jobs);
             return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);

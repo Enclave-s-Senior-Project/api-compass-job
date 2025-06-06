@@ -1,9 +1,11 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { BoostedJobsEntity, EnterpriseEntity } from '@src/database/entities';
 import { BoostJobService } from '../boost-job/boost-job.service';
+import { CacheService } from '@src/cache/cache.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 
 export type BoostJobExpiredData = {
     jobId: string;
@@ -12,55 +14,69 @@ export type BoostJobExpiredData = {
 };
 @Injectable()
 export class BoostJobCronService {
+    private readonly logger = new Logger(BoostJobCronService.name);
     constructor(
         @InjectQueue('boostJob-expired') private readonly boostJobExpiredQueue: Queue,
-        private readonly boostJobService: BoostJobService
+        private readonly boostJobService: BoostJobService,
+        private readonly cacheService: CacheService,
+        private readonly embeddingService: EmbeddingService
     ) {}
 
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    @Cron(CronExpression.EVERY_5_HOURS)
     async triggerUpdateBoostJobExpired() {
-        this.handleCronBoostJob();
+        await this.handleCronBoostJob();
     }
 
     private async handleCronBoostJob() {
-        const batchSize = 1;
-        let jobs: BoostedJobsEntity[] = [];
+        const batchSize = 100;
+        let offset = 0;
+        let batch: BoostedJobsEntity[] = [];
 
         do {
-            jobs = await this.boostJobService.batchUnexpiredBoostJob(batchSize, 0);
-            if (jobs.length > 0) {
-                // Process expired jobs
-                await this.handleFilterExpiredBoostJob(jobs);
+            batch = await this.boostJobService.batchExpiredBoostJobs(batchSize, offset);
+            if (batch.length > 0) {
+                await this.handleFilterExpiredBoostJob(batch);
+                offset += batchSize;
             }
-        } while (jobs.length > 0);
+        } while (batch.length === batchSize);
+        if (batch.length === 0) {
+            this.logger.log('No expired boost jobs found');
+        }
+        this.logger.log(`Successfully processed ${batch.length} expired boost jobs.`);
     }
 
     private async handleFilterExpiredBoostJob(jobs: BoostedJobsEntity[]) {
-        const now = new Date();
+        if (!jobs.length) return;
+        this.logger.log(`Processing ${jobs.length} expired boost jobs...`);
 
-        // Filter expired jobs
-        const expiredJobs = jobs.filter((job) => new Date(job.createdAt) <= now);
+        await Promise.all([
+            this.boostJobService.deleteBulkBoostedJobs(jobs),
+            this.boostJobService.changeJobsIsBoostStatus(jobs),
+            this.cacheService.removeEnterpriseSearchJobsCache(),
+            this.cacheService.removeSearchJobsCache(),
+            this.embeddingService.deleteManyJobEmbedding(jobs.map((job) => job.job?.jobId)),
+        ]);
 
-        if (expiredJobs.length > 0) {
-            console.log('Expired jobs:', expiredJobs);
-            // Update expired jobs in the database
-            await this.boostJobService.deleteBulkBoostedJobs(expiredJobs);
+        await Promise.all(
+            jobs.map(async (job) => {
+                console.log('create embedding job: ', job.job?.jobId);
+                await this.embeddingService.createJobEmbedding(job.job?.jobId);
+            })
+        );
 
-            // Add expired jobs to the BullMQ queue
-            await this.boostJobExpiredQueue.addBulk(
-                expiredJobs.map<{ name: string; data: BoostJobExpiredData }>((temp) => ({
-                    name: `expired-boost-job-${temp.job?.jobId}`,
-                    data: {
-                        jobId: temp.job?.jobId,
-                        jobName: temp.job?.name,
-                        enterprise: {
-                            enterpriseId: temp.job?.enterprise?.enterpriseId,
-                            email: temp.job?.enterprise?.email,
-                            name: temp.job?.enterprise?.name,
-                        },
-                    },
-                }))
-            );
-        }
+        const queueJobs = jobs.map<{ name: string; data: BoostJobExpiredData }>((boosted) => ({
+            name: `expired-boost-job-${boosted.job?.jobId}`,
+            data: {
+                jobId: boosted.job?.jobId,
+                jobName: boosted.job?.name,
+                enterprise: {
+                    enterpriseId: boosted.job?.enterprise?.enterpriseId,
+                    email: boosted.job?.enterprise?.email,
+                    name: boosted.job?.enterprise?.name,
+                },
+            },
+        }));
+
+        await this.boostJobExpiredQueue.addBulk(queueJobs);
     }
 }

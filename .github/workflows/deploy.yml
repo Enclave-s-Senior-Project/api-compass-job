@@ -39,10 +39,11 @@ jobs:
             - name: Deploy API Backend to Server
               run: |
                   ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+                  cd /home/common/backend
                     echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
                     sudo docker stop jobcompass-api || true
                     sudo docker rm jobcompass-api || true
                     sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest || true
                     sudo docker pull ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest
-                    sudo docker run -d --name jobcompass-api -p 3001:3001 --env-file ./be-system/.env ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest
+                    sudo docker run -d --name jobcompass-api -p 3001:3001 --env-file .env ${{ secrets.DOCKER_USERNAME }}/jobcompass-be-img:latest
                   EOF

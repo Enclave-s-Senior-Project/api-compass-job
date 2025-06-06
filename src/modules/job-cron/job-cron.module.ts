@@ -5,6 +5,9 @@ import { JobCronService } from './job-cron.service';
 import { JobExpiredProcessor } from './processors/job-expired.processor';
 import { MailModule } from '@src/mail/mail.module';
 import { BoostJobModule } from '../boost-job/boost-job.module';
+import { NotificationModule } from '../notification/notification.module';
+import { CacheModule } from '@src/cache/cache.module';
+import { EmbeddingModule } from '../embedding/embedding.module';
 
 @Module({
     imports: [
@@ -17,6 +20,9 @@ import { BoostJobModule } from '../boost-job/boost-job.module';
         }),
         JobModule,
         MailModule,
+        NotificationModule,
+        CacheModule,
+        EmbeddingModule,
     ],
     providers: [JobCronService, JobExpiredProcessor],
     exports: [JobCronService],

@@ -116,12 +116,12 @@ export class CacheService {
 
     public async cacheJobFilterData(key: string, results: any) {
         const cacheKey = this.filterJobKey + key;
-        await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+        await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24);
     }
 
     public async cacheEnterpriseJobFilterData(key: string, results: any) {
         const cacheKey = this.enterpriseFilterJobKey + key;
-        await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24); // Cache for 1 day
+        await this.redisClient.set(cacheKey, JSON.stringify(results), 'EX', 60 * 60 * 24);
     }
 
     public async getCacheJobFilter(key: string) {

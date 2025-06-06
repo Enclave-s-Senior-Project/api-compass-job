@@ -9,7 +9,7 @@ import { CacheModule } from '@src/cache/cache.module';
 import { EmbeddingModule } from '../embedding/embedding.module';
 
 @Module({
-    imports: [EnterpriseModule, TmpModule, CacheModule, forwardRef(() => JobModule), EmbeddingModule],
+    imports: [EnterpriseModule, TmpModule, CacheModule, forwardRef(() => JobModule), EmbeddingModule, CacheModule],
     controllers: [BoostJobController],
     providers: [BoostJobService, BoostJobRepository],
     exports: [BoostJobService],

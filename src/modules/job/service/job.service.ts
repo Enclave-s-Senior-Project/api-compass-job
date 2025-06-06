@@ -947,12 +947,12 @@ export class JobService {
         }
     }
 
-    public batchUnexpiredJob(batchSize: number = 100, offset: number = 0): Promise<JobEntity[]> {
+    public async batchExpiredJobs(batchSize: number = 100, offset: number = 0): Promise<JobEntity[]> {
         try {
-            const jobs = this.jobRepository.find({
+            return await this.jobRepository.find({
                 where: {
-                    status: Not(JobStatusEnum.EXPIRED), // Only fetch jobs that are not already expired
-                    deadline: LessThan(new Date()), // Fetch jobs where the deadline has passed
+                    status: Not(JobStatusEnum.EXPIRED),
+                    deadline: LessThan(new Date()),
                 },
                 select: {
                     jobId: true,
@@ -966,12 +966,13 @@ export class JobService {
                     },
                 },
                 relations: {
-                    enterprise: true,
+                    enterprise: {
+                        account: true,
+                    },
                 },
                 skip: offset,
                 take: batchSize,
             });
-            return jobs;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
@@ -1397,6 +1398,30 @@ export class JobService {
                     logoUrl: job.enterprise?.logoUrl || null,
                 },
             }));
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async checkJobByIdWithBoost(jobId: string) {
+        try {
+            const job = await this.jobRepository.findOne({
+                where: { jobId },
+                select: {
+                    isBoost: true,
+                },
+            });
+            return job.isBoost;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async changeJobsIsBoostStatus(jobs: BoostedJobsEntity[]) {
+        try {
+            const result = await this.jobRepository.update(
+                { jobId: In(jobs.map((job) => job.job?.jobId)) },
+                { isBoost: false }
+            );
+            return result;
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

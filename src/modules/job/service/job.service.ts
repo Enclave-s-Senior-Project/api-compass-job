@@ -742,7 +742,7 @@ export class JobService {
             });
 
             // Update embedding
-            // await this.embeddingService.createJobEmbedding(jobId);
+            await this.embeddingService.createJobEmbedding(jobId);
 
             // Clear cache
             this.cacheService.removeSearchJobsCache();
@@ -859,7 +859,7 @@ export class JobService {
 
             // Batch independent async operations
             await Promise.all([
-                // this.embeddingService.deleteOneJobEmbedding(jobId),
+                this.embeddingService.deleteOneJobEmbedding(jobId),
                 this.cacheService.removeSearchJobsCache(),
                 this.cacheService.removeEnterpriseSearchJobsCache(),
             ]);

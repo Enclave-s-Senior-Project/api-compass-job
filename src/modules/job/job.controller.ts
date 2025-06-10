@@ -159,6 +159,20 @@ export class JobController {
 
     @ApiBearerAuth(TOKEN_NAME)
     @UseGuards(RolesGuard)
+    @Roles(Role.ENTERPRISE, Role.ADMIN)
+    @Patch(':id/open')
+    @ApiOperation({ description: 'Open a job. Only available for enterprise users and admins.' })
+    openJob(
+        @Param('id') id: string,
+        @CurrentUser() user: JwtPayload,
+        @Body() body: { reason?: string }
+    ): Promise<JobResponseDto> {
+        console.log('vao day------------------->', body);
+        return this.jobService.openJob(id, user);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
     @Roles(Role.ADMIN)
     @Patch(':id/status')
     changeStatus(@Param('id') id: string, @Body() body: UpdateJobStatusDto): Promise<JobResponseDto> {

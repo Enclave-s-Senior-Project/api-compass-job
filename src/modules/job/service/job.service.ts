@@ -683,6 +683,17 @@ export class JobService {
             if (!existingJob) {
                 throw new NotFoundException(GlobalErrorType.JOB_NOT_FOUND);
             }
+            if (existingJob.status === JobStatusEnum.CLOSED) {
+                throw new BadRequestException(JobErrorType.JOB_IS_CLOSED);
+            }
+
+            let updatedStatus: JobStatusEnum = existingJob.status;
+
+            if (updatePayload.deadline && new Date(updatePayload.deadline) < new Date()) {
+                updatedStatus = JobStatusEnum.EXPIRED;
+            } else if (updatePayload.deadline && new Date(updatePayload.deadline) > new Date()) {
+                updatedStatus = JobStatusEnum.OPEN;
+            }
 
             // Validate category and specialization
             if (updatePayload.categoryIds?.length !== 1) {
@@ -722,6 +733,7 @@ export class JobService {
             // Update job
             await this.jobRepository.save({
                 ...existingJob,
+                status: updatedStatus,
                 ...jobData,
                 addresses,
                 categories,
@@ -730,7 +742,7 @@ export class JobService {
             });
 
             // Update embedding
-            await this.embeddingService.createJobEmbedding(jobId);
+            // await this.embeddingService.createJobEmbedding(jobId);
 
             // Clear cache
             this.cacheService.removeSearchJobsCache();
@@ -792,30 +804,28 @@ export class JobService {
 
     public async closeJob(jobId: string, user: JwtPayload, reason?: string) {
         try {
-            // Validate UUID
+            // Validate UUID early to avoid unnecessary processing
             if (!ValidationHelper.isValidateUUIDv4(jobId)) {
                 throw new BadRequestException(GlobalErrorType.INVALID_ID);
             }
 
             const isAdmin = user.roles.includes(Role.ADMIN);
+            const condition = isAdmin ? { jobId } : { jobId, enterprise: { enterpriseId: user.enterpriseId } };
 
-            let condition = {};
-            if (isAdmin) {
-                condition = { jobId: jobId };
-            } else {
-                condition = { jobId: jobId, enterprise: { enterpriseId: user.enterpriseId } };
-            }
-
+            // Fetch only necessary fields to reduce data transfer
             const existingJob = await this.jobRepository.findOne({
                 where: condition,
-                relations: ['enterprise'],
                 select: {
+                    jobId: true,
+                    status: true,
+                    name: true,
                     enterprise: {
                         enterpriseId: true,
                         name: true,
                         email: true,
                     },
                 },
+                relations: ['enterprise'],
             });
 
             if (!existingJob) {
@@ -826,13 +836,19 @@ export class JobService {
                 throw new WarningException(JobErrorType.JOB_IS_CLOSED);
             }
 
+            // Ensure non-admin user has permission to close the job
+            if (!isAdmin && user.enterpriseId !== existingJob.enterprise.enterpriseId) {
+                throw new BadRequestException(JobErrorType.NOT_ALLOW_TO_CLOSE_JOB);
+            }
+
+            // Perform single update operation
             await this.jobRepository.update({ jobId }, { status: JobStatusEnum.CLOSED, deadline: new Date() });
 
+            // Send email notification for admin closure
             if (isAdmin) {
-                // send email notification to enterprise
                 const defaultReason =
                     'Your job posting may have violated our platform rules or guidelines. If you believe this is an error, please contact our support team.';
-                this.mailService.sendJobClosureNotificationMail(
+                await this.mailService.sendJobClosureNotificationMail(
                     existingJob.enterprise.email,
                     existingJob.name,
                     existingJob.jobId,
@@ -841,19 +857,18 @@ export class JobService {
                 );
             }
 
-            // Update embedding
-            await this.embeddingService.deleteOneJobEmbedding(jobId);
-
-            // clear filter search cache
-            this.cacheService.removeSearchJobsCache();
-            this.cacheService.removeEnterpriseSearchJobsCache();
+            // Batch independent async operations
+            await Promise.all([
+                // this.embeddingService.deleteOneJobEmbedding(jobId),
+                this.cacheService.removeSearchJobsCache(),
+                this.cacheService.removeEnterpriseSearchJobsCache(),
+            ]);
 
             return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }
     }
-
     public async changeStatus(jobId: string, payload: UpdateJobStatusDto) {
         try {
             // Validate UUID
@@ -900,7 +915,7 @@ export class JobService {
             );
 
             // Update embedding
-            await this.embeddingService.createJobEmbedding(jobId);
+            // await this.embeddingService.createJobEmbedding(jobId);
 
             // Clear cache to reflect changes
             this.cacheService.removeSearchJobsCache();
@@ -1422,6 +1437,25 @@ export class JobService {
                 { isBoost: false }
             );
             return result;
+        } catch (error) {
+            throw ErrorCatchHelper.serviceCatch(error);
+        }
+    }
+    async openJob(jobId: string, user: JwtPayload) {
+        try {
+            const job = await this.jobRepository.findOne({
+                where: { jobId, enterprise: { enterpriseId: user.enterpriseId } },
+            });
+            if (!job) throw new NotFoundException(JobErrorType.JOB_NOT_FOUND);
+            if (job.status === JobStatusEnum.OPEN) throw new BadRequestException(JobErrorType.JOB_IS_OPEN);
+            await this.jobRepository.update(
+                { jobId },
+                { status: JobStatusEnum.OPEN, deadline: new Date(new Date().setDate(new Date().getDate() + 30)) }
+            );
+            await this.embeddingService.createJobEmbedding(jobId);
+            this.cacheService.removeSearchJobsCache();
+            this.cacheService.removeEnterpriseSearchJobsCache();
+            return new JobResponseDtoBuilder().setValue(null).success().build();
         } catch (error) {
             throw ErrorCatchHelper.serviceCatch(error);
         }

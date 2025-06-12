@@ -1,0 +1,63 @@
+import { Controller, Get, UseGuards, HttpStatus, Res, Post, Query, Body } from '@nestjs/common';
+import { OAuth2Service } from '../services/oauth2.service';
+import { ConfigService } from '@nestjs/config';
+import { GoogleOAuthGuard } from '../guards/google-oauth.guard';
+import { CurrentUser, SkipAuth } from '@modules/auth/decorators';
+import { Response } from 'express';
+import { ErrorCatchHelper } from '@src/helpers/error-catch.helper';
+import { ConfirmOAuth2Dto } from '../dtos/confirm-oauth2.dto';
+
+@Controller({ path: 'auth/google', version: '1' })
+@SkipAuth()
+export class GoogleController {
+    constructor(
+        private readonly oauth2Service: OAuth2Service,
+        private readonly configService: ConfigService
+    ) {}
+
+    @UseGuards(GoogleOAuthGuard)
+    @Get('/')
+    async googleAuth() {
+        return HttpStatus.OK;
+    }
+
+    @UseGuards(GoogleOAuthGuard)
+    @Get('/google-redirect')
+    async googleAuthRedirect(@CurrentUser() user, @Res({ passthrough: true }) res: Response) {
+        try {
+            const { authToken, iv } = await this.oauth2Service.oauth2Login(user);
+
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL')}/auth/callback?authToken=${authToken}&iv=${iv}&provider=google`
+            );
+        } catch (error) {
+            const errorCaught = ErrorCatchHelper.serviceCatch(error);
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`
+            );
+        }
+    }
+
+    @Post('/confirm')
+    async confirmOAuth2(@Body() body: ConfirmOAuth2Dto, @Res({ passthrough: true }) res: Response) {
+        try {
+            const { builder, refreshToken, refreshTokenExpires } = await this.oauth2Service.confirmOAuth2Account(body);
+
+            const isProd = process.env.NODE_ENV === 'production';
+
+            res.cookie('refresh-token', refreshToken, {
+                httpOnly: true,
+                sameSite: isProd ? 'none' : 'lax',
+                secure: isProd,
+                maxAge: refreshTokenExpires,
+            });
+
+            return builder;
+        } catch (error) {
+            const errorCaught = ErrorCatchHelper.serviceCatch(error);
+            return res.redirect(
+                `${this.configService.get<string>('CLIENT_URL')}/sign-in?error_code=${errorCaught.message}`
+            );
+        }
+    }
+}

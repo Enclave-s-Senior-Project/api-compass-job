@@ -1,0 +1,20 @@
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, JobEntity } from '@database/entities';
+
+@Entity('tags')
+export class TagEntity extends BaseEntity {
+    @PrimaryGeneratedColumn('uuid', { name: 'tag_id' })
+    readonly tagId: string;
+
+    @Column({ name: 'name', type: 'varchar', unique: true, length: 255 })
+    readonly name: string;
+
+    @Column({ name: 'color', type: 'varchar', length: 7, nullable: true })
+    color?: string;
+
+    @Column({ name: 'background_color', type: 'varchar', length: 7, nullable: true })
+    backgroundColor?: string;
+
+    @ManyToMany(() => JobEntity, (job) => job.tags)
+    jobs: JobEntity[];
+}

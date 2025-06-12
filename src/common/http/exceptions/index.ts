@@ -8,16 +8,20 @@ import { PermissionExistsException } from './permission-exists.exception';
 import { RefreshTokenExpiredException } from './refresh-token-expired.exception';
 import { RoleExistsException } from './role-exists.exception';
 import { UserExistsException } from './user-exists.exception';
+import { NotFoundUserException } from './not-found.exception';
+import { CustomExceptionFilter } from './global.exception';
 
 export {
-  ForeignKeyConflictException,
-  PermissionExistsException,
-  RoleExistsException,
-  UserExistsException,
-  InvalidCurrentPasswordException,
-  InvalidCredentialsException,
-  DisabledUserException,
-  InvalidTokenException,
-  AccessTokenExpiredException,
-  RefreshTokenExpiredException,
+    ForeignKeyConflictException,
+    PermissionExistsException,
+    RoleExistsException,
+    UserExistsException,
+    InvalidCurrentPasswordException,
+    InvalidCredentialsException,
+    DisabledUserException,
+    InvalidTokenException,
+    AccessTokenExpiredException,
+    RefreshTokenExpiredException,
+    NotFoundUserException,
+    CustomExceptionFilter,
 };

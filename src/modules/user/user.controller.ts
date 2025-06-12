@@ -1,0 +1,136 @@
+import { Body, Controller, Get, HttpCode, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { UserService } from './service/user.service';
+import {
+    ApiBearerAuth,
+    ApiInternalServerErrorResponse,
+    ApiOperation,
+    ApiParam,
+    ApiResponse,
+    ApiTags,
+    ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { CurrentUser, SkipAuth, TOKEN_NAME } from '@modules/auth';
+import { JwtPayload, PaginationDto } from '@common/dtos';
+import { UserResponseDto } from './dtos/user-response.dto';
+import { UpdatePersonalProfileDto } from './dtos/update-personal-profile.dto';
+import { UpdateCandidateProfileDto } from './dtos/update-candidate-profile.dto';
+import { RolesGuard } from '../auth/guards/role.guard';
+import { Role, Roles } from '../auth/decorators/roles.decorator';
+import { UpdateStatusUserDto } from './dtos/update-status-user.dto';
+import { FindCandidateDto } from '@src/common/dtos/find-candidate.dto';
+
+@ApiTags('User')
+@Controller({
+    path: 'user',
+    version: '1',
+})
+@ApiBearerAuth(TOKEN_NAME)
+export class UserController {
+    constructor(private readonly userService: UserService) {}
+
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get all users with pagination' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get()
+    async getAllUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
+        return this.userService.getAllUsers(pageOptionsDto);
+    }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @ApiOperation({ description: 'get all candidate' })
+    @Get('candidates')
+    async getAllCandidates(@Query() pageOptionsDto: FindCandidateDto): Promise<UserResponseDto> {
+        return this.userService.getAllCandidatesDashboard(pageOptionsDto);
+    }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Update personal profile' })
+    @Patch('personal')
+    async updatePersonalProfile(@Body() body: UpdatePersonalProfileDto, @CurrentUser() user) {
+        return this.userService.updatePersonalProfile(body, user);
+    }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Update user' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Patch('candidate')
+    async updateCandidateProfile(@Body() body: UpdateCandidateProfileDto, @CurrentUser() user) {
+        return this.userService.updateCandidateProfile(body, user);
+    }
+
+    @HttpCode(200)
+    @ApiOperation({ description: 'Filter users' })
+    @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Get('filter')
+    async filterUsers(@Query() pageOptionsDto: PaginationDto): Promise<UserResponseDto> {
+        return this.userService.filterUsers(pageOptionsDto);
+    }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.USER, Role.ENTERPRISE)
+    @ApiOperation({ description: 'Filter users' })
+    @Get('me')
+    async informationUSer(@CurrentUser() user: JwtPayload) {
+        return this.userService.getProfileUserDashboard(user.profileId);
+    }
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.ENTERPRISE)
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get user information by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    @Get(':id')
+    async getUserInfo(@Param('id') profileId: string, @CurrentUser() user: JwtPayload) {
+        return this.userService.getUserByProfileId(profileId, user.enterpriseId);
+    }
+
+    @SkipAuth()
+    @HttpCode(200)
+    @Get(':id/resume')
+    @ApiOperation({ description: 'Get resume by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    async getUserResume(@Param('id') profileId: string) {
+        return this.userService.getCvByUserId(profileId);
+    }
+
+    @SkipAuth()
+    @HttpCode(200)
+    @ApiOperation({ description: 'Get social links by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    @Get(':id/social-link')
+    async getSocialLinks(@Param('id') profileId: string) {
+        return this.userService.findByProfileId(profileId);
+    }
+
+    @HttpCode(200)
+    @ApiBearerAuth(TOKEN_NAME)
+    @ApiOperation({ description: 'Get user information by ID profile' })
+    @ApiParam({ name: 'id', description: 'The ID of the user profile', required: true, type: String })
+    @Get('/candidate/:id')
+    async getUserInfoAndFavorite(@Param('id') profileId: string, @CurrentUser() user) {
+        return this.userService.getUserByProfileIdAndFavorite(profileId, user.enterpriseId);
+    }
+
+    @ApiBearerAuth(TOKEN_NAME)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN)
+    @ApiOperation({ summary: 'Update the status of an enterprise' })
+    @ApiResponse({ status: 200, description: 'Status updated successfully.' })
+    @ApiResponse({ status: 404, description: 'User not found.' })
+    @ApiResponse({ status: 199, description: 'Same status.' })
+    @ApiInternalServerErrorResponse({ description: 'Server error' })
+    @Patch('status/:id')
+    updateStatus(@Param('id') enterpriseId: string, @Body() body: UpdateStatusUserDto) {
+        return this.userService.updateUserStatus(enterpriseId, body);
+    }
+}

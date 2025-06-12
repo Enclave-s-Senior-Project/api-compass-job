@@ -1,0 +1,6 @@
+export enum CvErrorType {
+    CV_NOT_FOUND = 'CV_NOT_FOUND',
+    CV_ALREADY_EXISTS = 'CV_ALREADY_EXISTS',
+    FETCH_CV_FAILED = 'FETCH_JOB_FAILED',
+    CV_IN_USE = 'CV_IN_USE',
+}

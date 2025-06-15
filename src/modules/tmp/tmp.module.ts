@@ -18,6 +18,7 @@ import {
     BoostedJobsEntity,
     NotificationEntity,
     FCMTokenEntity,
+    ReportEnterpriseEntity,
 } from '@database/entities';
 import { TransactionEntity } from '@src/database/entities/transaction.entity';
 import { HistoryTransactionEntity } from '@src/database/entities/history-transaction.entity';
@@ -42,6 +43,7 @@ import { HistoryTransactionEntity } from '@src/database/entities/history-transac
             FCMTokenEntity,
             TransactionEntity,
             HistoryTransactionEntity,
+            ReportEnterpriseEntity,
         ]),
     ],
     controllers: [TmpController],

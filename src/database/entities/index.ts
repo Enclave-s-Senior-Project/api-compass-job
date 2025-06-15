@@ -15,6 +15,7 @@ import { GenderType } from './profile.entity';
 import { BoostedJobsEntity } from './boosted-jobs.entity';
 import { NotificationEntity } from './notification.entity';
 import { FCMTokenEntity } from './FCM-token.entity';
+import { ReportEnterpriseEntity } from './report-enterprise.entity';
 
 export {
     GenderType,
@@ -35,4 +36,5 @@ export {
     BoostedJobsEntity,
     NotificationEntity,
     FCMTokenEntity,
+    ReportEnterpriseEntity,
 };

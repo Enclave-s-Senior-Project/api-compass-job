@@ -25,6 +25,8 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { BoostJobCronModule } from './modules/boost-job-cron/boost-job-cron.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HistoryTransactionModule } from './modules/history-transaction/history-transaction.module';
+import { UserRatingModule } from './modules/user-rating/user-rating.module';
+import { ReportModule } from './modules/report/report.module';
 
 @Module({
     imports: [
@@ -63,6 +65,8 @@ import { HistoryTransactionModule } from './modules/history-transaction/history-
         BoostJobCronModule,
         DashboardModule,
         HistoryTransactionModule,
+        UserRatingModule,
+        ReportModule,
     ],
 })
 export class AppModule {

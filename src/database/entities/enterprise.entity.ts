@@ -16,11 +16,13 @@ import {
     JobEntity,
     ProfileEntity,
     BoostedJobsEntity,
+    UserRatingEntity,
 } from '@database/entities';
 import { AddressEntity } from '@database/entities/address.entity';
 import { EnterpriseStatus } from '@common/enums';
 import { TransactionEntity } from './transaction.entity';
 import { HistoryTransactionEntity } from './history-transaction.entity';
+import { ReportEnterpriseEntity } from './report-enterprise.entity';
 
 export enum OrganizationType {
     PRIVATE = 'PRIVATE',
@@ -134,6 +136,13 @@ export class EnterpriseEntity extends BaseEntity {
         nullable: true,
     })
     historyTransactions: HistoryTransactionEntity[];
+
+    @OneToMany(() => UserRatingEntity, (userRating) => userRating.enterprise)
+    userRatings: UserRatingEntity[];
+
+    @OneToMany(() => ReportEnterpriseEntity, (reportEnterprise) => reportEnterprise.enterprise)
+    reportEnterprises: ReportEnterpriseEntity[];
+
     @BeforeUpdate()
     checkPremiumStatus(): void {
         if (this.totalPoints === 0) {

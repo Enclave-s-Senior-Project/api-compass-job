@@ -1,8 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { JobEntity, ProfileEntity } from '@database/entities';
+import { EnterpriseEntity, BaseEntity, ProfileEntity } from '@database/entities';
 
 @Entity({ name: 'user_ratings' })
-export class UserRatingEntity {
+export class UserRatingEntity extends BaseEntity {
     @PrimaryGeneratedColumn('uuid', { name: 'user_rating_id' })
     readonly userRatingId: string;
 
@@ -12,9 +12,9 @@ export class UserRatingEntity {
     @Column({ name: 'comment', type: 'text', nullable: true })
     readonly comment: string | null;
 
-    @ManyToOne(() => JobEntity, (job) => job.userRatings)
-    @JoinColumn({ name: 'job_id' })
-    readonly job: JobEntity;
+    @ManyToOne(() => EnterpriseEntity, (enterprise) => enterprise.userRatings)
+    @JoinColumn({ name: 'enterprise_id' })
+    readonly enterprise: EnterpriseEntity;
 
     @ManyToOne(() => ProfileEntity, (profile) => profile.userRatings)
     @JoinColumn([{ name: 'profile_id' }])

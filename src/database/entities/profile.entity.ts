@@ -24,6 +24,7 @@ import {
 } from '@database/entities';
 import { AppliedJobEntity } from '@database/entities/applied-job.entity';
 import { AddressEntity } from '@database/entities/address.entity';
+import { ReportEnterpriseEntity } from './report-enterprise.entity';
 
 export enum GenderType {
     MALE = 'MALE',
@@ -134,7 +135,9 @@ export class ProfileEntity extends BaseEntity {
     @ManyToMany(() => AddressEntity, (address) => address.profiles)
     readonly addresses: AddressEntity[];
 
-    @ManyToMany(() => EnterpriseEntity, (enterprise) => enterprise.profiles)
+    @OneToMany(() => ReportEnterpriseEntity, (reportEnterprise) => reportEnterprise.profile)
+    readonly reportEnterprises: ReportEnterpriseEntity[];
+
     @JoinTable({
         name: 'candidate_favorites',
         joinColumn: { name: 'profile_id' },

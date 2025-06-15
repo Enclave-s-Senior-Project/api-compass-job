@@ -167,7 +167,6 @@ export class JobController {
         @CurrentUser() user: JwtPayload,
         @Body() body: { reason?: string }
     ): Promise<JobResponseDto> {
-        console.log('vao day------------------->', body);
         return this.jobService.openJob(id, user);
     }
 

@@ -59,7 +59,6 @@ export class BoostJobCronService {
 
         await Promise.all(
             jobs.map(async (job) => {
-                console.log('create embedding job: ', job.job?.jobId);
                 await this.embeddingService.createJobEmbedding(job.job?.jobId);
             })
         );

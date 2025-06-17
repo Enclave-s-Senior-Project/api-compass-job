@@ -8,7 +8,6 @@ export class CreateUserRatingDto {
     @IsUUID()
     enterpriseId: string;
 
-
     @ApiProperty({ minimum: 1, maximum: 5 })
     @IsNotEmpty()
     @IsNumber()

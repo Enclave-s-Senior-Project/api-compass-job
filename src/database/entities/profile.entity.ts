@@ -138,6 +138,7 @@ export class ProfileEntity extends BaseEntity {
     @OneToMany(() => ReportEnterpriseEntity, (reportEnterprise) => reportEnterprise.profile)
     readonly reportEnterprises: ReportEnterpriseEntity[];
 
+    @ManyToMany(() => EnterpriseEntity, (enterprise) => enterprise.profiles)
     @JoinTable({
         name: 'candidate_favorites',
         joinColumn: { name: 'profile_id' },
